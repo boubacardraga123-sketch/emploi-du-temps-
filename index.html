@@ -3,6 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#6366f1">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GestionEDT">
+<meta name="description" content="Gestion des emplois du temps scolaires — Collection BHDS">
+<link rel="manifest" href="/emploi-du-temps-/manifest.json">
+<link rel="apple-touch-icon" href="/emploi-du-temps-/icon-192.png">
 <title>Emploi du temps — GestionEDT</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -883,6 +891,7 @@ window.fbOnSnapshot = onSnapshot;
   <span class="ub-email" id="auth-user-email">—</span>
   <span class="ub-badge" id="auth-user-badge">Gestionnaire</span>
   <button class="btn btn-danger" style="font-size:12px;padding:6px 12px" onclick="authLogout()">🚪 Déconnexion</button>
+  <button id="pwa-install-btn" onclick="installPWA()" style="display:none;align-items:center;gap:6px;background:#10b981;border:none;color:#fff;border-radius:10px;padding:6px 12px;font-size:12px;font-weight:800;cursor:pointer;font-family:DM Sans,sans-serif">📲 Installer</button>
 </div>
 
 
@@ -5756,5 +5765,33 @@ buildSlotSelect();
 </div>
 
 </div><!-- end #app-root -->
+<script>
+// SW actif uniquement sur GitHub Pages (HTTPS requis)
+if ('serviceWorker' in navigator && location.hostname === 'boubacardraga123-sketch.github.io') {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/emploi-du-temps-/sw.js')
+      .then(r => console.log('✅ SW actif'))
+      .catch(e => console.warn('SW:', e.message));
+  });
+}
+// Bouton installation PWA
+let _pwaPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _pwaPrompt = e;
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.style.display = 'flex';
+});
+window.addEventListener('appinstalled', () => {
+  _pwaPrompt = null;
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.style.display = 'none';
+});
+window.installPWA = function() {
+  if (!_pwaPrompt) return;
+  _pwaPrompt.prompt();
+  _pwaPrompt.userChoice.then(() => { _pwaPrompt = null; });
+};
+</script>
 </body>
 </html>
