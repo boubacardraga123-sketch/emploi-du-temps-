@@ -7,11 +7,11 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="GestionEDT">
+<meta name="apple-mobile-web-app-title" content="Gestion Scolaire">
 <meta name="description" content="Gestion des emplois du temps scolaires — Collection BHDS">
 <link rel="manifest" href="/emploi-du-temps-/manifest.json">
 <link rel="apple-touch-icon" href="/emploi-du-temps-/icon-192.png">
-<title>Emploi du temps — GestionEDT</title>
+<title>Gestion Scolaire</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -180,12 +180,202 @@ td.time-col.current-slot{background:#eef2ff;color:#6366f1;border-left:3px solid 
 .attend-btn.r{background:#f59e0b;color:#fff}
 .attend-btn.inactive{background:#f1f5f9;color:#94a3b8}
 .attend-status{font-size:11px;font-weight:700;padding:3px 8px;border-radius:6px}
+
+/* ── MODAL LETTRE ABSENCE/RETARD ── */
+.lettre-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:flex-end;justify-content:center}
+.lettre-overlay.open{display:flex}
+.lettre-modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:20px 18px 28px;animation:up .22s ease;max-height:90vh;overflow-y:auto}
+.lettre-modal-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#1a1f2e;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.lettre-type-tabs{display:flex;gap:4px;margin-bottom:12px;background:#f1f5f9;border-radius:10px;padding:3px;width:fit-content}
+.lettre-type-tab{padding:6px 14px;border-radius:8px;border:none;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;background:transparent;color:#64748b;transition:all .15s}
+.lettre-type-tab.active{background:#fff;color:#6366f1;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.lettre-textarea{width:100%;min-height:220px;border:1.5px solid #e2e8f0;border-radius:12px;padding:12px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;line-height:1.6;resize:vertical}
+.lettre-textarea:focus{border-color:#6366f1}
+.lettre-email-inp{width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:10px}
+.lettre-email-inp:focus{border-color:#6366f1}
+.lettre-send-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.lettre-send-btn{flex:1;padding:10px;border-radius:10px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px}
+.lettre-send-btn.wa{background:#25d366;color:#fff}
+.lettre-send-btn.mail{background:#6366f1;color:#fff}
+.lettre-send-btn.copy{background:#f1f5f9;color:#475569}
+.lettre-close-btn{width:100%;margin-top:8px;padding:9px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;color:#64748b}
+
+/* ── MODAL PARENT ÉLÈVE ── */
+#parent-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;align-items:flex-end;justify-content:center}
+#parent-overlay.open{display:flex}
+#parent-modal{background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:20px 18px 28px;animation:up .22s ease;max-height:90vh;overflow-y:auto}
 .status-present{background:#d1fae5;color:#065f46}
 .status-absent{background:#fee2e2;color:#991b1b}
 .status-late{background:#fef3c7;color:#92400e}
 .status-unknown{background:#f1f5f9;color:#94a3b8}
 
-/* ── WHATSAPP LINK SETTINGS ── */
+/* ── STATISTIQUES ENSEIGNANTS ── */
+.se-header-band{background:linear-gradient(135deg,#1a1f2e,#312e81);border-radius:16px;padding:16px 18px;margin-bottom:12px;color:#fff}
+.se-header-band h2{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:2px}
+.se-header-band p{font-size:12px;opacity:.65}
+.se-kpi-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.se-kpi{background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.07);flex:1;min-width:100px;display:flex;flex-direction:column;align-items:center;gap:2px;border-top:3px solid #6366f1}
+.se-kpi-val{font-family:'DM Mono',monospace;font-size:22px;font-weight:800;color:#6366f1}
+.se-kpi-lbl{font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;text-align:center}
+.se-card{background:#fff;border-radius:14px;padding:0;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden}
+.se-card-hdr{display:flex;align-items:center;gap:12px;padding:13px 16px;cursor:pointer;border-bottom:1px solid #f1f5f9;transition:background .15s}
+.se-card-hdr:hover{background:#f8fafc}
+.se-card-avatar{width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;flex-shrink:0;color:#fff}
+.se-card-info{flex:1;min-width:120px}
+.se-card-name{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#1a1f2e}
+.se-card-role{font-size:11px;color:#64748b;margin-top:1px}
+.se-card-badges{display:flex;gap:5px;flex-wrap:wrap;flex-shrink:0}
+.se-badge{font-size:10px;font-weight:700;border-radius:6px;padding:3px 9px;white-space:nowrap}
+.se-badge-green{background:#d1fae5;color:#065f46}
+.se-badge-red{background:#fee2e2;color:#991b1b}
+.se-badge-yellow{background:#fef3c7;color:#92400e}
+.se-badge-indigo{background:#eef2ff;color:#4338ca}
+.se-badge-gray{background:#f1f5f9;color:#475569}
+.se-card-body{padding:14px 16px;display:none}
+.se-card-body.open{display:block}
+.se-stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:12px}
+.se-stat-chip{background:#f8fafc;border-radius:10px;padding:10px 12px;border:1.5px solid #e2e8f0;display:flex;flex-direction:column;align-items:center;gap:3px}
+.se-stat-chip .sv{font-size:20px;font-weight:800;font-family:'DM Mono',monospace}
+.se-stat-chip .sl{font-size:10px;color:#64748b;font-weight:700;text-align:center}
+.se-prog-bar-wrap{background:#f1f5f9;border-radius:20px;height:8px;overflow:hidden;flex:1;min-width:80px}
+.se-prog-bar{height:100%;border-radius:20px;transition:width .4s}
+.se-history-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f8fafc;font-size:12px}
+.se-history-row:last-child{border-bottom:none}
+.se-filter-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+.se-filter-chip{padding:5px 13px;border-radius:8px;border:1.5px solid #e2e8f0;background:#fff;font-size:12px;font-weight:700;cursor:pointer;color:#475569;transition:all .15s;font-family:'DM Sans',sans-serif}
+.se-filter-chip.active{border-color:#6366f1;background:#eef2ff;color:#4338ca}
+.se-retard-alert{background:#fff7ed;border:1.5px solid #fed7aa;border-radius:10px;padding:9px 12px;font-size:12px;font-weight:700;color:#c2410c;display:flex;align-items:center;gap:8px;margin-bottom:6px}
+.se-empty{text-align:center;padding:40px;color:#94a3b8;font-size:14px}
+
+/* ── MULTI-ÉTABLISSEMENTS ── */
+.multi-etab-bar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:#1a1f2e;border-radius:12px;padding:8px 12px;margin-bottom:10px}
+.multi-etab-chip{padding:5px 12px;border-radius:8px;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;background:rgba(255,255,255,.1);color:#94a3b8;transition:all .15s}
+.multi-etab-chip.active{background:#6366f1;color:#fff}
+.multi-etab-chip:hover:not(.active){background:rgba(255,255,255,.2);color:#fff}
+.multi-etab-add-btn{padding:5px 11px;border-radius:8px;border:1.5px dashed rgba(255,255,255,.3);font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;background:transparent;color:#94a3b8;white-space:nowrap}
+.multi-etab-add-btn:hover{border-color:#6366f1;color:#6366f1}
+
+/* ── RAPPORT MENSUEL ── */
+.rapport-section{background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.rapport-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#1a1f2e;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.rapport-month-sel{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+.rapport-stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;margin-bottom:12px}
+.rapport-stat-card{background:#f8fafc;border-radius:10px;padding:10px 12px;border:1.5px solid #e2e8f0;display:flex;flex-direction:column;align-items:center;gap:3px}
+.rapport-stat-card .rs-val{font-size:20px;font-weight:800;color:#6366f1;font-family:'DM Mono',monospace}
+.rapport-stat-card .rs-lbl{font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase;text-align:center}
+.rapport-classe-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:10px;background:#f8fafc;border:1.5px solid #e2e8f0;margin-bottom:6px}
+.rapport-classe-name{flex:1;font-size:12px;font-weight:700;color:#1a1f2e;min-width:80px}
+.rapport-bar-wrap{flex:2;background:#e2e8f0;border-radius:20px;height:7px;overflow:hidden;min-width:80px}
+.rapport-bar{height:100%;border-radius:20px}
+.rapport-bar-pct{font-size:11px;font-weight:800;min-width:38px;text-align:right;font-family:'DM Mono',monospace}
+
+/* ── FICHE ÉLÈVE ENRICHIE ── */
+.fiche-photo-zone{display:flex;align-items:center;gap:14px;margin-bottom:14px;padding:12px;background:#f8fafc;border-radius:12px;border:1.5px solid #e2e8f0}
+.fiche-photo-preview{width:64px;height:64px;border-radius:12px;object-fit:cover;border:2px solid #e2e8f0;background:#eef2ff;display:flex;align-items:center;justify-content:center;font-size:28px;flex-shrink:0;overflow:hidden}
+.fiche-section-title{font-size:11px;font-weight:800;color:#475569;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;margin-top:12px;display:flex;align-items:center;gap:6px}
+.fiche-history-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;font-size:12px}
+.fiche-history-row:last-child{border-bottom:none}
+.fiche-notes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;margin-bottom:8px}
+.fiche-note-chip{background:#eef2ff;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;color:#4338ca;text-align:center}
+
+/* ── ATTEND TABS (personnel / élèves) ── */
+.attend-sub-tabs{display:flex;gap:4px;margin-bottom:14px;background:#f1f5f9;border-radius:10px;padding:3px;width:fit-content}
+.attend-sub-tab{padding:7px 16px;border-radius:8px;border:none;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;background:transparent;color:#64748b;transition:all .15s}
+.attend-sub-tab.active{background:#fff;color:#6366f1;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+
+/* ── PRÉSENCES ÉLÈVES PAR CLASSE ── */
+.ea-classe-card{background:#fff;border-radius:14px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden}
+.ea-classe-hdr{display:flex;align-items:center;gap:10px;padding:12px 16px;cursor:pointer;user-select:none}
+.ea-classe-hdr-name{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#fff;flex:1}
+.ea-classe-hdr-badges{display:flex;gap:6px;align-items:center;flex-shrink:0}
+.ea-badge{font-size:11px;font-weight:700;border-radius:6px;padding:2px 8px;background:rgba(255,255,255,.25);color:#fff}
+.ea-badge.green{background:#d1fae5;color:#065f46}
+.ea-badge.red{background:#fee2e2;color:#991b1b}
+.ea-badge.yellow{background:#fef3c7;color:#92400e}
+.ea-classe-body{padding:10px 14px 14px;display:none}
+.ea-classe-body.open{display:block}
+.ea-bulk-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+.ea-bulk-btn{padding:5px 12px;border-radius:8px;border:none;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
+.ea-eleve-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:10px;flex-wrap:wrap;margin-bottom:6px;transition:border-color .15s,background .15s}
+.ea-eleve-row.present{border-color:#10b981;background:#f0fdf4}
+.ea-eleve-row.absent{border-color:#ef4444;background:#fff5f5}
+.ea-eleve-row.late{border-color:#f59e0b;background:#fffbeb}
+.ea-eleve-avatar{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;color:#fff}
+.ea-eleve-name{flex:1;font-size:12px;font-weight:700;color:#1a1f2e;min-width:100px}
+.ea-eleve-num{font-size:10px;color:#94a3b8;font-family:'DM Mono',monospace;min-width:22px}
+.ea-btns{display:flex;gap:4px;flex-shrink:0}
+.ea-btn{padding:4px 9px;border-radius:7px;border:none;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
+.ea-btn.p{background:#10b981;color:#fff}
+.ea-btn.r{background:#f59e0b;color:#fff}
+.ea-btn.a{background:#ef4444;color:#fff}
+.ea-status-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;white-space:nowrap}
+.ea-remarque{font-size:10px;border:1px solid #e2e8f0;border-radius:6px;padding:3px 7px;font-family:'DM Sans',sans-serif;outline:none;width:90px;flex-shrink:0}
+.ea-remarque:focus{border-color:#6366f1}
+.ea-summary-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.ea-stat-chip{background:#f8fafc;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;border:1.5px solid #e2e8f0;display:flex;flex-direction:column;align-items:center;min-width:70px}
+.ea-stat-chip span:first-child{font-size:17px;font-weight:800}
+.ea-stat-chip span:last-child{font-size:10px;color:#64748b;font-weight:600}
+
+/* ── TABLEAU DE BORD DIRECTEUR ── */
+.tdb-overlay-card{background:linear-gradient(135deg,#1a1f2e,#2d3748);border-radius:16px;padding:16px;margin-bottom:12px;color:#fff}
+.tdb-overlay-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.tdb-kpi-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px}
+.tdb-kpi{background:rgba(255,255,255,.08);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:2px}
+.tdb-kpi-val{font-family:'DM Mono',monospace;font-size:22px;font-weight:800}
+.tdb-kpi-label{font-size:10px;color:rgba(255,255,255,.6);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.tdb-kpi-sub{font-size:11px;color:rgba(255,255,255,.45)}
+.tdb-alert-list{display:flex;flex-direction:column;gap:6px}
+.tdb-alert{background:rgba(255,255,255,.07);border-radius:10px;padding:8px 12px;font-size:12px;display:flex;align-items:center;gap:8px;border-left:3px solid}
+.tdb-alert.warn{border-color:#f59e0b}
+.tdb-alert.danger{border-color:#ef4444}
+.tdb-alert.ok{border-color:#10b981}
+.tdb-alert.info{border-color:#6366f1}
+.tdb-section{background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.tdb-section-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#1a1f2e;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.tdb-prog-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f1f5f9}
+.tdb-prog-row:last-child{border-bottom:none}
+.tdb-prog-name{flex:1;font-size:12px;font-weight:700;color:#1a1f2e;min-width:80px}
+.tdb-prog-bar-wrap{flex:2;background:#f1f5f9;border-radius:20px;height:8px;overflow:hidden;min-width:80px}
+.tdb-prog-bar{height:100%;border-radius:20px;transition:width .4s ease}
+.tdb-prog-pct{font-size:11px;font-weight:800;color:#475569;min-width:34px;text-align:right;font-family:'DM Mono',monospace}
+.tdb-badge-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.tdb-badge{font-size:10px;border-radius:6px;padding:2px 8px;font-weight:700}
+/* ── SUIVI DES PROGRAMMES ── */
+.sp-section{background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.sp-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#1a1f2e;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.sp-tabs{display:flex;gap:4px;margin-bottom:14px;background:#f1f5f9;border-radius:10px;padding:3px;width:fit-content}
+.sp-tab{padding:7px 16px;border-radius:8px;border:none;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;background:transparent;color:#64748b;transition:all .15s}
+.sp-tab.active{background:#fff;color:#6366f1;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.sp-filiere-card{background:#fff;border-radius:12px;border:1.5px solid #e2e8f0;margin-bottom:10px;overflow:hidden}
+.sp-filiere-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;background:#f8fafc;border-bottom:1.5px solid #e2e8f0;flex-wrap:wrap}
+.sp-filiere-name{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#1a1f2e;flex:1}
+.sp-filiere-pct{font-size:13px;font-weight:800;font-family:'DM Mono',monospace}
+.sp-filiere-bar-wrap{width:80px;background:#e2e8f0;border-radius:20px;height:7px;overflow:hidden}
+.sp-filiere-bar{height:100%;border-radius:20px}
+.sp-filiere-body{padding:10px 14px;display:none}
+.sp-filiere-body.open{display:block}
+.sp-matiere-row{display:flex;align-items:center;gap:8px;padding:10px;border:1.5px solid #e2e8f0;border-radius:10px;margin-bottom:6px;flex-wrap:wrap}
+.sp-mat-name{flex:1;font-size:12px;font-weight:700;color:#1a1f2e;min-width:100px}
+.sp-mat-info{font-size:11px;color:#64748b;min-width:60px;white-space:nowrap}
+.sp-mat-bar-wrap{flex:2;background:#f1f5f9;border-radius:20px;height:7px;overflow:hidden;min-width:70px}
+.sp-mat-bar{height:100%;border-radius:20px;transition:width .4s}
+.sp-mat-pct{font-size:11px;font-weight:800;font-family:'DM Mono',monospace;min-width:32px;text-align:right}
+.sp-mat-btns{display:flex;gap:4px;flex-shrink:0}
+.sp-mat-btn{padding:4px 9px;border-radius:7px;border:none;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;background:#eef2ff;color:#4338ca}
+.sp-mat-btn.danger{background:#fee2e2;color:#991b1b}
+.sp-add-form{background:#f8fafc;border-radius:10px;padding:10px 12px;margin-top:8px;display:flex;flex-direction:column;gap:8px}
+.sp-add-row{display:flex;gap:6px;flex-wrap:wrap}
+.sp-inp{flex:1;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;min-width:80px}
+.sp-inp:focus{border-color:#6366f1}
+.sp-inp-num{width:70px;flex:none}
+.sp-add-btn{padding:7px 14px;background:#6366f1;color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.sp-global-bar{background:linear-gradient(135deg,#6366f1,#8b5cf6);border-radius:14px;padding:12px 16px;color:#fff;margin-bottom:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.sp-global-pct{font-family:'DM Mono',monospace;font-size:28px;font-weight:800}
+.sp-global-label{font-size:12px;opacity:.8}
+.sp-stats-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.sp-stat-chip{background:#fff;border-radius:10px;padding:8px 12px;font-size:12px;font-weight:700;border:1.5px solid #e2e8f0;display:flex;flex-direction:column;align-items:center;min-width:70px;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.sp-stat-chip span:first-child{font-size:16px;font-weight:800}
+.sp-stat-chip span:last-child{font-size:10px;color:#64748b}
 .wa-link-section{background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
 .wa-link-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#1a1f2e;margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .wa-input-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
@@ -821,7 +1011,7 @@ window.fbOnSnapshot = onSnapshot;
   <div class="auth-box">
     <div class="auth-logo">
       <div class="auth-logo-icon">📅</div>
-      <div class="auth-logo-title">GestionEDT</div>
+      <div class="auth-logo-title">Gestion Scolaire</div>
       <div class="auth-logo-sub">Emploi du temps · Collection BHDS</div>
     </div>
     <div class="auth-tabs">
@@ -934,10 +1124,10 @@ window.fbOnSnapshot = onSnapshot;
     <img id="mgr-logo-img" src="" alt="Logo" style="display:none;width:46px;height:46px;border-radius:12px;object-fit:cover">
   </div>
   <div class="manager-info">
-    <div class="manager-name" id="mgr-name-display">Gestionnaire de l'EDT</div>
+    <div class="manager-name" id="mgr-name-display">Gestionnaire</div>
     <div class="manager-role" id="mgr-role-display">Rôle · Établissement</div>
   </div>
-  <span class="manager-badge">📋 Gestionnaire EDT</span>
+  <span class="manager-badge">📋 Gestionnaire</span>
   <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px" onclick="openManagerEdit()">✏️ Modifier</button>
 </div>
 
@@ -958,6 +1148,11 @@ window.fbOnSnapshot = onSnapshot;
   <button class="tab" id="tab-documents" onclick="switchTab('documents')">📚 Bibliothèque</button>
   <button class="tab" id="tab-groupes" onclick="switchTab('groupes')">🏫 Groupes/Classes</button>
   <button class="tab" id="tab-revision" onclick="switchTab('revision')">📖 Révisions</button>
+  <button class="tab" id="tab-tableau-bord" onclick="switchTab('tableau-bord')">📊 Tableau de bord</button>
+  <button class="tab" id="tab-suivi-prog" onclick="switchTab('suivi-prog')">📈 Suivi Programmes</button>
+  <button class="tab" id="tab-rapport" onclick="switchTab('rapport')">📋 Rapport mensuel</button>
+  <button class="tab" id="tab-multi-etab" onclick="switchTab('multi-etab')">🏢 Multi-établissements</button>
+  <button class="tab" id="tab-stat-enseignants" onclick="switchTab('stat-enseignants')">📊 Stats enseignants</button>
 </div>
 
 <!-- ══════════════════ TAB: ÉVALUATIONS ══════════════════ -->
@@ -1156,15 +1351,45 @@ window.fbOnSnapshot = onSnapshot;
 <!-- ══════════════════ TAB: PRÉSENCES ══════════════════ -->
 <div id="panel-attend" style="display:none">
   <div class="attend-section">
-    <div class="attend-title">✅ Gestion des présences du personnel</div>
-    <div class="attend-date-bar">
-      <input type="date" id="attend-date" onchange="renderAttendance()">
-      <button class="btn btn-primary" onclick="exportAttendance()">📤 Exporter</button>
-      <button class="btn btn-green" onclick="shareAttendanceWA()">📲 WhatsApp</button>
+    <!-- Sous-onglets -->
+    <div class="attend-sub-tabs">
+      <button class="attend-sub-tab active" id="asub-personnel" onclick="switchAttendSub('personnel')">👥 Personnel</button>
+      <button class="attend-sub-tab" id="asub-eleves" onclick="switchAttendSub('eleves')">🎓 Élèves par classe</button>
     </div>
-    <div class="attend-grid" id="attend-grid">
-      <div style="text-align:center;padding:30px;color:#94a3b8">
-        Ajoutez du personnel dans l'onglet Personnel pour gérer les présences.
+
+    <!-- Panel Personnel (existant) -->
+    <div id="attend-panel-personnel">
+      <div class="attend-title">✅ Gestion des présences du personnel</div>
+      <div class="attend-date-bar">
+        <input type="date" id="attend-date" onchange="renderAttendance()">
+        <button class="btn btn-primary" onclick="exportAttendance()">📤 Exporter</button>
+        <button class="btn btn-green" onclick="shareAttendanceWA()">📲 WhatsApp</button>
+        <button class="btn btn-pdf" onclick="downloadAttendancePDF()">📄 PDF</button>
+      </div>
+      <div class="attend-grid" id="attend-grid">
+        <div style="text-align:center;padding:30px;color:#94a3b8">
+          Ajoutez du personnel dans l'onglet Personnel pour gérer les présences.
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel Élèves par classe (nouveau) -->
+    <div id="attend-panel-eleves" style="display:none">
+      <div class="attend-title">🎓 Présences élèves par classe</div>
+      <div class="attend-date-bar">
+        <input type="date" id="ea-date" onchange="renderEleveAttendance()">
+        <button class="btn btn-primary" onclick="exportEleveAttendance()">📤 Exporter</button>
+        <button class="btn btn-green" onclick="shareEleveAttendanceWA()">📲 WhatsApp</button>
+        <button class="btn btn-pdf" onclick="downloadEleveAttendancePDF()">📄 PDF</button>
+        <button class="btn btn-ghost" onclick="markAllPresentClasse('all')">✅ Tous présents</button>
+      </div>
+      <!-- Stats globales -->
+      <div class="ea-summary-bar" id="ea-summary-bar"></div>
+      <!-- Liste des classes -->
+      <div id="ea-classes-list">
+        <div style="text-align:center;padding:30px;color:#94a3b8">
+          Créez des groupes/classes dans l'onglet <strong>Groupes/Classes</strong> pour commencer.
+        </div>
       </div>
     </div>
   </div>
@@ -1619,7 +1844,97 @@ window.fbOnSnapshot = onSnapshot;
 
 </div>
 
-<!-- ══ MODAL RÉVISION ══ -->
+<!-- ══════════════════ TAB: TABLEAU DE BORD DIRECTEUR ══════════════════ -->
+<div id="panel-tableau-bord" style="display:none">
+
+  <!-- KPI rapides -->
+  <div class="tdb-overlay-card">
+    <div class="tdb-overlay-title">📊 Tableau de bord — <span id="tdb-date" style="opacity:.7;font-weight:500;font-size:13px"></span></div>
+    <div class="tdb-kpi-grid" id="tdb-kpi-grid"></div>
+    <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:800;margin-bottom:8px;opacity:.7">⚠️ Alertes</div>
+    <div class="tdb-alert-list" id="tdb-alert-list"></div>
+  </div>
+
+  <!-- Présences du jour -->
+  <div class="tdb-section">
+    <div class="tdb-section-title">✅ Présences du jour</div>
+    <div id="tdb-presences-today"></div>
+  </div>
+
+  <!-- Avancement des programmes -->
+  <div class="tdb-section">
+    <div class="tdb-section-title" style="justify-content:space-between">
+      <span>📈 Avancement des programmes</span>
+      <button class="sp-add-btn" style="font-size:11px;padding:4px 10px" onclick="switchTab('suivi-prog')">Détails →</button>
+    </div>
+    <div id="tdb-prog-list"></div>
+  </div>
+
+  <!-- Stats élèves -->
+  <div class="tdb-section">
+    <div class="tdb-section-title">🎓 Répartition des élèves par classe</div>
+    <div id="tdb-eleves-classes"></div>
+  </div>
+
+  <!-- Classes avec le plus d'absences -->
+  <div class="tdb-section">
+    <div class="tdb-section-title">🚨 Classes avec le plus d'absences (aujourd'hui)</div>
+    <div id="tdb-classes-absences"></div>
+  </div>
+
+  <!-- Enseignants absents -->
+  <div class="tdb-section">
+    <div class="tdb-section-title">👤 Enseignants absents / en retard</div>
+    <div id="tdb-enseignants-absents"></div>
+  </div>
+
+  <!-- Matières en retard de programme -->
+  <div class="tdb-section">
+    <div class="tdb-section-title">📚 Matières en retard de programme (&lt;50%)</div>
+    <div id="tdb-matieres-retard"></div>
+  </div>
+
+</div>
+
+<!-- ══════════════════ TAB: SUIVI DES PROGRAMMES ══════════════════ -->
+<div id="panel-suivi-prog" style="display:none">
+
+  <!-- Barre globale -->
+  <div class="sp-global-bar" id="sp-global-bar">
+    <div>
+      <div class="sp-global-pct" id="sp-global-pct">0%</div>
+      <div class="sp-global-label">Avancement global des programmes</div>
+    </div>
+    <div class="sp-stats-row" id="sp-global-stats" style="margin-bottom:0"></div>
+  </div>
+
+  <!-- Stats chips -->
+  <div class="sp-stats-row" id="sp-stats-row"></div>
+
+  <!-- Sous-onglets Vue par classe / par filière -->
+  <div class="sp-tabs">
+    <button class="sp-tab active" id="sptab-filiere" onclick="switchSpTab('filiere')">📂 Par filière/classe</button>
+    <button class="sp-tab" id="sptab-matiere" onclick="switchSpTab('matiere')">📚 Vue par matière</button>
+  </div>
+
+  <!-- Panel par filière -->
+  <div id="sp-panel-filiere">
+    <div class="sp-section">
+      <div class="sp-title">➕ Ajouter une filière / classe</div>
+      <div class="sp-add-row">
+        <input class="sp-inp" id="sp-new-filiere" placeholder="Nom filière (ex: Électronique, 10ème…)">
+        <button class="sp-add-btn" onclick="addSpFiliere()">➕ Ajouter</button>
+      </div>
+    </div>
+    <div id="sp-filiere-list"></div>
+  </div>
+
+  <!-- Panel par matière globale -->
+  <div id="sp-panel-matiere" style="display:none">
+    <div id="sp-matiere-global-list"></div>
+  </div>
+
+</div>
 <div id="rev-overlay" onclick="closeRevOverlay(event)" style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:none;align-items:flex-end;justify-content:center">
   <div id="rev-modal" style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:440px;padding:20px 18px 28px;animation:up .22s ease;max-height:90vh;overflow-y:auto">
     <div style="width:36px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 14px"></div>
@@ -2172,13 +2487,17 @@ function saveManager(){
 // ═══════════════════════════════════════════════════════
 function switchTab(tab){
   currentTab = tab;
-  const panels = ['evaluations','student','staff','etablissement','attend','autolist','walink','schoolyear','messaging','dictation','contacts','notebook','documents','groupes','revision'];
+  const panels = ['evaluations','student','staff','etablissement','attend','autolist','walink','schoolyear','messaging','dictation','contacts','notebook','documents','groupes','revision','tableau-bord','suivi-prog','rapport','multi-etab','stat-enseignants'];
   panels.forEach(p=>{
     document.getElementById('panel-'+p).style.display = p===tab?'block':'none';
     const tabEl = document.getElementById('tab-'+p);
     if(tabEl) tabEl.classList.toggle('active', p===tab);
   });
-  if(tab==='attend') renderAttendance();
+  if(tab==='attend'){
+    renderAttendance();
+    const eaDateEl = document.getElementById('ea-date');
+    if(eaDateEl && !eaDateEl.value) eaDateEl.value = getTodayStr();
+  }
   if(tab==='autolist') renderAutoList();
   if(tab==='walink') renderWAPanel();
   if(tab==='schoolyear') renderSY();
@@ -2190,6 +2509,11 @@ function switchTab(tab){
   if(tab==='documents'){ renderDocs(); renderDocsStats(); }
   if(tab==='groupes'){ renderGroupes(); renderGrpStats(); }
   if(tab==='revision'){ renderRevSlotsEditor(); renderRevTable(); }
+  if(tab==='tableau-bord'){ renderTdb(); }
+  if(tab==='suivi-prog'){ renderSpFiliere(); renderSpMatiere(); renderSpStats(); }
+  if(tab==='rapport'){ initRapportMonth(); renderRapport(); }
+  if(tab==='multi-etab'){ renderMultiEtab(); }
+  if(tab==='stat-enseignants'){ initSeMonth(); renderStatEnseignants(); }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2837,7 +3161,7 @@ function buildPDFPage(sections, mgrLine, now){
   </div>
   <div class="doc-meta">
     <div>Imprimé le ${now}</div>
-    <div style="color:#6366f1;font-weight:700">GestionEDT</div>
+    <div style="color:#6366f1;font-weight:700">Gestion Scolaire</div>
   </div>
 </div>
 ${sections.join('')}
@@ -2891,6 +3215,7 @@ function renderAttendance(){
         <button class="attend-btn p" onclick="setAttendance(${sm.id},'${dateStr}','present')">✅ Présent</button>
         <button class="attend-btn r" onclick="setAttendance(${sm.id},'${dateStr}','late')">⚠️ Retard</button>
         <button class="attend-btn a" onclick="setAttendance(${sm.id},'${dateStr}','absent')">❌ Absent</button>
+        ${(status==='absent'||status==='late')?`<button class="attend-btn" style="background:#6366f1;color:#fff" onclick="openLettreMissing(${sm.id},'${dateStr}')">📩 Lettre</button>`:''}
       </div>
       <span class="attend-status ${status==='unknown'?'status-unknown':status==='present'?'status-present':status==='absent'?'status-absent':'status-late'}" id="attend-status-${sm.id}">
         ${status==='unknown'?'— Non pointé':statusLabel[status]||''}
@@ -2945,6 +3270,583 @@ function shareAttendanceWA(){
   const waNum = (ld('edt_wa_number')||'').replace(/\D/g,'');
   const base = waNum ? `https://wa.me/${waNum}` : `https://wa.me/`;
   window.open(`${base}?text=${encodeURIComponent(lines.join('\n'))}`, '_blank');
+}
+
+function downloadAttendancePDF(){
+  const dateStr = document.getElementById('attend-date').value || getTodayStr();
+  const dayData = attendanceData[dateStr]||{};
+  if(!staffList.length){ alert('Aucun membre du personnel à afficher.'); return; }
+
+  const today = new Date().toLocaleDateString('fr-FR');
+  const schoolName  = manager.school || '';
+  const managerName = manager.name   || '';
+  const managerRole = manager.role   || '';
+  const logo        = manager.logo   || '';
+  const annee       = (typeof syData!=='undefined' && syData.label) ? syData.label : '';
+
+  const logoHtml = logo
+    ? `<img src="${logo}" style="height:64px;width:64px;object-fit:contain;border-radius:8px;border:1.5px solid #e2e8f0" alt="Logo">`
+    : `<div style="width:64px;height:64px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0">🏫</div>`;
+
+  const statusLabel = { present:'Présent', absent:'Absent', late:'Retard' };
+  const statusColor = { present:'#d1fae5', absent:'#fee2e2', late:'#fef3c7' };
+  const statusText  = { present:'#065f46', absent:'#991b1b', late:'#92400e' };
+  const statusDot   = { present:'#10b981', absent:'#ef4444', late:'#f59e0b' };
+
+  const present = staffList.filter(sm => dayData[sm.id]==='present').length;
+  const absent  = staffList.filter(sm => dayData[sm.id]==='absent').length;
+  const late    = staffList.filter(sm => dayData[sm.id]==='late').length;
+  const unknown = staffList.length - present - absent - late;
+  const pct = staffList.length ? Math.round(present/staffList.length*100) : 0;
+
+  const rows = staffList.map((sm, i) => {
+    const status = dayData[sm.id] || 'unknown';
+    const label  = statusLabel[status] || 'Non pointé';
+    const bg     = statusColor[status] || '#f8fafc';
+    const col    = statusText[status]  || '#475569';
+    const dot    = statusDot[status]   || '#94a3b8';
+    return `<tr style="${i%2===1?'background:#fafbfc':''}">
+      <td style="text-align:center;color:#94a3b8;padding:7px 8px;border-bottom:1px solid #f1f5f9;font-size:11px;width:32px">${i+1}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-weight:700;font-size:12px;color:#1a1f2e">${esc(sm.name)}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:11px;color:#64748b">${esc(sm.role||'—')}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;text-align:center">
+        <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;background:${bg};color:${col}">
+          <span style="width:7px;height:7px;border-radius:50%;background:${dot};display:inline-block;flex-shrink:0"></span>${label}
+        </span>
+      </td>
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;width:120px">
+        <div style="border-bottom:1px solid #cbd5e1;height:18px"></div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const dateDisp = new Date(dateStr+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<title>Présences Personnel — ${dateStr}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,sans-serif;background:#fff;color:#1a1f2e;font-size:12px}
+  @page{size:A4 portrait;margin:14mm 12mm}
+  @media print{
+    body{padding:0}
+    .no-print{display:none!important}
+    table{page-break-inside:auto}
+    tr{page-break-inside:avoid}
+  }
+  @media screen{body{max-width:210mm;margin:0 auto;padding:20px;background:#f0f4f8}}
+  .page{background:#fff;padding:18px 20px}
+  @media screen{.page{border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.1)}}
+  .print-btn{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .print-btn button{padding:9px 18px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:Arial,sans-serif}
+</style></head>
+<body>
+<div class="no-print print-btn">
+  <button onclick="window.print()" style="background:#6366f1;color:#fff">🖨️ Imprimer / Enregistrer PDF</button>
+  <button onclick="window.close()" style="background:#f1f5f9;color:#475569">✕ Fermer</button>
+</div>
+<div class="page">
+  <!-- EN-TÊTE -->
+  <div style="display:flex;align-items:flex-start;gap:14px;padding-bottom:12px;border-bottom:2.5px solid #6366f1;margin-bottom:14px;flex-wrap:wrap">
+    ${logoHtml}
+    <div style="flex:1;min-width:160px">
+      <div style="font-size:17px;font-weight:800;color:#1a1f2e">${esc(schoolName)||'Liste de Présences'}</div>
+      ${annee?`<div style="font-size:11px;color:#6366f1;font-weight:700;margin-top:2px">📅 ${esc(annee)}</div>`:''}
+      ${managerRole?`<div style="font-size:11px;color:#475569;font-weight:700;margin-top:2px">${esc(managerRole)}</div>`:''}
+      ${managerName?`<div style="font-size:12px;font-weight:800;color:#1a1f2e;margin-top:1px">👤 ${esc(managerName)}</div>`:''}
+    </div>
+    <div style="text-align:right;min-width:140px">
+      <div style="font-size:13px;font-weight:800;color:#1a1f2e">Liste de Présences</div>
+      <div style="font-size:11px;color:#6366f1;font-weight:700;margin-top:3px">Personnel</div>
+      <div style="font-size:11px;color:#475569;margin-top:3px;text-transform:capitalize">${dateDisp}</div>
+      <div style="font-size:10px;color:#94a3b8;margin-top:2px">Édité le ${today}</div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="background:#d1fae5;border-radius:8px;padding:8px 14px;text-align:center;min-width:60px;flex:1">
+      <div style="font-size:18px;font-weight:800;color:#065f46">${present}</div>
+      <div style="font-size:10px;color:#065f46;font-weight:700">Présents</div>
+    </div>
+    <div style="background:#fee2e2;border-radius:8px;padding:8px 14px;text-align:center;min-width:60px;flex:1">
+      <div style="font-size:18px;font-weight:800;color:#991b1b">${absent}</div>
+      <div style="font-size:10px;color:#991b1b;font-weight:700">Absents</div>
+    </div>
+    <div style="background:#fef3c7;border-radius:8px;padding:8px 14px;text-align:center;min-width:60px;flex:1">
+      <div style="font-size:18px;font-weight:800;color:#92400e">${late}</div>
+      <div style="font-size:10px;color:#92400e;font-weight:700">Retards</div>
+    </div>
+    ${unknown?`<div style="background:#f1f5f9;border-radius:8px;padding:8px 14px;text-align:center;min-width:60px;flex:1">
+      <div style="font-size:18px;font-weight:800;color:#475569">${unknown}</div>
+      <div style="font-size:10px;color:#475569;font-weight:700">Non pointés</div>
+    </div>`:''}
+    <div style="background:#eef2ff;border-radius:8px;padding:8px 14px;text-align:center;min-width:60px;flex:1">
+      <div style="font-size:18px;font-weight:800;color:#4338ca">${pct}%</div>
+      <div style="font-size:10px;color:#4338ca;font-weight:700">Taux présence</div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <table style="width:100%;border-collapse:collapse">
+    <thead>
+      <tr style="background:#1a1f2e">
+        <th style="color:#fff;padding:8px 8px;text-align:center;font-size:11px;width:32px">#</th>
+        <th style="color:#fff;padding:8px 10px;text-align:left;font-size:11px">Nom</th>
+        <th style="color:#fff;padding:8px 10px;text-align:left;font-size:11px">Poste / Rôle</th>
+        <th style="color:#fff;padding:8px 10px;text-align:center;font-size:11px;width:100px">Statut</th>
+        <th style="color:#fff;padding:8px 10px;text-align:left;font-size:11px;width:120px">Signature</th>
+      </tr>
+    </thead>
+    <tbody>${rows}</tbody>
+  </table>
+
+  <!-- PIED DE PAGE -->
+  <div style="margin-top:18px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px">
+    <div style="font-size:10px;color:#94a3b8">Gestion Scolaire · Rapport généré le ${today}</div>
+    <div style="font-size:11px;color:#475569;text-align:right">
+      <div style="font-weight:700;margin-bottom:24px">Visa du responsable :</div>
+      <div style="border-top:1px solid #94a3b8;width:160px;text-align:center;padding-top:4px;font-size:10px;color:#94a3b8">${esc(managerName||'Signature')}</div>
+    </div>
+  </div>
+</div>
+</body></html>`;
+
+  const blob = new Blob([html],{type:'text/html;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const win  = window.open(url,'_blank');
+  if(!win){
+    const a = document.createElement('a');
+    a.href=url; a.download=`Presences_Personnel_${dateStr}.html`; a.click();
+  }
+  setTimeout(()=>URL.revokeObjectURL(url),10000);
+}
+
+// ═══════════════════════════════════════════════════════
+// PRÉSENCES ÉLÈVES PAR CLASSE
+// ═══════════════════════════════════════════════════════
+let eaData = {}; // { 'YYYY-MM-DD': { 'grpId_eleveId': 'present'|'absent'|'late' } }
+let eaRemarques = {}; // { 'YYYY-MM-DD': { 'grpId_eleveId': 'texte' } }
+let eaOpenClasses = {}; // classes dépliées
+
+function loadEleveAttendance(){
+  const d = ld('edt_ea_data'); if(d) eaData = d;
+  const r = ld('edt_ea_remarques'); if(r) eaRemarques = r;
+}
+
+function saveEleveAttendance(){
+  sv('edt_ea_data', eaData);
+  sv('edt_ea_remarques', eaRemarques);
+}
+
+function switchAttendSub(sub){
+  document.getElementById('attend-panel-personnel').style.display = sub==='personnel' ? '' : 'none';
+  document.getElementById('attend-panel-eleves').style.display    = sub==='eleves'    ? '' : 'none';
+  document.getElementById('asub-personnel').classList.toggle('active', sub==='personnel');
+  document.getElementById('asub-eleves').classList.toggle('active', sub==='eleves');
+  if(sub==='eleves'){
+    const el = document.getElementById('ea-date');
+    if(el && !el.value) el.value = getTodayStr();
+    renderEleveAttendance();
+  }
+}
+
+function eaKey(grpId, eleveId){ return grpId+'_'+eleveId; }
+
+function setEleveAttendance(grpId, eleveId, dateStr, status){
+  if(!eaData[dateStr]) eaData[dateStr] = {};
+  eaData[dateStr][eaKey(grpId, eleveId)] = status;
+  saveEleveAttendance();
+  renderEleveAttendance();
+  // Notification automatique parent si absent ou retard
+  if(status === 'absent' || status === 'late'){
+    const grp = groupesList.find(g=>g.id===grpId);
+    const e   = grp ? grp.eleves.find(el=>el.id===eleveId) : null;
+    if(e && (e.wa_parent || e.mere_wa || e.email_parent || e.mere_email)){
+      // Déclenchement automatique : ouvre directement WhatsApp/email parent
+      const hasWA = e.wa_parent || e.mere_wa;
+      if(hasWA){
+        const numRaw = (e.wa_parent||e.mere_wa||'').replace(/\D/g,'');
+        const msg = buildParentMsg(e, grp, dateStr, status==='late'?'retard':'absence');
+        // Petite popup de confirmation avant envoi auto
+        if(confirm(`📩 Notifier automatiquement le parent de ${[e.name,e.prenom].filter(Boolean).join(' ')} par WhatsApp (${status==='absent'?'absence':'retard'}) ?`)){
+          window.open(`https://wa.me/${numRaw}?text=${encodeURIComponent(msg)}`, '_blank');
+        }
+      }
+    }
+  }
+}
+
+function saveEaRemarque(grpId, eleveId, dateStr, val){
+  if(!eaRemarques[dateStr]) eaRemarques[dateStr] = {};
+  eaRemarques[dateStr][eaKey(grpId, eleveId)] = val;
+  saveEleveAttendance();
+}
+
+function markAllPresentClasse(grpId){
+  const dateStr = (document.getElementById('ea-date')||{}).value || getTodayStr();
+  if(!eaData[dateStr]) eaData[dateStr] = {};
+  const targets = grpId === 'all' ? groupesList : groupesList.filter(g=>g.id===grpId);
+  targets.forEach(grp => grp.eleves.forEach(e => {
+    eaData[dateStr][eaKey(grp.id, e.id)] = 'present';
+  }));
+  saveEleveAttendance();
+  renderEleveAttendance();
+}
+
+function markAllAbsentClasse(grpId){
+  const dateStr = (document.getElementById('ea-date')||{}).value || getTodayStr();
+  if(!eaData[dateStr]) eaData[dateStr] = {};
+  const grp = groupesList.find(g=>g.id===grpId);
+  if(!grp) return;
+  grp.eleves.forEach(e => { eaData[dateStr][eaKey(grpId, e.id)] = 'absent'; });
+  saveEleveAttendance();
+  renderEleveAttendance();
+}
+
+function toggleEaClasse(grpId){
+  eaOpenClasses[grpId] = !eaOpenClasses[grpId];
+  const body = document.getElementById('ea-body-'+grpId);
+  if(body) body.classList.toggle('open', !!eaOpenClasses[grpId]);
+  const arrow = document.getElementById('ea-arrow-'+grpId);
+  if(arrow) arrow.textContent = eaOpenClasses[grpId] ? '▲' : '▼';
+}
+
+function renderEleveAttendance(){
+  const dateEl = document.getElementById('ea-date');
+  if(!dateEl) return;
+  if(!dateEl.value) dateEl.value = getTodayStr();
+  const dateStr = dateEl.value;
+  if(!eaData[dateStr]) eaData[dateStr] = {};
+  const dayData = eaData[dateStr];
+  const remarques = eaRemarques[dateStr] || {};
+
+  const container = document.getElementById('ea-classes-list');
+  if(!container) return;
+
+  if(!groupesList.length){
+    container.innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8">Créez des groupes/classes dans l\'onglet <strong>Groupes/Classes</strong> pour commencer.</div>';
+    renderEaSummary(dateStr);
+    return;
+  }
+
+  const statusLabel = {present:'✅ Présent', absent:'❌ Absent', late:'⚠️ Retard'};
+  const statusClass = {present:'present', absent:'absent', late:'late'};
+  const statusBadgeClass = {present:'status-present', absent:'status-absent', late:'status-late'};
+
+  container.innerHTML = groupesList.map(grp => {
+    const present = grp.eleves.filter(e => dayData[eaKey(grp.id,e.id)]==='present').length;
+    const absent  = grp.eleves.filter(e => dayData[eaKey(grp.id,e.id)]==='absent').length;
+    const late    = grp.eleves.filter(e => dayData[eaKey(grp.id,e.id)]==='late').length;
+    const nonPointe = grp.eleves.length - present - absent - late;
+    const isOpen = !!eaOpenClasses[grp.id];
+
+    const elevesHtml = grp.eleves.length === 0
+      ? '<div style="text-align:center;padding:14px;color:#94a3b8;font-size:12px">Aucun élève dans cette classe.</div>'
+      : grp.eleves.map((e, i) => {
+          const key = eaKey(grp.id, e.id);
+          const status = dayData[key] || 'unknown';
+          const rowClass = statusClass[status] || '';
+          const badgeClass = statusBadgeClass[status] || 'status-unknown';
+          const badgeLabel = statusLabel[status] || '— Non pointé';
+          const remarque = remarques[key] || '';
+          const initiale = (e.name||'?')[0].toUpperCase() + ((e.prenom||'')[0]||'').toUpperCase();
+          const hasParentContact = e.wa_parent || e.email_parent;
+          return `<div class="ea-eleve-row ${rowClass}" id="ea-row-${grp.id}-${e.id}">
+            <span class="ea-eleve-num">${i+1}</span>
+            <div class="ea-eleve-avatar" style="background:${grp.color}">${initiale}</div>
+            <div class="ea-eleve-name">
+              ${esc(e.name)}${e.prenom?' '+esc(e.prenom):''}
+              ${e.matricule?`<span style="font-size:9px;color:#94a3b8;font-family:'DM Mono',monospace;margin-left:4px">#${esc(e.matricule)}</span>`:''}
+            </div>
+            <div class="ea-btns">
+              <button class="ea-btn p" onclick="setEleveAttendance(${grp.id},${e.id},'${dateStr}','present')">✅</button>
+              <button class="ea-btn r" onclick="setEleveAttendance(${grp.id},${e.id},'${dateStr}','late')">⚠️</button>
+              <button class="ea-btn a" onclick="setEleveAttendance(${grp.id},${e.id},'${dateStr}','absent')">❌</button>
+              ${(status==='absent'||status==='late')&&hasParentContact?`<button class="ea-btn" style="background:#6366f1;color:#fff;font-size:10px;padding:4px 7px" onclick="openParentMsgModal(${grp.id},${e.id},'${dateStr}','${status}')">📩 Parent</button>`:''}
+            </div>
+            <span class="ea-status-badge ${badgeClass}">${badgeLabel}</span>
+            <input class="ea-remarque" type="text" placeholder="Remarque…" value="${esc(remarque)}"
+              onchange="saveEaRemarque(${grp.id},${e.id},'${dateStr}',this.value)"
+              oninput="saveEaRemarque(${grp.id},${e.id},'${dateStr}',this.value)">
+          </div>`;
+        }).join('');
+
+    return `<div class="ea-classe-card">
+      <div class="ea-classe-hdr" style="background:${grp.color}" onclick="toggleEaClasse(${grp.id})">
+        <div class="ea-classe-hdr-name">🏫 ${esc(grp.name)}${grp.prof?' · 👤 '+esc(grp.prof):''}</div>
+        <div class="ea-classe-hdr-badges">
+          <span class="ea-badge">${grp.eleves.length} élèves</span>
+          ${present?`<span class="ea-badge green">✅${present}</span>`:''}
+          ${absent?`<span class="ea-badge red">❌${absent}</span>`:''}
+          ${late?`<span class="ea-badge yellow">⚠️${late}</span>`:''}
+          ${nonPointe?`<span class="ea-badge">—${nonPointe}</span>`:''}
+          <span id="ea-arrow-${grp.id}" style="color:#fff;font-size:11px;margin-left:4px">${isOpen?'▲':'▼'}</span>
+        </div>
+      </div>
+      <div class="ea-classe-body${isOpen?' open':''}" id="ea-body-${grp.id}">
+        <div class="ea-bulk-bar">
+          <button class="ea-bulk-btn" style="background:#10b981;color:#fff" onclick="markAllPresentClasse(${grp.id})">✅ Tous présents</button>
+          <button class="ea-bulk-btn" style="background:#ef4444;color:#fff" onclick="markAllAbsentClasse(${grp.id})">❌ Tous absents</button>
+          <span style="font-size:11px;color:#64748b;margin-left:4px">${grp.eleves.length} élève${grp.eleves.length>1?'s':''}</span>
+        </div>
+        ${elevesHtml}
+      </div>
+    </div>`;
+  }).join('');
+
+  renderEaSummary(dateStr);
+}
+
+function renderEaSummary(dateStr){
+  const bar = document.getElementById('ea-summary-bar');
+  if(!bar) return;
+  const dayData = eaData[dateStr] || {};
+  let totalEleves=0, totalPresent=0, totalAbsent=0, totalLate=0;
+  groupesList.forEach(grp => {
+    grp.eleves.forEach(e => {
+      totalEleves++;
+      const s = dayData[eaKey(grp.id, e.id)];
+      if(s==='present') totalPresent++;
+      else if(s==='absent') totalAbsent++;
+      else if(s==='late') totalLate++;
+    });
+  });
+  const nonPointe = totalEleves - totalPresent - totalAbsent - totalLate;
+  const pct = totalEleves ? Math.round(totalPresent/totalEleves*100) : 0;
+  bar.innerHTML = `
+    <div class="ea-stat-chip"><span style="color:#6366f1">${groupesList.length}</span><span>Classes</span></div>
+    <div class="ea-stat-chip"><span style="color:#1a1f2e">${totalEleves}</span><span>Élèves</span></div>
+    <div class="ea-stat-chip"><span style="color:#10b981">${totalPresent}</span><span>Présents</span></div>
+    <div class="ea-stat-chip"><span style="color:#ef4444">${totalAbsent}</span><span>Absents</span></div>
+    <div class="ea-stat-chip"><span style="color:#f59e0b">${totalLate}</span><span>Retards</span></div>
+    <div class="ea-stat-chip"><span style="color:#94a3b8">${nonPointe}</span><span>Non pointés</span></div>
+    <div class="ea-stat-chip" style="border-top-color:#6366f1"><span style="color:#6366f1">${pct}%</span><span>Taux présence</span></div>
+  `;
+}
+
+function exportEleveAttendance(){
+  const dateStr = (document.getElementById('ea-date')||{}).value || getTodayStr();
+  const dayData = eaData[dateStr] || {};
+  const remarques = eaRemarques[dateStr] || {};
+  const lines = [`📋 Rapport de présences élèves — ${dateStr}`, `Établissement: ${manager.school||'—'}`, ``];
+  groupesList.forEach(grp => {
+    lines.push(`\n🏫 ${grp.name}${grp.prof?' ('+grp.prof+')':''}`);
+    grp.eleves.forEach((e,i) => {
+      const s = dayData[eaKey(grp.id, e.id)] || 'unknown';
+      const label = s==='present'?'✅ Présent':s==='absent'?'❌ Absent':s==='late'?'⚠️ Retard':'— Non pointé';
+      const rem = remarques[eaKey(grp.id, e.id)] ? ` [${remarques[eaKey(grp.id, e.id)]}]` : '';
+      lines.push(`  ${i+1}. ${e.name}${e.prenom?' '+e.prenom:''}: ${label}${rem}`);
+    });
+  });
+  const blob = new Blob([lines.join('\n')], {type:'text/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=`presences-eleves-${dateStr}.txt`; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 3000);
+}
+
+function shareEleveAttendanceWA(){
+  const dateStr = (document.getElementById('ea-date')||{}).value || getTodayStr();
+  const dayData = eaData[dateStr] || {};
+  const lines = [`📋 *Présences élèves — ${dateStr}*`, `🏫 ${manager.school||'Établissement'}`, ``];
+  groupesList.forEach(grp => {
+    const present = grp.eleves.filter(e => dayData[eaKey(grp.id,e.id)]==='present').length;
+    const absent  = grp.eleves.filter(e => dayData[eaKey(grp.id,e.id)]==='absent').length;
+    const late    = grp.eleves.filter(e => dayData[eaKey(grp.id,e.id)]==='late').length;
+    lines.push(`*${grp.name}* — ${grp.eleves.length} élèves | ✅${present} ❌${absent} ⚠️${late}`);
+    grp.eleves.forEach((e,i) => {
+      const s = dayData[eaKey(grp.id, e.id)] || 'unknown';
+      const label = s==='present'?'✅':s==='absent'?'❌':s==='late'?'⚠️':'—';
+      lines.push(`  ${i+1}. ${label} ${e.name}${e.prenom?' '+e.prenom:''}`);
+    });
+    lines.push('');
+  });
+  lines.push(`— ${manager.name||'Gestionnaire'}`);
+  const waNum = (ld('edt_wa_number')||'').replace(/\D/g,'');
+  const base = waNum ? `https://wa.me/${waNum}` : `https://wa.me/`;
+  window.open(`${base}?text=${encodeURIComponent(lines.join('\n'))}`, '_blank');
+}
+
+function downloadEleveAttendancePDF(){
+  const dateStr = (document.getElementById('ea-date')||{}).value || getTodayStr();
+  const dayData   = eaData[dateStr] || {};
+  const remarques = eaRemarques[dateStr] || {};
+  if(!groupesList.length){ alert('Aucune classe à afficher.'); return; }
+
+  const today       = new Date().toLocaleDateString('fr-FR');
+  const schoolName  = manager.school || '';
+  const managerName = manager.name   || '';
+  const managerRole = manager.role   || '';
+  const logo        = manager.logo   || '';
+  const annee       = (typeof syData!=='undefined' && syData.label) ? syData.label : '';
+
+  const logoHtml = logo
+    ? `<img src="${logo}" style="height:64px;width:64px;object-fit:contain;border-radius:8px;border:1.5px solid #e2e8f0" alt="Logo">`
+    : `<div style="width:64px;height:64px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0">🏫</div>`;
+
+  const statusLabel = { present:'Présent', absent:'Absent', late:'Retard' };
+  const statusColor = { present:'#d1fae5', absent:'#fee2e2', late:'#fef3c7' };
+  const statusText  = { present:'#065f46', absent:'#991b1b', late:'#92400e' };
+  const statusDot   = { present:'#10b981', absent:'#ef4444', late:'#f59e0b' };
+
+  let totalEleves=0, totalPresent=0, totalAbsent=0, totalLate=0;
+  groupesList.forEach(grp => grp.eleves.forEach(e => {
+    totalEleves++;
+    const s = dayData[eaKey(grp.id, e.id)];
+    if(s==='present') totalPresent++;
+    else if(s==='absent') totalAbsent++;
+    else if(s==='late') totalLate++;
+  }));
+  const totalUnknown = totalEleves - totalPresent - totalAbsent - totalLate;
+  const pct = totalEleves ? Math.round(totalPresent/totalEleves*100) : 0;
+
+  const dateDisp = new Date(dateStr+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+
+  const classesSections = groupesList.map(grp => {
+    const pres = grp.eleves.filter(e => dayData[eaKey(grp.id,e.id)]==='present').length;
+    const abs  = grp.eleves.filter(e => dayData[eaKey(grp.id,e.id)]==='absent').length;
+    const lat  = grp.eleves.filter(e => dayData[eaKey(grp.id,e.id)]==='late').length;
+    const rows = grp.eleves.map((e,i) => {
+      const status = dayData[eaKey(grp.id, e.id)] || 'unknown';
+      const label  = statusLabel[status] || 'Non pointé';
+      const bg     = statusColor[status] || '#f8fafc';
+      const col    = statusText[status]  || '#475569';
+      const dot    = statusDot[status]   || '#94a3b8';
+      const rem    = remarques[eaKey(grp.id, e.id)] || '';
+      const nomComplet = [e.name, e.prenom].filter(Boolean).join(' ');
+      return `<tr style="${i%2===1?'background:#fafbfc':''}">
+        <td style="text-align:center;color:#94a3b8;padding:6px 8px;border-bottom:1px solid #f1f5f9;font-size:11px;width:28px">${i+1}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-weight:700;font-size:12px;color:#1a1f2e">${esc(nomComplet)}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:10px;color:#94a3b8;font-family:monospace">${esc(e.matricule||'—')}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;text-align:center">
+          <span style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:2px 9px;border-radius:6px;background:${bg};color:${col}">
+            <span style="width:6px;height:6px;border-radius:50%;background:${dot};display:inline-block;flex-shrink:0"></span>${label}
+          </span>
+        </td>
+        <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:10px;color:#64748b;font-style:italic">${esc(rem)}</td>
+        <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;width:100px">
+          <div style="border-bottom:1px solid #cbd5e1;height:16px"></div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    return `<div style="margin-bottom:18px;page-break-inside:avoid">
+      <div style="background:${grp.color};color:#fff;padding:9px 14px;border-radius:8px 8px 0 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:14px;font-weight:800">${esc(grp.name)}</span>
+        ${grp.prof?`<span style="font-size:11px;opacity:.8">· 👤 ${esc(grp.prof)}</span>`:''}
+        <span style="margin-left:auto;font-size:11px;opacity:.9">${grp.eleves.length} élève${grp.eleves.length>1?'s':''} · ✅${pres} ❌${abs} ⚠️${lat}</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 8px 8px;overflow:hidden">
+        <thead>
+          <tr style="background:#f1f5f9">
+            <th style="color:#475569;padding:6px 8px;text-align:center;font-size:10px;width:28px">#</th>
+            <th style="color:#475569;padding:6px 10px;text-align:left;font-size:10px">Nom complet</th>
+            <th style="color:#475569;padding:6px 10px;text-align:left;font-size:10px">Matricule</th>
+            <th style="color:#475569;padding:6px 10px;text-align:center;font-size:10px;width:90px">Statut</th>
+            <th style="color:#475569;padding:6px 10px;text-align:left;font-size:10px">Remarque</th>
+            <th style="color:#475569;padding:6px 10px;text-align:left;font-size:10px;width:100px">Signature</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<title>Présences Élèves — ${dateStr}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:Arial,sans-serif;background:#fff;color:#1a1f2e;font-size:12px}
+  @page{size:A4 portrait;margin:14mm 12mm}
+  @media print{
+    body{padding:0}
+    .no-print{display:none!important}
+    table{page-break-inside:auto}
+    tr{page-break-inside:avoid}
+  }
+  @media screen{body{max-width:210mm;margin:0 auto;padding:20px;background:#f0f4f8}}
+  .page{background:#fff;padding:18px 20px}
+  @media screen{.page{border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.1)}}
+  .print-btn{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+  .print-btn button{padding:9px 18px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:Arial,sans-serif}
+</style></head>
+<body>
+<div class="no-print print-btn">
+  <button onclick="window.print()" style="background:#6366f1;color:#fff">🖨️ Imprimer / Enregistrer PDF</button>
+  <button onclick="window.close()" style="background:#f1f5f9;color:#475569">✕ Fermer</button>
+</div>
+<div class="page">
+  <!-- EN-TÊTE -->
+  <div style="display:flex;align-items:flex-start;gap:14px;padding-bottom:12px;border-bottom:2.5px solid #6366f1;margin-bottom:14px;flex-wrap:wrap">
+    ${logoHtml}
+    <div style="flex:1;min-width:160px">
+      <div style="font-size:17px;font-weight:800;color:#1a1f2e">${esc(schoolName)||'Liste de Présences'}</div>
+      ${annee?`<div style="font-size:11px;color:#6366f1;font-weight:700;margin-top:2px">📅 ${esc(annee)}</div>`:''}
+      ${managerRole?`<div style="font-size:11px;color:#475569;font-weight:700;margin-top:2px">${esc(managerRole)}</div>`:''}
+      ${managerName?`<div style="font-size:12px;font-weight:800;color:#1a1f2e;margin-top:1px">👤 ${esc(managerName)}</div>`:''}
+    </div>
+    <div style="text-align:right;min-width:140px">
+      <div style="font-size:13px;font-weight:800;color:#1a1f2e">Liste de Présences</div>
+      <div style="font-size:11px;color:#10b981;font-weight:700;margin-top:3px">Élèves par classe</div>
+      <div style="font-size:11px;color:#475569;margin-top:3px;text-transform:capitalize">${dateDisp}</div>
+      <div style="font-size:10px;color:#94a3b8;margin-top:2px">Édité le ${today}</div>
+    </div>
+  </div>
+
+  <!-- STATS GLOBALES -->
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+    <div style="background:#eef2ff;border-radius:8px;padding:8px 12px;text-align:center;min-width:55px;flex:1">
+      <div style="font-size:16px;font-weight:800;color:#4338ca">${groupesList.length}</div>
+      <div style="font-size:10px;color:#4338ca;font-weight:700">Classes</div>
+    </div>
+    <div style="background:#f1f5f9;border-radius:8px;padding:8px 12px;text-align:center;min-width:55px;flex:1">
+      <div style="font-size:16px;font-weight:800;color:#1a1f2e">${totalEleves}</div>
+      <div style="font-size:10px;color:#475569;font-weight:700">Élèves</div>
+    </div>
+    <div style="background:#d1fae5;border-radius:8px;padding:8px 12px;text-align:center;min-width:55px;flex:1">
+      <div style="font-size:16px;font-weight:800;color:#065f46">${totalPresent}</div>
+      <div style="font-size:10px;color:#065f46;font-weight:700">Présents</div>
+    </div>
+    <div style="background:#fee2e2;border-radius:8px;padding:8px 12px;text-align:center;min-width:55px;flex:1">
+      <div style="font-size:16px;font-weight:800;color:#991b1b">${totalAbsent}</div>
+      <div style="font-size:10px;color:#991b1b;font-weight:700">Absents</div>
+    </div>
+    <div style="background:#fef3c7;border-radius:8px;padding:8px 12px;text-align:center;min-width:55px;flex:1">
+      <div style="font-size:16px;font-weight:800;color:#92400e">${totalLate}</div>
+      <div style="font-size:10px;color:#92400e;font-weight:700">Retards</div>
+    </div>
+    ${totalUnknown?`<div style="background:#f1f5f9;border-radius:8px;padding:8px 12px;text-align:center;min-width:55px;flex:1">
+      <div style="font-size:16px;font-weight:800;color:#475569">${totalUnknown}</div>
+      <div style="font-size:10px;color:#475569;font-weight:700">Non pointés</div>
+    </div>`:''}
+    <div style="background:#eef2ff;border-radius:8px;padding:8px 12px;text-align:center;min-width:55px;flex:1">
+      <div style="font-size:16px;font-weight:800;color:#4338ca">${pct}%</div>
+      <div style="font-size:10px;color:#4338ca;font-weight:700">Taux présence</div>
+    </div>
+  </div>
+
+  <!-- CLASSES -->
+  ${classesSections}
+
+  <!-- PIED DE PAGE -->
+  <div style="margin-top:14px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px">
+    <div style="font-size:10px;color:#94a3b8">Gestion Scolaire · Rapport généré le ${today}</div>
+    <div style="font-size:11px;color:#475569;text-align:right">
+      <div style="font-weight:700;margin-bottom:24px">Visa du responsable :</div>
+      <div style="border-top:1px solid #94a3b8;width:160px;text-align:center;padding-top:4px;font-size:10px;color:#94a3b8">${esc(managerName||'Signature')}</div>
+    </div>
+  </div>
+</div>
+</body></html>`;
+
+  const blob = new Blob([html],{type:'text/html;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const win  = window.open(url,'_blank');
+  if(!win){
+    const a = document.createElement('a');
+    a.href=url; a.download=`Presences_Eleves_${dateStr}.html`; a.click();
+  }
+  setTimeout(()=>URL.revokeObjectURL(url),10000);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -3987,8 +4889,8 @@ function downloadNotePDF(){
   @media print{body{padding:12px 16px}@page{margin:14mm 12mm;size:A4 portrait}}
 </style></head><body>
 <div class="header">
-  <div class="header-left">${logoHtml}<div><div class="title">📓 Carnet de notes</div><div style="font-size:11px;color:#64748b;margin-top:2px">${esc(mgrLine)||'GestionEDT'}</div></div></div>
-  <div class="meta"><div>Imprimé le ${now}</div><div style="color:#6366f1;font-weight:700">GestionEDT</div></div>
+  <div class="header-left">${logoHtml}<div><div class="title">📓 Carnet de notes</div><div style="font-size:11px;color:#64748b;margin-top:2px">${esc(mgrLine)||'Gestion Scolaire'}</div></div></div>
+  <div class="meta"><div>Imprimé le ${now}</div><div style="color:#6366f1;font-weight:700">Gestion Scolaire</div></div>
 </div>
 <div class="note-title">${esc(note.title||'(Sans titre)')}</div>
 <div class="note-body">${bodyHtml}</div>
@@ -4187,7 +5089,7 @@ async function transferViaBluetooth(){
   if(navigator.canShare && navigator.canShare({files:[file]})){
     try {
       await navigator.share({
-        title: 'Contacts — GestionEDT',
+        title: 'Contacts — Gestion Scolaire',
         text:  `${contactsList.length} contacts exportés`,
         files: [file]
       });
@@ -4841,9 +5743,11 @@ function addEleveToGroupe(id){
   const prenom     = (document.getElementById('grp-prenom-'+id)||{}).value||'';
   const matricule  = (document.getElementById('grp-mat-'+id)||{}).value||'';
   const tel        = (document.getElementById('grp-tel-'+id)||{}).value||'';
+  const wa_parent  = (document.getElementById('grp-wa-parent-'+id)||{}).value||'';
+  const email_parent=(document.getElementById('grp-email-parent-'+id)||{}).value||'';
   const matsEls    = document.querySelectorAll('#grp-mats-'+id+' .grp-add-mat-chip.sel');
   const matieres   = [...matsEls].map(el=>el.textContent.trim());
-  grp.eleves.push({id:Date.now()+Math.random(), name, prenom:prenom.trim(), matricule:matricule.trim(), tel:tel.trim(), classe:grp.name, matieres});
+  grp.eleves.push({id:Date.now()+Math.random(), name, prenom:prenom.trim(), matricule:matricule.trim(), tel:tel.trim(), wa_parent:wa_parent.trim(), email_parent:email_parent.trim(), classe:grp.name, matieres});
   saveGroupes();
   // ── Synchronisation automatique avec l'onglet Élèves ──
   const fullName = [name, prenom.trim()].filter(Boolean).join(' ');
@@ -4929,7 +5833,7 @@ function shareGroupeWA(id){
     `📋 *Liste des élèves :*`,
     ...grp.eleves.map((e,i)=>`${i+1}. ${e.name}`),
     ``,
-    `— ${manager.name||'Gestionnaire EDT'}`
+    `— ${manager.name||'Gestionnaire'}`
   ].filter(l=>l!==null);
   window.open('https://wa.me/?text='+encodeURIComponent(lines.join('\n')),'_blank');
 }
@@ -4943,7 +5847,7 @@ function shareGroupesWA(){
     lines.push(`  👥 ${grp.eleves.length} élève(s)`);
     lines.push('');
   });
-  lines.push(`— ${manager.name||'Gestionnaire EDT'}`);
+  lines.push(`— ${manager.name||'Gestionnaire'}`);
   window.open('https://wa.me/?text='+encodeURIComponent(lines.join('\n')),'_blank');
 }
 
@@ -4998,6 +5902,10 @@ function renderGroupes(){
             <input type="text" id="grp-prenom-${grp.id}" placeholder="Prénom">
             <input type="text" id="grp-mat-${grp.id}" placeholder="Matricule">
             <input type="tel" id="grp-tel-${grp.id}" placeholder="📱 Téléphone (ex: +225…)" style="flex:1;min-width:160px">
+          </div>
+          <div class="grp-add-eleve-row">
+            <input type="tel" id="grp-wa-parent-${grp.id}" placeholder="📱 WhatsApp parent (ex: +224…)" style="flex:1;min-width:160px">
+            <input type="email" id="grp-email-parent-${grp.id}" placeholder="✉️ Email parent" style="flex:1;min-width:160px">
           </div>
           <div class="grp-add-eleve-mats" id="grp-mats-${grp.id}" style="display:none"></div>
           <div class="grp-add-eleve-row">
@@ -5085,7 +5993,7 @@ function shareListeGeneraleWA(){
     });
     lines.push('');
   });
-  lines.push(`— ${manager.name||'GestionEDT'}`);
+  lines.push(`— ${manager.name||'Gestion Scolaire'}`);
   window.open('https://wa.me/?text='+encodeURIComponent(lines.join('\n')),'_blank');
 }
 
@@ -5231,12 +6139,40 @@ function openFiche(gid,eid){
   document.getElementById('fiche-prenom').value=el.prenom||'';
   document.getElementById('fiche-matricule').value=el.matricule||'';
   document.getElementById('fiche-classe').value=el.classe||grp.name||'';
+  // Nouveaux champs
+  document.getElementById('fiche-dob').value=el.dob||'';
+  document.getElementById('fiche-lieu-naissance').value=el.lieu_naissance||'';
+  document.getElementById('fiche-tel').value=el.tel||'';
+  document.getElementById('fiche-genre').value=el.genre||'';
+  // Famille
+  document.getElementById('fiche-pere-nom').value=el.pere_nom||'';
+  document.getElementById('fiche-pere-prof').value=el.pere_prof||'';
+  document.getElementById('fiche-pere-wa').value=el.wa_parent||'';
+  document.getElementById('fiche-pere-email').value=el.email_parent||'';
+  document.getElementById('fiche-mere-nom').value=el.mere_nom||'';
+  document.getElementById('fiche-mere-prof').value=el.mere_prof||'';
+  document.getElementById('fiche-mere-wa').value=el.mere_wa||'';
+  document.getElementById('fiche-mere-email').value=el.mere_email||'';
+  document.getElementById('fiche-adresse').value=el.adresse||'';
+  document.getElementById('fiche-observations').value=el.observations||'';
+  // Photo
+  const photoPreview = document.getElementById('fiche-photo-preview');
+  if(el.photo){
+    photoPreview.innerHTML = `<img src="${el.photo}" style="width:64px;height:64px;object-fit:cover;border-radius:10px">`;
+  } else {
+    photoPreview.textContent = '📷';
+  }
+  // Matières
   const mats=el.matieres||[];
   document.getElementById('fiche-mat-grid').innerHTML=FICHE_MATS.map(m=>{
     const on=mats.includes(m);
     return `<label class="fiche-mat-lbl${on?' on':''}">
       <input type="checkbox" value="${m}"${on?' checked':''} onchange="this.closest('label').classList.toggle('on',this.checked)"> ${m}</label>`;
   }).join('');
+  // Historique présences + notes
+  renderFicheHistorique(gid, eid);
+  // Activer premier onglet
+  switchFicheTab('infos');
   document.getElementById('fiche-overlay').classList.add('open');
 }
 
@@ -5252,8 +6188,235 @@ function getFicheData(){
     prenom:document.getElementById('fiche-prenom').value.trim(),
     matricule:document.getElementById('fiche-matricule').value.trim(),
     classe:document.getElementById('fiche-classe').value.trim(),
-    matieres:[...document.querySelectorAll('#fiche-mat-grid input:checked')].map(c=>c.value)
+    matieres:[...document.querySelectorAll('#fiche-mat-grid input:checked')].map(c=>c.value),
+    // Nouveaux
+    dob:(document.getElementById('fiche-dob')||{}).value||'',
+    lieu_naissance:(document.getElementById('fiche-lieu-naissance')||{}).value||'',
+    tel:(document.getElementById('fiche-tel')||{}).value||'',
+    genre:(document.getElementById('fiche-genre')||{}).value||'',
+    pere_nom:(document.getElementById('fiche-pere-nom')||{}).value||'',
+    pere_prof:(document.getElementById('fiche-pere-prof')||{}).value||'',
+    wa_parent:(document.getElementById('fiche-pere-wa')||{}).value||'',
+    email_parent:(document.getElementById('fiche-pere-email')||{}).value||'',
+    mere_nom:(document.getElementById('fiche-mere-nom')||{}).value||'',
+    mere_prof:(document.getElementById('fiche-mere-prof')||{}).value||'',
+    mere_wa:(document.getElementById('fiche-mere-wa')||{}).value||'',
+    mere_email:(document.getElementById('fiche-mere-email')||{}).value||'',
+    adresse:(document.getElementById('fiche-adresse')||{}).value||'',
+    observations:(document.getElementById('fiche-observations')||{}).value||''
   };
+}
+
+function switchFicheTab(tab){
+  ['infos','famille','historique','edt'].forEach(t=>{
+    const btn=document.getElementById('ftab-'+t);
+    const panel=document.getElementById('fpanel-'+t);
+    if(btn) btn.classList.toggle('active', t===tab);
+    if(panel) panel.style.display = t===tab ? '' : 'none';
+  });
+  if(tab==='edt'){
+    const gid=+document.getElementById('fiche-gid').value;
+    const eid=+document.getElementById('fiche-eid').value;
+    renderFicheEdtPerso(gid, eid);
+  }
+}
+
+function renderFicheEdtPerso(gid, eid){
+  const container = document.getElementById('fiche-edt-content');
+  if(!container) return;
+  const grp = groupesList.find(g=>g.id===gid);
+  const el  = grp ? grp.eleves.find(e=>e.id===eid) : null;
+  if(!el){ container.innerHTML='<div style="color:#94a3b8;font-size:12px">Élève introuvable.</div>'; return; }
+
+  // EDT perso stocké dans el.edtPerso = { 'di-si': {subject,teacher,colorIdx} }
+  const edtPerso = el.edtPerso || {};
+  const slots = SLOTS;
+  const days  = ['Lun','Mar','Mer','Jeu','Ven','Sam'];
+
+  const theadCells = `<th style="background:#1a1f2e;color:#fff;padding:6px 4px;font-size:10px;min-width:56px">Heure</th>${days.map(d=>`<th style="background:#1a1f2e;color:#fff;padding:6px 4px;font-size:10px;text-align:center">${d}</th>`).join('')}`;
+  const rows = slots.map((slot,si)=>{
+    const cells = days.map((_,di)=>{
+      const key=`${di}-${si}`;
+      const e=edtPerso[key];
+      if(e){
+        const c=COLORS[e.colorIdx]||COLORS[0];
+        return `<td style="border:1px solid #e2e8f0;padding:0;vertical-align:top"><div style="background:${c.bg};border-left:3px solid ${c.border};padding:4px 5px;min-height:36px;cursor:pointer" onclick="editFicheEdtCell('${key}',${gid},${eid})"><div style="font-size:10px;font-weight:700;color:${c.text}">${esc(e.subject)}</div>${e.teacher?`<div style="font-size:9px;color:#64748b">${esc(e.teacher)}</div>`:''}</div></td>`;
+      }
+      return `<td style="border:1px solid #e2e8f0;min-height:36px;background:#fafbfc;cursor:pointer" onclick="editFicheEdtCell('${key}',${gid},${eid})"><div style="text-align:center;color:#cbd5e1;font-size:11px;padding:10px 0">+</div></td>`;
+    }).join('');
+    return `<tr><td style="border:1px solid #e2e8f0;background:#f1f5f9;font-size:10px;font-weight:700;color:#475569;text-align:center;padding:4px 3px;font-family:monospace;white-space:nowrap">${slot}</td>${cells}</tr>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div style="overflow-x:auto;border-radius:10px;margin-bottom:10px">
+      <table style="width:100%;border-collapse:collapse;min-width:360px;font-size:11px">
+        <thead><tr>${theadCells}</tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-green" style="font-size:11px;padding:6px 12px" onclick="sendFicheEdtWA(${gid},${eid})">📤 Envoyer WA parent</button>
+      <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="sendFicheEdtEmail(${gid},${eid})">✉️ Email parent</button>
+      <button class="btn btn-danger" style="font-size:11px;padding:6px 12px" onclick="clearFicheEdtPerso(${gid},${eid})">🗑 Effacer</button>
+    </div>
+  `;
+}
+
+function editFicheEdtCell(key, gid, eid){
+  const grp = groupesList.find(g=>g.id===gid);
+  const el  = grp ? grp.eleves.find(e=>e.id===eid) : null;
+  if(!el) return;
+  if(!el.edtPerso) el.edtPerso={};
+  const existing = el.edtPerso[key];
+  const subject = prompt('Matière (vide pour effacer) :', existing?.subject||'');
+  if(subject === null) return;
+  if(!subject.trim()){ delete el.edtPerso[key]; }
+  else {
+    const teacher = prompt('Enseignant / Salle (optionnel) :', existing?.teacher||'');
+    el.edtPerso[key] = {subject:subject.trim(), teacher:(teacher||'').trim(), colorIdx:existing?.colorIdx||0};
+  }
+  saveGroupes();
+  renderFicheEdtPerso(gid, eid);
+}
+
+function clearFicheEdtPerso(gid, eid){
+  if(!confirm('Effacer tout l\'EDT personnalisé de cet élève ?')) return;
+  const grp=groupesList.find(g=>g.id===gid);
+  const el=grp?grp.eleves.find(e=>e.id===eid):null;
+  if(!el) return;
+  el.edtPerso={};
+  saveGroupes();
+  renderFicheEdtPerso(gid, eid);
+}
+
+function buildEdtPersoText(el, grp){
+  const edtPerso = el.edtPerso||{};
+  const school = manager.school||'';
+  const directeur = manager.name||'La Direction';
+  const nomEleve = [el.name,el.prenom].filter(Boolean).join(' ');
+  const today = new Date().toLocaleDateString('fr-FR',{year:'numeric',month:'long',day:'numeric'});
+  const days = ['Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'];
+  let lignes = [`📅 *Emploi du temps personnalisé — ${nomEleve}*`,`🏫 ${school}`,`📆 ${today}`,``];
+  SLOTS.forEach((slot,si)=>{
+    const dayEntries = days.map((d,di)=>{ const e=edtPerso[`${di}-${si}`]; return e?`${d}: ${e.subject}${e.teacher?' ('+e.teacher+')':''}`:null; }).filter(Boolean);
+    if(dayEntries.length) lignes.push(`🕐 *${slot}*\n${dayEntries.map(x=>'  • '+x).join('\n')}`);
+  });
+  if(lignes.length<=4){ return null; }
+  lignes.push(``,`— ${directeur}`);
+  return lignes.join('\n');
+}
+
+function sendFicheEdtWA(gid, eid){
+  const grp=groupesList.find(g=>g.id===gid);
+  const el=grp?grp.eleves.find(e=>e.id===eid):null;
+  if(!el) return;
+  const msg = buildEdtPersoText(el, grp);
+  if(!msg){ alert('L\'EDT personnalisé est vide. Ajoutez des cours en cliquant sur les cellules.'); return; }
+  const wa = (el.wa_parent||el.mere_wa||'').replace(/\D/g,'');
+  const base = wa ? `https://wa.me/${wa}` : `https://wa.me/`;
+  window.open(`${base}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function sendFicheEdtEmail(gid, eid){
+  const grp=groupesList.find(g=>g.id===gid);
+  const el=grp?grp.eleves.find(e=>e.id===eid):null;
+  if(!el) return;
+  const msg = buildEdtPersoText(el, grp);
+  if(!msg){ alert('L\'EDT personnalisé est vide.'); return; }
+  const email = el.email_parent||el.mere_email||'';
+  const nomEleve = [el.name,el.prenom].filter(Boolean).join(' ');
+  window.open(`mailto:${email}?subject=${encodeURIComponent('EDT personnalisé — '+nomEleve)}&body=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function previewFichePhoto(input){
+  if(!input.files||!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const prev = document.getElementById('fiche-photo-preview');
+    prev.innerHTML = `<img src="${e.target.result}" style="width:64px;height:64px;object-fit:cover;border-radius:10px">`;
+    // Store temp
+    window._fichePhotoTmp = e.target.result;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function removeFichePhoto(){
+  document.getElementById('fiche-photo-preview').textContent = '📷';
+  window._fichePhotoTmp = null;
+  const gid=+document.getElementById('fiche-gid').value;
+  const eid=+document.getElementById('fiche-eid').value;
+  const grp=groupesList.find(g=>g.id===gid);
+  const el=grp?grp.eleves.find(e=>e.id===eid):null;
+  if(el){ el.photo=''; saveGroupes(); }
+}
+
+function renderFicheHistorique(gid, eid){
+  const content = document.getElementById('fiche-historique-content');
+  if(!content) return;
+  const grp = groupesList.find(g=>g.id===gid);
+  const e = grp ? grp.eleves.find(el=>el.id===eid) : null;
+  if(!e){ content.innerHTML='<div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px">Élève introuvable.</div>'; return; }
+
+  // Calcul présences
+  const allDates = Object.keys(eaData).sort();
+  let nbAbsent=0, nbRetard=0, nbPresent=0;
+  allDates.forEach(d=>{
+    const s = (eaData[d]||{})[eaKey(gid, eid)];
+    if(s==='absent') nbAbsent++;
+    else if(s==='late') nbRetard++;
+    else if(s==='present') nbPresent++;
+  });
+  const totalJ = nbAbsent+nbRetard+nbPresent;
+  const tauxPct = totalJ ? Math.round(nbPresent/totalJ*100) : 0;
+  // Dernières dates de présence
+  const recentDates = allDates.slice(-10).reverse();
+
+  content.innerHTML = `
+    <div class="fiche-notes-grid" style="margin-bottom:12px">
+      <div class="fiche-note-chip" style="background:#d1fae5;color:#065f46">✅ ${nbPresent}<br><span style="font-size:9px">Présences</span></div>
+      <div class="fiche-note-chip" style="background:#fee2e2;color:#991b1b">❌ ${nbAbsent}<br><span style="font-size:9px">Absences</span></div>
+      <div class="fiche-note-chip" style="background:#fef3c7;color:#92400e">⚠️ ${nbRetard}<br><span style="font-size:9px">Retards</span></div>
+      <div class="fiche-note-chip" style="background:#eef2ff;color:#4338ca">📊 ${tauxPct}%<br><span style="font-size:9px">Taux présence</span></div>
+    </div>
+    <div class="fiche-section-title">📅 Dernières présences</div>
+    <div>
+      ${recentDates.length ? recentDates.map(d=>{
+        const s = (eaData[d]||{})[eaKey(gid, eid)];
+        const label = s==='present'?'✅ Présent':s==='absent'?'❌ Absent':s==='late'?'⚠️ Retard':'— Non pointé';
+        const color = s==='present'?'#10b981':s==='absent'?'#ef4444':s==='late'?'#f59e0b':'#94a3b8';
+        const dateFr = new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});
+        return `<div class="fiche-history-row"><span style="color:#94a3b8;min-width:60px;font-size:11px;font-family:'DM Mono',monospace">${dateFr}</span><span style="font-size:11px;font-weight:700;color:${color}">${label}</span></div>`;
+      }).join('') : '<div style="font-size:12px;color:#94a3b8;padding:8px 0">Aucune donnée de présence enregistrée.</div>'}
+    </div>
+    <div class="fiche-section-title" style="margin-top:12px">📝 Notes saisies manuellement</div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <input type="text" id="fiche-note-subject" placeholder="Matière" style="flex:1;min-width:100px;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none">
+      <input type="number" id="fiche-note-val" min="0" max="20" step="0.5" placeholder="Note/20" style="width:80px;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;font-family:'DM Mono',monospace;outline:none">
+      <button class="btn btn-primary" style="font-size:11px;padding:6px 12px" onclick="addFicheNote(${gid},${eid})">➕ Ajouter</button>
+    </div>
+    <div id="fiche-notes-list-${gid}-${eid}" style="margin-top:8px">${renderFicheNotesList(e)}</div>
+  `;
+}
+
+function renderFicheNotesList(e){
+  const notes = e.notes||[];
+  if(!notes.length) return '<div style="font-size:12px;color:#94a3b8;padding:6px 0">Aucune note enregistrée.</div>';
+  return `<div style="display:flex;flex-wrap:wrap;gap:6px">${notes.map((n,i)=>`<div class="fiche-note-chip">${esc(n.matiere)}<br><strong style="font-size:14px">${n.val}/20</strong><br><span style="font-size:9px;color:#94a3b8">${n.date||''}</span></div>`).join('')}</div>`;
+}
+
+function addFicheNote(gid, eid){
+  const grp=groupesList.find(g=>g.id===gid); if(!grp) return;
+  const el=grp.eleves.find(e=>e.id===eid); if(!el) return;
+  const matiere = document.getElementById('fiche-note-subject').value.trim();
+  const val = parseFloat(document.getElementById('fiche-note-val').value);
+  if(!matiere||isNaN(val)||val<0||val>20){ alert('Matière et note valide (0–20) requis.'); return; }
+  if(!el.notes) el.notes=[];
+  el.notes.push({matiere, val, date:getTodayStr()});
+  saveGroupes();
+  document.getElementById('fiche-note-subject').value='';
+  document.getElementById('fiche-note-val').value='';
+  const listEl=document.getElementById(`fiche-notes-list-${gid}-${eid}`);
+  if(listEl) listEl.innerHTML=renderFicheNotesList(el);
 }
 
 function saveFiche(){
@@ -5262,7 +6425,15 @@ function saveFiche(){
   const grp=groupesList.find(g=>g.id===d.gid); if(!grp) return;
   const el=grp.eleves.find(e=>e.id===d.eid); if(!el) return;
   el.name=d.nom; el.prenom=d.prenom; el.matricule=d.matricule; el.classe=d.classe; el.matieres=d.matieres;
+  // Nouveaux champs
+  el.dob=d.dob; el.lieu_naissance=d.lieu_naissance; el.tel=d.tel; el.genre=d.genre;
+  el.pere_nom=d.pere_nom; el.pere_prof=d.pere_prof; el.wa_parent=d.wa_parent; el.email_parent=d.email_parent;
+  el.mere_nom=d.mere_nom; el.mere_prof=d.mere_prof; el.mere_wa=d.mere_wa; el.mere_email=d.mere_email;
+  el.adresse=d.adresse; el.observations=d.observations;
+  // Photo
+  if(window._fichePhotoTmp !== undefined){ if(window._fichePhotoTmp) el.photo=window._fichePhotoTmp; window._fichePhotoTmp=undefined; }
   saveGroupes(); renderGroupes(); renderGrpStats(); closeFiche();
+  showToastLettre('✅ Dossier enregistré !');
 }
 
 function downloadFiche(){
@@ -5288,7 +6459,7 @@ function downloadFiche(){
 .foot{font-size:11px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:12px}
 @media print{body{background:#fff;padding:0}.card{box-shadow:none}}</style></head>
 <body><div class="card">
-<div class="hdr"><h1>📋 Fiche Élève</h1><p>GestionEDT · ${today}</p></div>
+<div class="hdr"><h1>📋 Fiche Élève</h1><p>Gestion Scolaire · ${today}</p></div>
 <div class="body">
 <div class="grid2">
 <div class="field"><label>Nom</label><p>${d.nom||'—'}</p></div>
@@ -5298,7 +6469,7 @@ function downloadFiche(){
 </div>
 <div class="sec">📚 Matières étudiées</div>
 <div class="mgrid">${matsHtml}</div>
-<div class="foot">GestionEDT · ${grpName} · ${today}</div>
+<div class="foot">Gestion Scolaire · ${grpName} · ${today}</div>
 </div></div></body></html>`;
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));
@@ -5306,9 +6477,87 @@ function downloadFiche(){
   a.click();
 }
 
-// ═══════════════════════════════════════════════════════
-// BIBLIOTHÈQUE DE DOCUMENTS (PDF, Word, PowerPoint, Excel…)
-// ═══════════════════════════════════════════════════════
+function downloadFicheComplete(){
+  const d=getFicheData();
+  const gid=d.gid, eid=d.eid;
+  const grp=groupesList.find(g=>g.id===gid);
+  const el=grp?grp.eleves.find(e=>e.id===eid):null;
+  const grpName=grp?grp.name:'';
+  const fullName=[d.prenom,d.nom].filter(Boolean).join(' ')||'Élève';
+  const today=new Date().toLocaleDateString('fr-FR');
+  const school = manager.school||'';
+  const annee = typeof syData!=='undefined' ? (syData.label||'') : '';
+
+  // Présences
+  const allDates = Object.keys(eaData).sort();
+  let nbAbsent=0, nbRetard=0, nbPresent=0;
+  allDates.forEach(d2=>{ const s=(eaData[d2]||{})[eaKey(gid,eid)]; if(s==='absent') nbAbsent++; else if(s==='late') nbRetard++; else if(s==='present') nbPresent++; });
+  const totalJ=nbAbsent+nbRetard+nbPresent;
+  const tauxPct=totalJ?Math.round(nbPresent/totalJ*100):0;
+
+  const photoHtml = el&&el.photo ? `<img src="${el.photo}" style="width:90px;height:90px;object-fit:cover;border-radius:12px;border:2px solid #e2e8f0;margin-bottom:8px">` : `<div style="width:90px;height:90px;border-radius:12px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:36px;color:#fff">👤</div>`;
+  const matsHtml=FICHE_MATS.map(m=>{
+    const ok=d.matieres.includes(m);
+    return `<div style="display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:7px;background:${ok?'#eef2ff':'#f8fafc'};border:1.5px solid ${ok?'#6366f1':'#e2e8f0'};font-size:11px;font-weight:${ok?700:400};color:${ok?'#4338ca':'#94a3b8'}"><span>${ok?'☑':'☐'}</span>${m}</div>`;
+  }).join('');
+  const notesHtml=(el&&el.notes&&el.notes.length)?el.notes.map(n=>`<span style="background:#eef2ff;color:#4338ca;border-radius:7px;padding:4px 10px;font-size:11px;font-weight:700">${esc(n.matiere)}: ${n.val}/20</span>`).join(' '):'<span style="color:#94a3b8;font-size:11px">Aucune note</span>';
+
+  const html=`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Dossier — ${fullName}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;background:#f0f4f8;padding:20px}
+.card{background:#fff;border-radius:14px;max-width:600px;margin:0 auto;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.12)}
+.hdr{background:linear-gradient(135deg,#1a1f2e,#3730a3);padding:20px 24px;color:#fff;display:flex;align-items:center;gap:18px}
+.hdr h1{font-size:18px;font-weight:800;margin-bottom:3px}.hdr p{font-size:11px;opacity:.65}
+.body{padding:20px 24px}.sec{font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase;letter-spacing:.5px;margin:14px 0 8px;border-bottom:1px solid #f1f5f9;padding-bottom:4px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px}
+.field label{font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;display:block;margin-bottom:2px}
+.field p{font-size:13px;font-weight:700;color:#1a1f2e;background:#f8fafc;border-radius:8px;padding:7px 10px;border:1.5px solid #e2e8f0}
+.stat-box{background:#f8fafc;border-radius:10px;padding:10px;text-align:center;border:1.5px solid #e2e8f0}
+.stat-val{font-size:22px;font-weight:800}.stat-lbl{font-size:10px;color:#64748b}
+.mgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:12px}
+.foot{font-size:10px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:10px;margin-top:14px}
+@media print{body{background:#fff;padding:0}.card{box-shadow:none}}</style></head>
+<body><div class="card">
+<div class="hdr">${photoHtml}<div><h1>📋 Dossier Élève</h1><p>${esc(school)} · ${annee||today}</p><p style="margin-top:4px;opacity:.85;font-size:13px;font-weight:800">${fullName}</p></div></div>
+<div class="body">
+<div class="sec">📋 Informations générales</div>
+<div class="grid2">
+<div class="field"><label>Nom</label><p>${d.nom||'—'}</p></div>
+<div class="field"><label>Prénom</label><p>${d.prenom||'—'}</p></div>
+<div class="field"><label>Matricule</label><p>${d.matricule||'—'}</p></div>
+<div class="field"><label>Classe / Groupe</label><p>${d.classe||grpName||'—'}</p></div>
+${d.dob?`<div class="field"><label>Date naissance</label><p>${new Date(d.dob+'T00:00:00').toLocaleDateString('fr-FR')}</p></div>`:''}
+${d.lieu_naissance?`<div class="field"><label>Lieu naissance</label><p>${esc(d.lieu_naissance)}</p></div>`:''}
+${d.genre?`<div class="field"><label>Genre</label><p>${esc(d.genre)}</p></div>`:''}
+${d.tel?`<div class="field"><label>Téléphone</label><p>${esc(d.tel)}</p></div>`:''}
+</div>
+<div class="sec">📊 Présences</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+<div class="stat-box" style="flex:1"><div class="stat-val" style="color:#065f46">${nbPresent}</div><div class="stat-lbl">Présences</div></div>
+<div class="stat-box" style="flex:1"><div class="stat-val" style="color:#991b1b">${nbAbsent}</div><div class="stat-lbl">Absences</div></div>
+<div class="stat-box" style="flex:1"><div class="stat-val" style="color:#92400e">${nbRetard}</div><div class="stat-lbl">Retards</div></div>
+<div class="stat-box" style="flex:1"><div class="stat-val" style="color:#4338ca">${tauxPct}%</div><div class="stat-lbl">Taux présence</div></div>
+</div>
+<div class="sec">📝 Notes</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">${notesHtml}</div>
+${(d.pere_nom||d.pere_wa||d.pere_email)?`<div class="sec">👨‍👩‍👧 Famille</div><div class="grid2">
+${d.pere_nom?`<div class="field"><label>Père / Tuteur</label><p>${esc(d.pere_nom)}${d.pere_prof?' · '+esc(d.pere_prof):''}</p></div>`:''}
+${d.pere_wa?`<div class="field"><label>WhatsApp père</label><p>${esc(d.pere_wa)}</p></div>`:''}
+${d.mere_nom?`<div class="field"><label>Mère</label><p>${esc(d.mere_nom)}${d.mere_prof?' · '+esc(d.mere_prof):''}</p></div>`:''}
+${d.mere_wa?`<div class="field"><label>WhatsApp mère</label><p>${esc(d.mere_wa)}</p></div>`:''}
+${d.adresse?`<div class="field" style="grid-column:span 2"><label>Adresse</label><p>${esc(d.adresse)}</p></div>`:''}
+</div>`:''}
+<div class="sec">📚 Matières étudiées</div>
+<div class="mgrid">${matsHtml}</div>
+${d.observations?`<div class="sec">📝 Observations</div><p style="font-size:12px;color:#475569;background:#fef3c7;border-radius:8px;padding:8px 10px;border:1.5px solid #f59e0b">${esc(d.observations)}</p>`:''}
+<div class="foot">Dossier élève — Gestion Scolaire · ${grpName} · ${today}</div>
+</div></div></body></html>`;
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));
+  a.download=`Dossier_${fullName.replace(/\s+/g,'_')}_${today.replace(/\//g,'-')}.html`;
+  a.click();
+}
+
+
 let docsList = [];
 let docsTypeFilter = 'all';
 
@@ -5464,7 +6713,7 @@ function shareDocWA(id){
     ``,
     `⚠️ Le fichier doit être envoyé manuellement en pièce jointe WhatsApp.`,
     ``,
-    `— ${manager.name||'Gestionnaire EDT'}`
+    `— ${manager.name||'Gestionnaire'}`
   ].filter(l=>l!==null);
 
   if(numbers.length > 0){
@@ -5549,7 +6798,830 @@ function renderDocsStats(){
 
 
 // ═══════════════════════════════════════════════════════
-// INIT — appelé après authentification Firebase
+// STATISTIQUES PAR ENSEIGNANT
+// ═══════════════════════════════════════════════════════
+let seCurrentFilter = 'all';
+let seOpenCards = {};
+
+function initSeMonth(){
+  const el = document.getElementById('se-month');
+  if(!el || el.value) return;
+  const now = new Date();
+  el.value = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+}
+
+function seFilter(f, btn){
+  seCurrentFilter = f;
+  document.querySelectorAll('.se-filter-chip').forEach(c=>c.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  renderStatEnseignants();
+}
+
+// Calcule les stats d'un membre du personnel pour une période donnée
+function calcSeStats(sm, monthStart, monthEnd){
+  // --- Présences sur la période ---
+  const datesInPeriod = Object.keys(attendanceData).filter(d=>d>=monthStart&&d<=monthEnd).sort();
+  let nbJours = datesInPeriod.length;
+  let nbPresent=0, nbAbsent=0, nbRetard=0, nbNonPointe=0;
+  datesInPeriod.forEach(d=>{
+    const s = (attendanceData[d]||{})[sm.id];
+    if(s==='present') nbPresent++;
+    else if(s==='absent') nbAbsent++;
+    else if(s==='late') nbRetard++;
+    else nbNonPointe++;
+  });
+  const tauxPres = nbJours ? Math.round(nbPresent/nbJours*100) : null;
+
+  // --- Séances enseignées (depuis suivi programme) ---
+  // On compte les matières où cet enseignant est référencé
+  const spD = ld('edt_sp_data')||{};
+  let seancesPrevues=0, seancesFaites=0, matieresList=[];
+  Object.values(spD).forEach(f=>{
+    (f.matieres||[]).forEach(m=>{
+      // Associer par nom d'enseignant si renseigné, ou prendre toutes
+      const matchEns = !m.enseignant || m.enseignant.toLowerCase().includes((sm.name||'').toLowerCase().split(' ')[0].toLowerCase());
+      if(matchEns && m.enseignant){
+        seancesPrevues += m.total||0;
+        seancesFaites  += m.faites||0;
+        matieresList.push({filiere:f.name, name:m.name, total:m.total||0, faites:m.faites||0, pct:m.total?Math.round((m.faites||0)/m.total*100):0});
+      }
+    });
+  });
+
+  // --- Classes enseignées (depuis EDT personnel) ---
+  const staffEdt = sm.tdata||{};
+  const matieresEdt = new Set();
+  Object.values(staffEdt).forEach(e=>{ if(e&&e.subject) matieresEdt.add(e.subject); });
+
+  // --- Historique des 10 derniers jours pointés ---
+  const lastDates = datesInPeriod.slice(-10).reverse();
+  const historique = lastDates.map(d=>{
+    const s=(attendanceData[d]||{})[sm.id];
+    return {date:d, status:s||'unknown'};
+  });
+
+  // --- Retards accumulés (total depuis le début) ---
+  const allDates = Object.keys(attendanceData).sort();
+  let totalRetardsAll = 0;
+  allDates.forEach(d=>{ if((attendanceData[d]||{})[sm.id]==='late') totalRetardsAll++; });
+
+  // --- Jours consécutifs présent (streak) ---
+  let streak=0;
+  const todayStr = getTodayStr();
+  for(let i=allDates.length-1;i>=0;i--){
+    const d=allDates[i]; if(d>todayStr) continue;
+    const s=(attendanceData[d]||{})[sm.id];
+    if(s==='present'||s==='late') streak++;
+    else break;
+  }
+
+  return { nbJours, nbPresent, nbAbsent, nbRetard, nbNonPointe, tauxPres,
+           seancesPrevues, seancesFaites, matieresList,
+           matieresEdt:[...matieresEdt], historique, totalRetardsAll, streak };
+}
+
+function renderStatEnseignants(){
+  initSeMonth();
+  const monthEl = document.getElementById('se-month');
+  const searchEl = document.getElementById('se-search');
+  const q = (searchEl?.value||'').toLowerCase();
+
+  // Période sélectionnée
+  let monthStart, monthEnd, monthLabel;
+  if(monthEl?.value){
+    const [yr,mo] = monthEl.value.split('-').map(Number);
+    monthStart = `${yr}-${String(mo).padStart(2,'0')}-01`;
+    monthEnd   = `${yr}-${String(mo).padStart(2,'0')}-${new Date(yr,mo,0).getDate().toString().padStart(2,'0')}`;
+    monthLabel = new Date(yr,mo-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  } else {
+    // Tout le temps
+    const allD = Object.keys(attendanceData).sort();
+    monthStart = allD[0]||getTodayStr();
+    monthEnd   = getTodayStr();
+    monthLabel = 'Toute la période';
+  }
+
+  if(!staffList.length){
+    document.getElementById('se-list').innerHTML = '<div class="se-empty">👥 Ajoutez du personnel dans l\'onglet <strong>Personnel</strong> pour voir les statistiques.</div>';
+    document.getElementById('se-kpi-row').innerHTML = '';
+    document.getElementById('se-alertes-zone').innerHTML = '';
+    return;
+  }
+
+  // Calculer stats pour tous
+  const allStats = staffList.map(sm=>({ sm, stats: calcSeStats(sm, monthStart, monthEnd) }));
+
+  // KPI globaux
+  const totStaff = allStats.length;
+  const avgPres  = Math.round(allStats.reduce((s,{stats})=>s+(stats.tauxPres??0),0)/totStaff);
+  const nbAlerte = allStats.filter(({stats})=>stats.nbRetard>=3||stats.nbAbsent>=2).length;
+  const topPerf  = [...allStats].sort((a,b)=>(b.stats.tauxPres??0)-(a.stats.tauxPres??0))[0];
+  document.getElementById('se-kpi-row').innerHTML = `
+    <div class="se-kpi"><div class="se-kpi-val">${totStaff}</div><div class="se-kpi-lbl">Enseignants</div></div>
+    <div class="se-kpi" style="border-top-color:#10b981"><div class="se-kpi-val" style="color:#10b981">${avgPres}%</div><div class="se-kpi-lbl">Taux présence moyen</div></div>
+    <div class="se-kpi" style="border-top-color:#ef4444"><div class="se-kpi-val" style="color:#ef4444">${nbAlerte}</div><div class="se-kpi-lbl">Alertes à traiter</div></div>
+    <div class="se-kpi" style="border-top-color:#f59e0b"><div class="se-kpi-val" style="color:#f59e0b">${allStats.reduce((s,{stats})=>s+stats.nbAbsent,0)}</div><div class="se-kpi-lbl">Absences cumulées</div></div>
+  `;
+
+  // Alertes
+  const alertes = allStats.filter(({stats})=>stats.nbRetard>=3||stats.nbAbsent>=2||stats.tauxPres!==null&&stats.tauxPres<70);
+  document.getElementById('se-alertes-zone').innerHTML = alertes.length
+    ? alertes.map(({sm,stats})=>`
+        <div class="se-retard-alert">
+          ⚠️
+          <span style="flex:1"><strong>${esc(sm.name)}</strong> —
+          ${stats.nbAbsent>=2?`${stats.nbAbsent} absences `:''}
+          ${stats.nbRetard>=3?`${stats.nbRetard} retards `:''}
+          ${stats.tauxPres!==null&&stats.tauxPres<70?`taux présence ${stats.tauxPres}%`:''}
+          </span>
+          <button class="btn btn-ghost" style="font-size:11px;padding:4px 9px" onclick="sendAlertWAEnseignant(${sm.id})">📲 WA</button>
+        </div>`).join('')
+    : '';
+
+  // Filtrage
+  let filtered = allStats.filter(({sm,stats})=>{
+    const matchQ = !q || sm.name.toLowerCase().includes(q)||(sm.role||'').toLowerCase().includes(q);
+    const today = getTodayStr();
+    const todayStatus = (attendanceData[today]||{})[sm.id];
+    if(seCurrentFilter==='present' && todayStatus!=='present') return false;
+    if(seCurrentFilter==='absent'  && todayStatus!=='absent')  return false;
+    if(seCurrentFilter==='retard'  && todayStatus!=='late')    return false;
+    return matchQ;
+  });
+
+  // Trier par taux présence décroissant
+  filtered.sort((a,b)=>(b.stats.tauxPres??0)-(a.stats.tauxPres??0));
+
+  if(!filtered.length){
+    document.getElementById('se-list').innerHTML = '<div class="se-empty">🔍 Aucun enseignant trouvé pour ce filtre.</div>';
+    return;
+  }
+
+  const statusLabel = {present:'✅ Présent', absent:'❌ Absent', late:'⚠️ Retard', unknown:'— Non pointé'};
+  const statusClass = {present:'se-badge-green', absent:'se-badge-red', late:'se-badge-yellow', unknown:'se-badge-gray'};
+
+  document.getElementById('se-list').innerHTML = filtered.map(({sm,stats})=>{
+    const col = avatarColor(sm.name);
+    const isOpen = !!seOpenCards[sm.id];
+    const todayStatus = (attendanceData[getTodayStr()]||{})[sm.id]||'unknown';
+    const pctColor = stats.tauxPres===null?'#94a3b8':stats.tauxPres>=80?'#10b981':stats.tauxPres>=60?'#f59e0b':'#ef4444';
+    const progPct  = stats.seancesPrevues ? Math.round(stats.seancesFaites/stats.seancesPrevues*100) : null;
+
+    // Matières depuis EDT
+    const matsDisplay = stats.matieresEdt.slice(0,4).join(', ')+(stats.matieresEdt.length>4?'…':'');
+
+    // Historique mini
+    const histoHtml = stats.historique.length
+      ? stats.historique.slice(0,7).map(h=>{
+          const dot = h.status==='present'?'#10b981':h.status==='absent'?'#ef4444':h.status==='late'?'#f59e0b':'#e2e8f0';
+          const dateFr = new Date(h.date+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});
+          return `<div class="se-history-row">
+            <div style="width:9px;height:9px;border-radius:50%;background:${dot};flex-shrink:0"></div>
+            <span style="color:#94a3b8;min-width:56px;font-size:11px;font-family:'DM Mono',monospace">${dateFr}</span>
+            <span style="font-size:11px;font-weight:700;color:${dot}">${statusLabel[h.status]||'—'}</span>
+          </div>`;
+        }).join('')
+      : '<div style="font-size:12px;color:#94a3b8;padding:4px 0">Aucun pointage sur cette période.</div>';
+
+    // Matières programme
+    const matsProgHtml = stats.matieresList.length
+      ? stats.matieresList.map(m=>{
+          const c = m.pct>=80?'#10b981':m.pct>=50?'#f59e0b':'#ef4444';
+          return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f8fafc">
+            <span style="flex:1;font-size:12px;font-weight:700;color:#1a1f2e">${esc(m.name)}</span>
+            <span style="font-size:10px;color:#64748b">${esc(m.filiere)}</span>
+            <div class="se-prog-bar-wrap"><div class="se-prog-bar" style="width:${m.pct}%;background:${c}"></div></div>
+            <span style="font-size:11px;font-weight:800;min-width:34px;text-align:right;color:${c};font-family:'DM Mono',monospace">${m.pct}%</span>
+          </div>`;
+        }).join('')
+      : '<div style="font-size:12px;color:#94a3b8;padding:4px 0">Aucune matière associée dans le suivi programme.<br><span style="font-size:10px">Renseignez le nom de l\'enseignant dans l\'onglet Suivi Programmes.</span></div>';
+
+    return `
+    <div class="se-card">
+      <div class="se-card-hdr" onclick="toggleSeCard(${sm.id})">
+        <div class="se-card-avatar" style="background:${col}">${initials(sm.name)}</div>
+        <div class="se-card-info">
+          <div class="se-card-name">${esc(sm.name)}</div>
+          <div class="se-card-role">${esc(sm.role||'—')}${matsDisplay?` · <span style="color:#6366f1">${esc(matsDisplay)}</span>`:''}</div>
+        </div>
+        <div class="se-card-badges">
+          <span class="se-badge ${statusClass[todayStatus]||'se-badge-gray'}">${statusLabel[todayStatus]}</span>
+          ${stats.tauxPres!==null?`<span class="se-badge" style="background:${pctColor}22;color:${pctColor}">${stats.tauxPres}% présent</span>`:''}
+          ${stats.streak>2?`<span class="se-badge se-badge-indigo">🔥 ${stats.streak}j streak</span>`:''}
+          ${stats.nbAbsent>=2?`<span class="se-badge se-badge-red">⚠️ ${stats.nbAbsent} abs</span>`:''}
+        </div>
+        <span style="color:#94a3b8;font-size:12px;margin-left:6px;flex-shrink:0">${isOpen?'▲':'▼'}</span>
+      </div>
+      <div class="se-card-body${isOpen?' open':''}" id="se-body-${sm.id}">
+
+        <!-- Stats chips -->
+        <div class="se-stat-grid">
+          <div class="se-stat-chip"><div class="sv" style="color:#10b981">${stats.nbPresent}</div><div class="sl">Présences</div></div>
+          <div class="se-stat-chip"><div class="sv" style="color:#ef4444">${stats.nbAbsent}</div><div class="sl">Absences</div></div>
+          <div class="se-stat-chip"><div class="sv" style="color:#f59e0b">${stats.nbRetard}</div><div class="sl">Retards</div></div>
+          <div class="se-stat-chip"><div class="sv" style="color:#94a3b8">${stats.nbNonPointe}</div><div class="sl">Non pointés</div></div>
+          ${stats.seancesPrevues?`<div class="se-stat-chip"><div class="sv" style="color:#6366f1">${stats.seancesFaites}/${stats.seancesPrevues}</div><div class="sl">Séances données</div></div>`:''}
+          ${stats.totalRetardsAll>0?`<div class="se-stat-chip"><div class="sv" style="color:#f59e0b">${stats.totalRetardsAll}</div><div class="sl">Retards totaux</div></div>`:''}
+          ${stats.streak>0?`<div class="se-stat-chip"><div class="sv" style="color:#6366f1">${stats.streak}</div><div class="sl">Jours consécutifs</div></div>`:''}
+          ${stats.tauxPres!==null?`<div class="se-stat-chip"><div class="sv" style="color:${pctColor}">${stats.tauxPres}%</div><div class="sl">Taux présence</div></div>`:''}
+        </div>
+
+        <!-- Barre taux de présence -->
+        ${stats.tauxPres!==null?`
+        <div style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;color:#475569;margin-bottom:5px">
+            <span>Taux de présence — ${monthLabel}</span>
+            <span style="color:${pctColor}">${stats.tauxPres}%</span>
+          </div>
+          <div class="se-prog-bar-wrap" style="height:10px">
+            <div class="se-prog-bar" style="width:${stats.tauxPres}%;background:${pctColor}"></div>
+          </div>
+        </div>`:''}
+
+        <!-- Avancement programme -->
+        ${stats.seancesPrevues?`
+        <div style="margin-bottom:12px">
+          <div style="font-size:11px;font-weight:800;color:#475569;margin-bottom:8px">📚 Avancement programme</div>
+          ${matsProgHtml}
+        </div>`:`
+        <div style="margin-bottom:10px">
+          <div style="font-size:11px;font-weight:800;color:#475569;margin-bottom:6px">📚 Matières enseignées (EDT)</div>
+          <div style="font-size:12px;color:#475569">${matsDisplay||'<span style="color:#94a3b8">Non renseigné</span>'}</div>
+        </div>`}
+
+        <!-- Historique des pointages -->
+        <div style="margin-bottom:12px">
+          <div style="font-size:11px;font-weight:800;color:#475569;margin-bottom:6px">📅 Derniers pointages</div>
+          ${histoHtml}
+        </div>
+
+        <!-- WhatsApp + contact -->
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          ${sm.wa?`<button class="btn btn-green" style="font-size:11px;padding:6px 12px" onclick="waStaffDirect(${sm.id})">💬 WhatsApp</button>`:''}
+          <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="downloadStatFicheEns(${sm.id},'${monthStart}','${monthEnd}','${monthLabel}')">⬇ Fiche PDF</button>
+          <button class="btn btn-primary" style="font-size:11px;padding:6px 12px" onclick="sendAlertWAEnseignant(${sm.id})">📩 Message</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleSeCard(id){
+  seOpenCards[id] = !seOpenCards[id];
+  const body = document.getElementById('se-body-'+id);
+  if(body) body.classList.toggle('open', !!seOpenCards[id]);
+  // Re-render arrow
+  renderStatEnseignants();
+}
+
+function waStaffDirect(id){
+  const sm = staffList.find(s=>s.id===id);
+  if(!sm||!sm.wa) return;
+  window.open('https://wa.me/'+(sm.wa.replace(/\D/g,'')), '_blank');
+}
+
+function sendAlertWAEnseignant(id){
+  const sm = staffList.find(s=>s.id===id);
+  if(!sm) return;
+  const monthEl = document.getElementById('se-month');
+  let monthStart=getTodayStr(), monthEnd=getTodayStr();
+  if(monthEl?.value){
+    const [yr,mo]=monthEl.value.split('-').map(Number);
+    monthStart=`${yr}-${String(mo).padStart(2,'0')}-01`;
+    monthEnd=`${yr}-${String(mo).padStart(2,'0')}-${new Date(yr,mo,0).getDate().toString().padStart(2,'0')}`;
+  }
+  const stats = calcSeStats(sm, monthStart, monthEnd);
+  const school = manager.school||'Notre établissement';
+  const today  = new Date().toLocaleDateString('fr-FR',{year:'numeric',month:'long',day:'numeric'});
+  const msg = [
+    `🏫 *${school}* — Le ${today}`,``,
+    `Bonjour *${sm.name}*,`,``,
+    `📊 Voici votre bilan de présence :`,
+    `✅ Présences : ${stats.nbPresent}`,
+    `❌ Absences  : ${stats.nbAbsent}`,
+    `⚠️ Retards   : ${stats.nbRetard}`,
+    `📈 Taux de présence : ${stats.tauxPres??'—'}%`,
+    ``,
+    `Merci de votre engagement.`,
+    ``,
+    `— ${manager.name||'La Direction'}`
+  ].join('\n');
+  const wa = (sm.wa||'').replace(/\D/g,'');
+  const base = wa ? `https://wa.me/${wa}` : `https://wa.me/`;
+  window.open(`${base}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function downloadStatFicheEns(id, monthStart, monthEnd, monthLabel){
+  const sm = staffList.find(s=>s.id===id);
+  if(!sm) return;
+  const stats = calcSeStats(sm, monthStart, monthEnd);
+  const today = new Date().toLocaleDateString('fr-FR');
+  const school = manager.school||'';
+  const logo   = manager.logo||'';
+  const logoHtml = logo
+    ? `<img src="${logo}" style="height:60px;width:60px;object-fit:contain;border-radius:8px;border:1.5px solid #e2e8f0" alt="Logo">`
+    : `<div style="width:60px;height:60px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:26px">🏫</div>`;
+  const col = avatarColor(sm.name);
+  const pctColor = stats.tauxPres===null?'#94a3b8':stats.tauxPres>=80?'#10b981':stats.tauxPres>=60?'#f59e0b':'#ef4444';
+  const progPct  = stats.seancesPrevues?Math.round(stats.seancesFaites/stats.seancesPrevues*100):null;
+
+  const histoRows = stats.historique.map(h=>{
+    const s={present:'Présent',absent:'Absent',late:'Retard',unknown:'Non pointé'}[h.status]||'—';
+    const bg={present:'#d1fae5',absent:'#fee2e2',late:'#fef3c7',unknown:'#f8fafc'}[h.status]||'#f8fafc';
+    const col2={present:'#065f46',absent:'#991b1b',late:'#92400e',unknown:'#94a3b8'}[h.status]||'#94a3b8';
+    const dateFr=new Date(h.date+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'2-digit',month:'short'});
+    return `<tr><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;color:#475569;font-family:monospace">${dateFr}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;text-align:center">
+        <span style="background:${bg};color:${col2};border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700">${s}</span>
+      </td></tr>`;
+  }).join('');
+
+  const matsRows = stats.matieresList.map(m=>{
+    const c=m.pct>=80?'#10b981':m.pct>=50?'#f59e0b':'#ef4444';
+    return `<tr><td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:12px;font-weight:700">${esc(m.name)}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;font-size:11px;color:#64748b">${esc(m.filiere)}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #f1f5f9;text-align:center">
+        <span style="color:${c};font-weight:800;font-size:12px">${m.faites}/${m.total} (${m.pct}%)</span>
+      </td></tr>`;
+  }).join('');
+
+  const html=`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Fiche — ${esc(sm.name)}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;background:#fff;padding:20px}
+.hdr{display:flex;align-items:center;gap:14px;border-bottom:2.5px solid #6366f1;padding-bottom:12px;margin-bottom:16px;flex-wrap:wrap}
+.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.kc{background:#f8fafc;border-radius:8px;padding:10px;text-align:center;border:1.5px solid #e2e8f0}
+.kv{font-size:22px;font-weight:800;font-family:monospace}.kl{font-size:10px;color:#64748b;font-weight:700}
+.sec{font-size:11px;font-weight:800;color:#475569;text-transform:uppercase;margin:14px 0 8px;border-bottom:1px solid #f1f5f9;padding-bottom:4px}
+.bar-wrap{background:#e2e8f0;border-radius:10px;height:10px;overflow:hidden;margin-top:5px}
+.bar{height:100%;border-radius:10px}
+th{background:#1a1f2e;color:#fff;padding:7px 10px;text-align:left;font-size:11px}
+td{padding:7px 10px;font-size:12px}table{width:100%;border-collapse:collapse;margin-bottom:14px}
+.foot{font-size:10px;color:#94a3b8;text-align:center;border-top:1px solid #e2e8f0;padding-top:10px;margin-top:14px}
+.no-print{display:none}@media screen{.no-print{display:flex;gap:8px;margin-bottom:14px}}
+button{padding:8px 16px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer}
+@media print{body{padding:0}@page{size:A4 portrait;margin:14mm 12mm}}</style></head>
+<body>
+<div class="no-print"><button onclick="window.print()" style="background:#6366f1;color:#fff">🖨️ Imprimer / PDF</button><button onclick="window.close()" style="background:#f1f5f9;color:#475569">✕</button></div>
+<div class="hdr">${logoHtml}
+  <div>
+    <div style="font-size:16px;font-weight:800;color:#1a1f2e">${esc(school)||'Statistiques Enseignant'}</div>
+    <div style="font-size:13px;font-weight:700;color:#6366f1;margin-top:3px">📊 ${esc(sm.name)}${sm.role?' · '+esc(sm.role):''}</div>
+    <div style="font-size:11px;color:#475569;margin-top:2px">Période : ${monthLabel}</div>
+    <div style="font-size:10px;color:#94a3b8;margin-top:2px">Généré le ${today}</div>
+  </div>
+</div>
+<div class="kpi">
+  <div class="kc"><div class="kv" style="color:#10b981">${stats.nbPresent}</div><div class="kl">Présences</div></div>
+  <div class="kc"><div class="kv" style="color:#ef4444">${stats.nbAbsent}</div><div class="kl">Absences</div></div>
+  <div class="kc"><div class="kv" style="color:#f59e0b">${stats.nbRetard}</div><div class="kl">Retards</div></div>
+  <div class="kc"><div class="kv" style="color:${pctColor}">${stats.tauxPres??'—'}%</div><div class="kl">Taux présence</div></div>
+</div>
+${stats.tauxPres!==null?`<div class="sec">Taux de présence</div>
+<div style="display:flex;align-items:center;gap:10px">
+  <div class="bar-wrap" style="flex:1"><div class="bar" style="width:${stats.tauxPres}%;background:${pctColor}"></div></div>
+  <span style="font-size:14px;font-weight:800;color:${pctColor}">${stats.tauxPres}%</span>
+</div>`:''}
+${stats.seancesPrevues?`<div class="sec">Avancement programme</div>
+<table><thead><tr><th>Matière</th><th>Filière</th><th>Avancement</th></tr></thead><tbody>${matsRows}</tbody></table>`:''}
+${histoRows?`<div class="sec">Historique des pointages</div>
+<table><thead><tr><th>Date</th><th>Statut</th></tr></thead><tbody>${histoRows}</tbody></table>`:''}
+<div class="foot">Gestion Scolaire · Fiche enseignant générée le ${today}</div>
+</body></html>`;
+
+  const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));
+  const win=window.open(url,'_blank');
+  if(!win){ const a=document.createElement('a');a.href=url;a.download=`Stats_${sm.name.replace(/\s+/g,'_')}.html`;a.click(); }
+  setTimeout(()=>URL.revokeObjectURL(url),15000);
+}
+
+function downloadStatEnseignantsPDF(){
+  // Rapport complet de tous les enseignants
+  const monthEl = document.getElementById('se-month');
+  let monthStart=getTodayStr(), monthEnd=getTodayStr(), monthLabel='Aujourd\'hui';
+  if(monthEl?.value){
+    const [yr,mo]=monthEl.value.split('-').map(Number);
+    monthStart=`${yr}-${String(mo).padStart(2,'0')}-01`;
+    monthEnd=`${yr}-${String(mo).padStart(2,'0')}-${new Date(yr,mo,0).getDate().toString().padStart(2,'0')}`;
+    monthLabel=new Date(yr,mo-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  }
+  if(!staffList.length){ alert('Aucun enseignant.'); return; }
+  const today=new Date().toLocaleDateString('fr-FR');
+  const school=manager.school||'';
+  const logo=manager.logo||'';
+  const logoHtml=logo?`<img src="${logo}" style="height:50px;width:50px;object-fit:contain;border-radius:6px;border:1px solid #e2e8f0" alt="Logo">`
+    :`<div style="width:50px;height:50px;border-radius:6px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:22px">🏫</div>`;
+
+  const rows=staffList.map((sm,i)=>{
+    const stats=calcSeStats(sm,monthStart,monthEnd);
+    const pctColor=stats.tauxPres===null?'#94a3b8':stats.tauxPres>=80?'#10b981':stats.tauxPres>=60?'#f59e0b':'#ef4444';
+    return `<tr style="${i%2===1?'background:#fafbfc':''}">
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-weight:700;font-size:12px">${esc(sm.name)}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;font-size:11px;color:#64748b">${esc(sm.role||'—')}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;text-align:center;color:#10b981;font-weight:700">${stats.nbPresent}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;text-align:center;color:#ef4444;font-weight:700">${stats.nbAbsent}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;text-align:center;color:#f59e0b;font-weight:700">${stats.nbRetard}</td>
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;text-align:center">
+        <span style="color:${pctColor};font-weight:800;font-size:12px">${stats.tauxPres??'—'}%</span>
+      </td>
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;text-align:center;font-size:11px">
+        ${stats.seancesPrevues?`${stats.seancesFaites}/${stats.seancesPrevues}`:'—'}
+      </td>
+      <td style="padding:7px 10px;border-bottom:1px solid #f1f5f9;width:100px">
+        <div style="background:#e2e8f0;border-radius:10px;height:7px;overflow:hidden">
+          ${stats.tauxPres!==null?`<div style="width:${stats.tauxPres}%;height:100%;background:${pctColor};border-radius:10px"></div>`:''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  const avgPres=Math.round(staffList.reduce((s,sm)=>{ const st=calcSeStats(sm,monthStart,monthEnd); return s+(st.tauxPres??0); },0)/staffList.length);
+
+  const html=`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Stats Enseignants — ${monthLabel}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;background:#fff;padding:20px}
+th{background:#1a1f2e;color:#fff;padding:8px 10px;text-align:left;font-size:11px}
+table{width:100%;border-collapse:collapse}
+.no-print{display:none}@media screen{.no-print{display:flex;gap:8px;margin-bottom:14px}}
+button{padding:8px 16px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer}
+@media print{body{padding:0}@page{size:A4 landscape;margin:12mm 10mm}}</style></head>
+<body>
+<div class="no-print"><button onclick="window.print()" style="background:#6366f1;color:#fff">🖨️ Imprimer / PDF</button><button onclick="window.close()" style="background:#f1f5f9;color:#475569">✕</button></div>
+<div style="display:flex;align-items:center;gap:14px;border-bottom:2.5px solid #6366f1;padding-bottom:12px;margin-bottom:16px;flex-wrap:wrap">
+  ${logoHtml}
+  <div>
+    <div style="font-size:16px;font-weight:800;color:#1a1f2e">${esc(school)||'Statistiques Enseignants'}</div>
+    <div style="font-size:13px;font-weight:700;color:#6366f1;margin-top:3px">📊 Rapport — ${monthLabel}</div>
+    <div style="font-size:10px;color:#94a3b8;margin-top:2px">Généré le ${today} · ${staffList.length} enseignant(s) · Taux moyen : ${avgPres}%</div>
+  </div>
+</div>
+<table>
+  <thead><tr>
+    <th>Nom</th><th>Poste / Rôle</th>
+    <th style="text-align:center">✅ Présents</th><th style="text-align:center">❌ Absents</th><th style="text-align:center">⚠️ Retards</th>
+    <th style="text-align:center">Taux</th><th style="text-align:center">Séances</th><th style="width:100px">Barre</th>
+  </tr></thead>
+  <tbody>${rows}</tbody>
+</table>
+<div style="font-size:10px;color:#94a3b8;text-align:center;margin-top:14px;border-top:1px solid #e2e8f0;padding-top:10px">Gestion Scolaire · Rapport statistiques enseignants · ${today}</div>
+</body></html>`;
+
+  const url=URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));
+  const win=window.open(url,'_blank');
+  if(!win){ const a=document.createElement('a');a.href=url;a.download=`Stats_Enseignants_${monthEl?.value||today}.html`;a.click(); }
+  setTimeout(()=>URL.revokeObjectURL(url),15000);
+}
+
+function shareStatEnseignantsWA(){
+  const monthEl=document.getElementById('se-month');
+  let monthStart=getTodayStr(),monthEnd=getTodayStr(),monthLabel='Aujourd\'hui';
+  if(monthEl?.value){
+    const [yr,mo]=monthEl.value.split('-').map(Number);
+    monthStart=`${yr}-${String(mo).padStart(2,'0')}-01`;
+    monthEnd=`${yr}-${String(mo).padStart(2,'0')}-${new Date(yr,mo,0).getDate().toString().padStart(2,'0')}`;
+    monthLabel=new Date(yr,mo-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  }
+  const school=manager.school||'Établissement';
+  const today=new Date().toLocaleDateString('fr-FR');
+  const lines=[`📊 *Statistiques Enseignants — ${monthLabel}*`,`🏫 ${school}`,`📅 ${today}`,``];
+  staffList.forEach(sm=>{
+    const stats=calcSeStats(sm,monthStart,monthEnd);
+    lines.push(`👤 *${sm.name}*${sm.role?' ('+sm.role+')':''}`);
+    lines.push(`  ✅ ${stats.nbPresent} présences · ❌ ${stats.nbAbsent} absences · ⚠️ ${stats.nbRetard} retards`);
+    lines.push(`  📈 Taux : ${stats.tauxPres??'—'}%`);
+    if(stats.seancesPrevues) lines.push(`  📚 Séances : ${stats.seancesFaites}/${stats.seancesPrevues}`);
+    lines.push('');
+  });
+  lines.push(`— ${manager.name||'Direction'}`);
+  window.open('https://wa.me/?text='+encodeURIComponent(lines.join('\n')),'_blank');
+}
+
+// ═══════════════════════════════════════════════════════
+// RAPPORT STATISTIQUE MENSUEL
+// ═══════════════════════════════════════════════════════
+function initRapportMonth(){
+  const el = document.getElementById('rapport-month');
+  if(!el) return;
+  const now = new Date();
+  el.value = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');
+}
+
+function renderRapport(){
+  const monthEl = document.getElementById('rapport-month');
+  if(!monthEl||!monthEl.value) return;
+  const [yr, mo] = monthEl.value.split('-').map(Number);
+  const monthStart = `${yr}-${String(mo).padStart(2,'0')}-01`;
+  const monthEnd   = `${yr}-${String(mo).padStart(2,'0')}-${new Date(yr,mo,0).getDate().toString().padStart(2,'0')}`;
+  const monthLabel = new Date(yr,mo-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+
+  // Filtrer les dates du mois
+  const datesInMonth = Object.keys(eaData).filter(d=>d>=monthStart&&d<=monthEnd).sort();
+  const staffDatesInMonth = Object.keys(attendanceData).filter(d=>d>=monthStart&&d<=monthEnd).sort();
+
+  // Stats élèves
+  let totalJoursE=0, totalPresE=0, totalAbsE=0, totalLateE=0;
+  const statParClasse = {};
+  groupesList.forEach(g=>{
+    statParClasse[g.id] = {name:g.name, color:g.color, pres:0, abs:0, late:0, total:0};
+    g.eleves.forEach(e=>{
+      datesInMonth.forEach(d=>{
+        const s=(eaData[d]||{})[eaKey(g.id,e.id)];
+        if(s){ totalJoursE++; statParClasse[g.id].total++; }
+        if(s==='present'){ totalPresE++; statParClasse[g.id].pres++; }
+        else if(s==='absent'){ totalAbsE++; statParClasse[g.id].abs++; }
+        else if(s==='late'){ totalLateE++; statParClasse[g.id].late++; }
+      });
+    });
+  });
+  const tauxPresE = totalJoursE ? Math.round(totalPresE/totalJoursE*100) : 0;
+
+  // Stats personnel
+  let totalJoursS=0, totalPresS=0, totalAbsS=0, totalLateS=0;
+  staffDatesInMonth.forEach(d=>{
+    const dayData = attendanceData[d]||{};
+    staffList.forEach(s=>{
+      const st = dayData[s.id];
+      if(st){ totalJoursS++; }
+      if(st==='present') totalPresS++;
+      else if(st==='absent') totalAbsS++;
+      else if(st==='late') totalLateS++;
+    });
+  });
+  const tauxPresS = totalJoursS ? Math.round(totalPresS/totalJoursS*100) : 0;
+
+  // Stats programmes
+  const spD = ld('edt_sp_data')||{};
+  let totalSP=0, faitesSP=0, retardCount=0;
+  Object.values(spD).forEach(f=>{
+    (f.matieres||[]).forEach(m=>{
+      totalSP+=m.total||0; faitesSP+=m.faites||0;
+      if(m.total && Math.round((m.faites||0)/m.total*100)<50) retardCount++;
+    });
+  });
+  const progPctRap = totalSP ? Math.round(faitesSP/totalSP*100) : 0;
+
+  // Affichage KPIs
+  document.getElementById('rapport-kpi-grid').innerHTML = `
+    <div class="rapport-stat-card"><div class="rs-val" style="color:#10b981">${tauxPresE}%</div><div class="rs-lbl">Taux présence élèves</div></div>
+    <div class="rapport-stat-card"><div class="rs-val" style="color:#6366f1">${totalPresE}</div><div class="rs-lbl">Présences élèves</div></div>
+    <div class="rapport-stat-card"><div class="rs-val" style="color:#ef4444">${totalAbsE}</div><div class="rs-lbl">Absences élèves</div></div>
+    <div class="rapport-stat-card"><div class="rs-val" style="color:#f59e0b">${totalLateE}</div><div class="rs-lbl">Retards élèves</div></div>
+    <div class="rapport-stat-card"><div class="rs-val" style="color:#10b981">${tauxPresS}%</div><div class="rs-lbl">Taux présence personnel</div></div>
+    <div class="rapport-stat-card"><div class="rs-val" style="color:#ef4444">${totalAbsS}</div><div class="rs-lbl">Absences personnel</div></div>
+    <div class="rapport-stat-card"><div class="rs-val" style="color:#f59e0b">${progPctRap}%</div><div class="rs-lbl">Avancement programmes</div></div>
+    <div class="rapport-stat-card"><div class="rs-val" style="color:#ef4444">${retardCount}</div><div class="rs-lbl">Matières en retard</div></div>
+  `;
+
+  // Évolution des présences par semaine
+  const weeksMap = {};
+  datesInMonth.forEach(d=>{
+    const dt = new Date(d+'T00:00:00');
+    const wk = getWeekNumber(dt);
+    const key = `S${wk}`;
+    if(!weeksMap[key]){weeksMap[key]={pres:0,abs:0,late:0,total:0,label:key};}
+    groupesList.forEach(g=>{
+      g.eleves.forEach(e=>{
+        const s=(eaData[d]||{})[eaKey(g.id,e.id)];
+        if(s){
+          weeksMap[key].total++;
+          if(s==='present') weeksMap[key].pres++;
+          else if(s==='absent') weeksMap[key].abs++;
+          else if(s==='late') weeksMap[key].late++;
+        }
+      });
+    });
+  });
+  const weeks = Object.values(weeksMap);
+  const tendanceHtml = weeks.length ? weeks.map(w=>{
+    const pct = w.total ? Math.round(w.pres/w.total*100) : 0;
+    return `<div class="rapport-classe-row">
+      <span style="font-size:11px;font-weight:700;color:#475569;min-width:32px">${w.label}</span>
+      <div class="rapport-bar-wrap"><div class="rapport-bar" style="width:${pct}%;background:${pct>=80?'#10b981':pct>=60?'#f59e0b':'#ef4444'}"></div></div>
+      <span class="rapport-bar-pct" style="color:${pct>=80?'#10b981':pct>=60?'#f59e0b':'#ef4444'}">${pct}%</span>
+      <span style="font-size:10px;color:#94a3b8">❌${w.abs} ⚠️${w.late}</span>
+    </div>`;
+  }).join('') : '<div style="font-size:12px;color:#94a3b8;padding:8px">Aucune donnée pour ce mois.</div>';
+  document.getElementById('rapport-tendance-content').innerHTML = tendanceHtml;
+
+  // Comparaison classes
+  const classesHtml = Object.values(statParClasse).sort((a,b)=>b.abs-a.abs).map(cl=>{
+    const pct = cl.total ? Math.round(cl.pres/cl.total*100) : 0;
+    return `<div class="rapport-classe-row">
+      <div style="width:8px;height:8px;border-radius:50%;background:${cl.color};flex-shrink:0"></div>
+      <span class="rapport-classe-name">${esc(cl.name)}</span>
+      <div class="rapport-bar-wrap"><div class="rapport-bar" style="width:${pct}%;background:${cl.color}"></div></div>
+      <span class="rapport-bar-pct">${pct}%</span>
+      <span style="font-size:10px;color:#94a3b8">❌${cl.abs}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('rapport-classes-content').innerHTML = classesHtml||'<div style="font-size:12px;color:#94a3b8;padding:8px">Aucun groupe configuré.</div>';
+
+  // Matières en retard
+  const matItems = [];
+  Object.values(spD).forEach(f=>{
+    (f.matieres||[]).forEach(m=>{
+      const pct=m.total?Math.round((m.faites||0)/m.total*100):0;
+      if(pct<50) matItems.push({filiere:f.name,name:m.name,pct,faites:m.faites||0,total:m.total||0});
+    });
+  });
+  const matHtml = matItems.length
+    ? matItems.sort((a,b)=>a.pct-b.pct).map(m=>`<div class="rapport-classe-row">
+        <span style="font-size:16px">📚</span>
+        <span class="rapport-classe-name">${esc(m.name)}<span style="font-size:10px;color:#94a3b8;margin-left:4px">${esc(m.filiere)}</span></span>
+        <div class="rapport-bar-wrap"><div class="rapport-bar" style="width:${m.pct}%;background:#ef4444"></div></div>
+        <span class="rapport-bar-pct" style="color:#ef4444">${m.pct}%</span>
+      </div>`).join('')
+    : '<div style="font-size:12px;color:#10b981;padding:8px">✅ Aucune matière en retard critique</div>';
+  document.getElementById('rapport-matieres-content').innerHTML = matHtml;
+
+  document.getElementById('rapport-tendance-section').style.display = '';
+  document.getElementById('rapport-empty').style.display = 'none';
+}
+
+function getWeekNumber(d){
+  const date = new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const dayNum = date.getUTCDay()||7;
+  date.setUTCDate(date.getUTCDate()+4-dayNum);
+  const yearStart = new Date(Date.UTC(date.getUTCFullYear(),0,1));
+  return Math.ceil((((date-yearStart)/86400000)+1)/7);
+}
+
+function downloadRapportPDF(){
+  const monthEl = document.getElementById('rapport-month');
+  if(!monthEl||!monthEl.value){ alert('Sélectionnez un mois.'); return; }
+  const [yr,mo] = monthEl.value.split('-').map(Number);
+  const monthLabel = new Date(yr,mo-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  const today = new Date().toLocaleDateString('fr-FR');
+  const school = manager.school||'';
+  const logo = manager.logo||'';
+  const logoHtml = logo ? `<img src="${logo}" style="height:60px;width:60px;object-fit:contain;border-radius:8px;border:1.5px solid #e2e8f0" alt="Logo">` : `<div style="width:60px;height:60px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:26px">🏫</div>`;
+
+  const kpiEl = document.getElementById('rapport-kpi-grid');
+  const tendEl = document.getElementById('rapport-tendance-content');
+  const clEl   = document.getElementById('rapport-classes-content');
+  const matEl  = document.getElementById('rapport-matieres-content');
+
+  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Rapport mensuel — ${monthLabel}</title>
+<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;background:#fff;padding:20px}
+.hdr{display:flex;align-items:center;gap:14px;border-bottom:2.5px solid #6366f1;padding-bottom:12px;margin-bottom:16px;flex-wrap:wrap}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:16px}
+.kpi-card{background:#f8fafc;border-radius:8px;padding:10px;text-align:center;border:1.5px solid #e2e8f0}
+.kpi-val{font-size:20px;font-weight:800;color:#6366f1}.kpi-lbl{font-size:9px;color:#64748b;font-weight:700}
+.sec{font-size:11px;font-weight:800;color:#475569;text-transform:uppercase;margin:12px 0 8px;border-bottom:1px solid #f1f5f9;padding-bottom:4px}
+.row{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;margin-bottom:5px}
+.bar-wrap{flex:2;background:#e2e8f0;border-radius:10px;height:7px;overflow:hidden}
+.bar{height:100%;border-radius:10px}
+.foot{font-size:10px;color:#94a3b8;text-align:center;margin-top:16px;border-top:1px solid #e2e8f0;padding-top:10px}
+.no-print{display:none}@media print{.no-print{display:none!important}}
+@media screen{.no-print{display:flex;gap:8px;margin-bottom:14px}}
+button{padding:8px 16px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer}</style></head>
+<body>
+<div class="no-print"><button onclick="window.print()" style="background:#6366f1;color:#fff">🖨️ Imprimer / PDF</button><button onclick="window.close()" style="background:#f1f5f9;color:#475569">✕ Fermer</button></div>
+<div class="hdr">${logoHtml}<div><div style="font-size:16px;font-weight:800;color:#1a1f2e">${esc(school)||'Rapport Mensuel'}</div><div style="font-size:13px;font-weight:700;color:#6366f1;margin-top:3px">📋 Rapport statistique — ${monthLabel}</div><div style="font-size:10px;color:#94a3b8;margin-top:3px">Généré le ${today}</div></div></div>
+<div class="kpi-grid">${(kpiEl?.innerHTML||'').replace(/class="rs-val"/g,'class="kpi-val"').replace(/class="rs-lbl"/g,'class="kpi-lbl"').replace(/class="rapport-stat-card"/g,'class="kpi-card"')}</div>
+<div class="sec">📈 Évolution par semaine</div>${tendEl?.innerHTML||''}
+<div class="sec">🏫 Comparaison par classe</div>${clEl?.innerHTML||''}
+<div class="sec">📚 Matières en retard</div>${matEl?.innerHTML||''}
+<div class="foot">Gestion Scolaire · Rapport généré le ${today}</div>
+</body></html>`;
+
+  const url = URL.createObjectURL(new Blob([html],{type:'text/html;charset=utf-8'}));
+  const win = window.open(url,'_blank');
+  if(!win){ const a=document.createElement('a');a.href=url;a.download=`Rapport_${monthEl.value}.html`;a.click(); }
+  setTimeout(()=>URL.revokeObjectURL(url),15000);
+}
+
+function shareRapportWA(){
+  const monthEl = document.getElementById('rapport-month');
+  if(!monthEl||!monthEl.value){ alert('Sélectionnez un mois.'); return; }
+  const [yr,mo] = monthEl.value.split('-').map(Number);
+  const monthLabel = new Date(yr,mo-1,1).toLocaleDateString('fr-FR',{month:'long',year:'numeric'});
+  const school = manager.school||'Établissement';
+
+  // Recalcul rapide pour WA
+  const monthStart=`${yr}-${String(mo).padStart(2,'0')}-01`, monthEnd=`${yr}-${String(mo).padStart(2,'0')}-${new Date(yr,mo,0).getDate().toString().padStart(2,'0')}`;
+  const datesInMonth = Object.keys(eaData).filter(d=>d>=monthStart&&d<=monthEnd);
+  let totE=0,presE=0,absE=0;
+  datesInMonth.forEach(d=>{ groupesList.forEach(g=>{ g.eleves.forEach(e=>{ const s=(eaData[d]||{})[eaKey(g.id,e.id)]; if(s){totE++;if(s==='present')presE++;else if(s==='absent')absE++;} }); }); });
+  const pct=totE?Math.round(presE/totE*100):0;
+
+  const msg = [
+    `📋 *Rapport mensuel — ${monthLabel}*`,
+    `🏫 ${esc(school)}`,``,
+    `📊 *Présences élèves*`,
+    `✅ Taux : ${pct}%`,
+    `❌ Absences : ${absE}`,``,
+    `👥 ${groupesList.length} classe${groupesList.length>1?'s':''} · ${groupesList.reduce((s,g)=>s+g.eleves.length,0)} élèves`,``,
+    `— ${manager.name||'Direction'}`
+  ].join('\n');
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+
+// ═══════════════════════════════════════════════════════
+// MULTI-ÉTABLISSEMENTS
+// ═══════════════════════════════════════════════════════
+let multiEtabs = []; // [{id, name, ville, data:{}}]
+let activeEtabId = null;
+
+function loadMultiEtabs(){
+  multiEtabs = ld('edt_multi_etabs')||[];
+  activeEtabId = ld('edt_active_etab')||null;
+}
+
+function saveMultiEtabs(){
+  sv('edt_multi_etabs', multiEtabs);
+  sv('edt_active_etab', activeEtabId);
+}
+
+function addMultiEtab(){
+  const name = document.getElementById('new-etab-name').value.trim();
+  if(!name){ alert('Veuillez saisir le nom de l\'établissement.'); return; }
+  const ville = document.getElementById('new-etab-ville').value.trim();
+  const id = Date.now();
+  multiEtabs.push({ id, name, ville, createdAt:getTodayStr(), groupesSnapshot:groupesList.length, staffSnapshot:staffList.length });
+  saveMultiEtabs();
+  document.getElementById('new-etab-name').value='';
+  document.getElementById('new-etab-ville').value='';
+  renderMultiEtab();
+}
+
+function deleteMultiEtab(id){
+  if(!confirm('Supprimer cet établissement de la liste ?')) return;
+  multiEtabs = multiEtabs.filter(e=>e.id!==id);
+  if(activeEtabId===id) activeEtabId=null;
+  saveMultiEtabs();
+  renderMultiEtab();
+}
+
+function switchMultiEtab(id){
+  activeEtabId = id;
+  saveMultiEtabs();
+  renderMultiEtab();
+  // Met à jour le nom de l'établissement dans le gestionnaire
+  const etab = multiEtabs.find(e=>e.id===id);
+  if(etab){
+    manager.school = etab.name;
+    sv('edt_manager', manager);
+    renderManagerCard();
+    showToastLettre(`✅ Établissement actif : ${etab.name}`);
+  }
+}
+
+function renderMultiEtab(){
+  // Barre de sélection
+  const bar = document.getElementById('multi-etab-bar');
+  if(bar){
+    if(!multiEtabs.length){
+      bar.innerHTML = '<span style="font-size:12px;color:#64748b;padding:4px 8px">Aucun établissement ajouté. Créez-en un ci-dessous.</span>';
+    } else {
+      const chips = multiEtabs.map(e=>`
+        <button class="multi-etab-chip ${activeEtabId===e.id?'active':''}" onclick="switchMultiEtab(${e.id})">
+          🏫 ${esc(e.name)}${e.ville?` · ${esc(e.ville)}`:''}
+        </button>`).join('');
+      bar.innerHTML = chips;
+    }
+  }
+
+  // Dashboard consolidé
+  const kpiDiv = document.getElementById('multi-etab-kpis');
+  const listDiv = document.getElementById('multi-etab-list');
+  if(!kpiDiv||!listDiv) return;
+
+  if(!multiEtabs.length){
+    kpiDiv.innerHTML='';
+    listDiv.innerHTML='<div style="text-align:center;padding:24px;color:#94a3b8;font-size:13px">Aucun établissement. Ajoutez-en un ci-dessous pour commencer.</div>';
+    return;
+  }
+
+  // Données consolidées (basées sur données actuelles de l'app)
+  const totalStaffAll = staffList.length;
+  const totalElevesAll = groupesList.reduce((s,g)=>s+g.eleves.length,0);
+  const today = getTodayStr();
+  const presStaff = staffList.filter(s=>(attendanceData[today]||{})[s.id]==='present').length;
+  let presEleves=0; groupesList.forEach(g=>g.eleves.forEach(e=>{ if((eaData[today]||{})[eaKey(g.id,e.id)]==='present') presEleves++; }));
+
+  kpiDiv.innerHTML=`
+    <div class="rapport-stat-card"><div class="rs-val">${multiEtabs.length}</div><div class="rs-lbl">Établissements</div></div>
+    <div class="rapport-stat-card"><div class="rs-val" style="color:#10b981">${totalElevesAll}</div><div class="rs-lbl">Élèves total</div></div>
+    <div class="rapport-stat-card"><div class="rs-val" style="color:#6366f1">${totalStaffAll}</div><div class="rs-lbl">Personnel total</div></div>
+    <div class="rapport-stat-card"><div class="rs-val" style="color:#f59e0b">${totalElevesAll?Math.round(presEleves/totalElevesAll*100):0}%</div><div class="rs-lbl">Présence élèves</div></div>
+  `;
+
+  listDiv.innerHTML = multiEtabs.map(e=>`
+    <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">🏫</div>
+      <div style="flex:1;min-width:140px">
+        <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#1a1f2e">${esc(e.name)}</div>
+        ${e.ville?`<div style="font-size:11px;color:#64748b;margin-top:2px">📍 ${esc(e.ville)}</div>`:''}
+        <div style="font-size:10px;color:#94a3b8;margin-top:2px">Ajouté le ${e.createdAt||'—'}</div>
+      </div>
+      ${activeEtabId===e.id?`<span style="font-size:11px;background:#eef2ff;color:#4338ca;border-radius:6px;padding:3px 10px;font-weight:700">✓ Actif</span>`:''}
+      <div style="display:flex;gap:6px">
+        ${activeEtabId!==e.id?`<button class="btn btn-primary" style="font-size:11px;padding:6px 12px" onclick="switchMultiEtab(${e.id})">Activer</button>`:''}
+        <button class="btn btn-danger" style="font-size:11px;padding:6px 10px" onclick="deleteMultiEtab(${e.id})">🗑</button>
+      </div>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
 // ═══════════════════════════════════════════════════════
 window.initAppAfterAuth = async function() {
   // Charger d'abord depuis Firebase, stocker dans localStorage, puis init UI
@@ -5558,7 +7630,7 @@ window.initAppAfterAuth = async function() {
     'edt_etab_name','edt_etab_week','edt_staff_week','edt_manager',
     'edt_attendance','edt_autolist','edt_sy','edt_msg_history',
     'edt_contacts','edt_notes','edt_evals','edt_docs','edt_groupes',
-    'edt_rev_data','edt_archives','edt_slots'
+    'edt_rev_data','edt_archives','edt_slots','edt_multi_etabs','edt_active_etab','edt_ea_data','edt_ea_remarques','edt_sp_data'
   ];
   await Promise.all(keys.map(async k => {
     const val = await loadFromFirebase(k);
@@ -5598,6 +7670,7 @@ if(savedStaffWeek){ const el=document.getElementById('staff-week-label'); if(el)
 
 loadManager();
 loadAttendance();
+loadEleveAttendance();
 loadAutoList();
 loadSY();
 loadMsgHistory();
@@ -5606,8 +7679,10 @@ loadNotes();
 loadEvals();
 loadDocs();
 loadGroupes();
+loadSpData();
 loadRevData();
 loadEdtArchives();
+loadMultiEtabs();
 renderTable();
 renderAllStaff();
 renderEtabTable();
@@ -5620,8 +7695,8 @@ renderGrpStats();
 renderRevSlotsEditor();
 renderRevTable();
 renderEdtArchives();
-
-// Init attendance date
+// Tableau de bord home
+injectTdbHome();
 const adEl = document.getElementById('attend-date');
 if(adEl) adEl.value = getTodayStr();
 
@@ -5738,7 +7813,7 @@ buildSlotSelect();
   <div id="fiche-modal">
     <div class="fiche-hdr">
       <div>
-        <div class="fiche-hdr-title">📋 Fiche Élève</div>
+        <div class="fiche-hdr-title">📋 Dossier Élève</div>
         <div class="fiche-hdr-sub" id="fiche-grp-lbl">Groupe —</div>
       </div>
       <button class="fiche-hdr-close" onclick="closeFiche()">✕</button>
@@ -5746,27 +7821,793 @@ buildSlotSelect();
     <div class="fiche-body">
       <input type="hidden" id="fiche-gid">
       <input type="hidden" id="fiche-eid">
-      <div class="fiche-row">
-        <div class="fiche-field"><label>Nom *</label><input type="text" id="fiche-nom" placeholder="Nom de famille"></div>
-        <div class="fiche-field"><label>Prénom</label><input type="text" id="fiche-prenom" placeholder="Prénom"></div>
+
+      <!-- Photo + infos rapides -->
+      <div class="fiche-photo-zone">
+        <div class="fiche-photo-preview" id="fiche-photo-preview">📷</div>
+        <div style="flex:1">
+          <input type="file" id="fiche-photo-file" accept="image/*" style="display:none" onchange="previewFichePhoto(this)">
+          <button class="btn btn-ghost" style="font-size:11px;padding:5px 10px;margin-bottom:4px" onclick="document.getElementById('fiche-photo-file').click()">📷 Photo</button>
+          <button class="btn btn-danger" style="font-size:11px;padding:5px 8px" onclick="removeFichePhoto()">✕</button>
+          <div style="font-size:10px;color:#94a3b8;margin-top:4px">Photo d'identité de l'élève</div>
+        </div>
       </div>
-      <div class="fiche-row">
-        <div class="fiche-field"><label>Matricule</label><input type="text" id="fiche-matricule" placeholder="Ex: 2024-001"></div>
-        <div class="fiche-field"><label>Classe / Groupe</label><input type="text" id="fiche-classe" placeholder="Ex: Terminale C"></div>
+
+      <!-- Onglets de la fiche -->
+      <div style="display:flex;gap:3px;background:#f1f5f9;border-radius:10px;padding:3px;width:fit-content;margin-bottom:14px">
+        <button class="attend-sub-tab active" id="ftab-infos" onclick="switchFicheTab('infos')">📋 Infos</button>
+        <button class="attend-sub-tab" id="ftab-famille" onclick="switchFicheTab('famille')">👨‍👩‍👧 Famille</button>
+        <button class="attend-sub-tab" id="ftab-historique" onclick="switchFicheTab('historique')">📊 Historique</button>
+        <button class="attend-sub-tab" id="ftab-edt" onclick="switchFicheTab('edt')">📅 EDT perso</button>
       </div>
-      <div class="fiche-mat-title">📚 Matières étudiées</div>
-      <div class="fiche-mat-grid" id="fiche-mat-grid"></div>
+
+      <!-- Panel Infos -->
+      <div id="fpanel-infos">
+        <div class="fiche-row">
+          <div class="fiche-field"><label>Nom *</label><input type="text" id="fiche-nom" placeholder="Nom de famille"></div>
+          <div class="fiche-field"><label>Prénom</label><input type="text" id="fiche-prenom" placeholder="Prénom"></div>
+        </div>
+        <div class="fiche-row">
+          <div class="fiche-field"><label>Matricule</label><input type="text" id="fiche-matricule" placeholder="Ex: 2024-001"></div>
+          <div class="fiche-field"><label>Classe / Groupe</label><input type="text" id="fiche-classe" placeholder="Ex: Terminale C"></div>
+        </div>
+        <div class="fiche-row">
+          <div class="fiche-field"><label>Date de naissance</label><input type="date" id="fiche-dob"></div>
+          <div class="fiche-field"><label>Lieu de naissance</label><input type="text" id="fiche-lieu-naissance" placeholder="Ex: Conakry"></div>
+        </div>
+        <div class="fiche-row">
+          <div class="fiche-field"><label>📱 Téléphone élève</label><input type="tel" id="fiche-tel" placeholder="+224…"></div>
+          <div class="fiche-field"><label>Genre</label>
+            <select id="fiche-genre" style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:14px;font-family:'DM Sans',sans-serif;outline:none">
+              <option value="">—</option><option>Masculin</option><option>Féminin</option>
+            </select>
+          </div>
+        </div>
+        <div class="fiche-mat-title">📚 Matières étudiées</div>
+        <div class="fiche-mat-grid" id="fiche-mat-grid"></div>
+      </div>
+
+      <!-- Panel Famille -->
+      <div id="fpanel-famille" style="display:none">
+        <div class="fiche-section-title">👤 Père / Tuteur</div>
+        <div class="fiche-row">
+          <div class="fiche-field"><label>Nom du père / tuteur</label><input type="text" id="fiche-pere-nom" placeholder="Nom complet"></div>
+          <div class="fiche-field"><label>Profession</label><input type="text" id="fiche-pere-prof" placeholder="Ex: Enseignant"></div>
+        </div>
+        <div class="fiche-row">
+          <div class="fiche-field"><label>📱 WhatsApp</label><input type="tel" id="fiche-pere-wa" placeholder="+224…"></div>
+          <div class="fiche-field"><label>✉️ Email</label><input type="email" id="fiche-pere-email" placeholder="email@example.com"></div>
+        </div>
+        <div class="fiche-section-title" style="margin-top:14px">👩 Mère</div>
+        <div class="fiche-row">
+          <div class="fiche-field"><label>Nom de la mère</label><input type="text" id="fiche-mere-nom" placeholder="Nom complet"></div>
+          <div class="fiche-field"><label>Profession</label><input type="text" id="fiche-mere-prof" placeholder="Ex: Commerçante"></div>
+        </div>
+        <div class="fiche-row">
+          <div class="fiche-field"><label>📱 WhatsApp</label><input type="tel" id="fiche-mere-wa" placeholder="+224…"></div>
+          <div class="fiche-field"><label>✉️ Email</label><input type="email" id="fiche-mere-email" placeholder="email@example.com"></div>
+        </div>
+        <div class="fiche-section-title" style="margin-top:14px">🏠 Adresse</div>
+        <div class="fiche-field"><label>Adresse domicile</label><input type="text" id="fiche-adresse" placeholder="Quartier, commune…"></div>
+        <div style="margin-top:10px">
+          <label style="font-size:12px;font-weight:700;color:#475569;display:block;margin-bottom:4px">📝 Observations</label>
+          <textarea id="fiche-observations" style="width:100%;min-height:80px;border:1.5px solid #e2e8f0;border-radius:10px;padding:9px 12px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical" placeholder="Remarques particulières, besoins spéciaux…"></textarea>
+        </div>
+      </div>
+
+      <!-- Panel Historique présences + notes -->
+      <div id="fpanel-historique" style="display:none">
+        <div id="fiche-historique-content">
+          <div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px">Enregistrez d'abord la fiche pour voir l'historique.</div>
+        </div>
+      </div>
+
+      <!-- Panel EDT personnalisé -->
+      <div id="fpanel-edt" style="display:none">
+        <div style="font-size:12px;color:#64748b;margin-bottom:10px">Cet emploi du temps est <strong>individuel</strong> pour cet élève — différent de celui du groupe si besoin.</div>
+        <div id="fiche-edt-content">
+          <div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px">Enregistrez d'abord la fiche pour accéder à l'EDT personnalisé.</div>
+        </div>
+      </div>
+
       <div class="fiche-acts">
         <button class="btn btn-ghost" onclick="closeFiche()">Annuler</button>
+        <button class="btn btn-pdf" onclick="downloadFicheComplete()" style="font-size:12px">⬇ PDF</button>
         <button class="btn btn-primary" onclick="saveFiche()">💾 Enregistrer</button>
       </div>
     </div>
   </div>
 </div>
 
+<!-- ══════════════════ TAB: RAPPORT MENSUEL ══════════════════ -->
+<div id="panel-rapport" style="display:none">
+
+  <div class="rapport-section">
+    <div class="rapport-title">📋 Rapport statistique mensuel</div>
+    <div class="rapport-month-sel">
+      <label style="font-size:12px;font-weight:700;color:#475569">Mois :</label>
+      <input type="month" id="rapport-month" style="padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none" onchange="renderRapport()">
+      <button class="btn btn-primary" onclick="renderRapport()">📊 Générer</button>
+      <button class="btn btn-pdf" onclick="downloadRapportPDF()">⬇ Export PDF</button>
+      <button class="btn btn-green" onclick="shareRapportWA()">📤 WhatsApp</button>
+    </div>
+    <!-- KPI globaux -->
+    <div class="rapport-stat-grid" id="rapport-kpi-grid"></div>
+    <!-- Tendance présences -->
+    <div id="rapport-tendance-section" style="display:none">
+      <div class="fiche-section-title">📈 Évolution des présences élèves</div>
+      <div id="rapport-tendance-content"></div>
+      <div class="fiche-section-title" style="margin-top:12px">🏫 Comparaison par classe</div>
+      <div id="rapport-classes-content"></div>
+      <div class="fiche-section-title" style="margin-top:12px">📚 Matières en retard (Suivi programme)</div>
+      <div id="rapport-matieres-content"></div>
+    </div>
+    <div id="rapport-empty" style="text-align:center;padding:30px;color:#94a3b8;font-size:13px">Sélectionnez un mois pour générer le rapport.</div>
+  </div>
+
+</div>
+
+<!-- ══════════════════ TAB: MULTI-ÉTABLISSEMENTS ══════════════════ -->
+<div id="panel-multi-etab" style="display:none">
+
+  <div class="rapport-section">
+    <div class="rapport-title">🏢 Gestion multi-établissements</div>
+    <div style="font-size:13px;color:#64748b;margin-bottom:14px">Gérez plusieurs établissements depuis un seul compte. Chaque établissement a ses propres données indépendantes.</div>
+
+    <!-- Sélecteur actif -->
+    <div class="multi-etab-bar" id="multi-etab-bar"></div>
+
+    <!-- Tableau de bord consolidé -->
+    <div id="multi-etab-dashboard">
+      <div class="fiche-section-title">📊 Vue consolidée de tous les établissements</div>
+      <div id="multi-etab-kpis" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px"></div>
+      <div id="multi-etab-list"></div>
+    </div>
+
+    <!-- Créer un établissement -->
+    <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:12px;padding:14px;margin-top:12px">
+      <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#1a1f2e;margin-bottom:10px">➕ Ajouter un établissement</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="text" id="new-etab-name" placeholder="Nom de l'établissement *" style="flex:2;min-width:160px;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+        <input type="text" id="new-etab-ville" placeholder="Ville / Commune" style="flex:1;min-width:120px;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+        <button class="btn btn-primary" onclick="addMultiEtab()">+ Créer</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ══════════════════ TAB: STATISTIQUES ENSEIGNANTS ══════════════════ -->
+<div id="panel-stat-enseignants" style="display:none">
+
+  <!-- Header -->
+  <div class="se-header-band">
+    <h2>📊 Statistiques par enseignant</h2>
+    <p>Présences, séances, retards, avancement programme — vue complète par personnel</p>
+  </div>
+
+  <!-- KPI globaux -->
+  <div class="se-kpi-row" id="se-kpi-row"></div>
+
+  <!-- Alertes retards -->
+  <div id="se-alertes-zone" style="margin-bottom:12px"></div>
+
+  <!-- Filtres + Période -->
+  <div class="se-filter-bar">
+    <span style="font-size:12px;font-weight:700;color:#475569">Période :</span>
+    <input type="month" id="se-month" style="padding:7px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none" onchange="renderStatEnseignants()">
+    <button class="se-filter-chip active" id="sefilter-all"   onclick="seFilter('all',this)">👥 Tous</button>
+    <button class="se-filter-chip" id="sefilter-present" onclick="seFilter('present',this)">✅ Présents</button>
+    <button class="se-filter-chip" id="sefilter-absent"  onclick="seFilter('absent',this)">❌ Absents</button>
+    <button class="se-filter-chip" id="sefilter-retard"  onclick="seFilter('retard',this)">⚠️ Retards</button>
+    <button class="btn btn-pdf" style="font-size:12px;padding:6px 12px;margin-left:auto" onclick="downloadStatEnseignantsPDF()">⬇ PDF</button>
+    <button class="btn btn-green" style="font-size:12px;padding:6px 12px" onclick="shareStatEnseignantsWA()">📤 WhatsApp</button>
+  </div>
+
+  <!-- Recherche -->
+  <div style="margin-bottom:12px">
+    <input type="text" id="se-search" placeholder="🔍 Rechercher un enseignant…" oninput="renderStatEnseignants()" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+  </div>
+
+  <!-- Liste enseignants -->
+  <div id="se-list">
+    <div class="se-empty">👥 Ajoutez du personnel dans l'onglet <strong>Personnel</strong> pour voir les statistiques.</div>
+  </div>
+
+</div>
+
+<div id="lettre-overlay" class="lettre-overlay" onclick="closeLettreOverlay(event)">
+  <div class="lettre-modal">
+    <div style="width:36px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 14px"></div>
+    <div class="lettre-modal-title">📩 <span id="lettre-modal-title-txt">Lettre d'explication</span></div>
+
+    <!-- Sous-onglets Absence / Retard -->
+    <div class="lettre-type-tabs" id="lettre-type-tabs">
+      <button class="lettre-type-tab active" id="ltab-absence" onclick="switchLettreType('absence')">❌ Absence</button>
+      <button class="lettre-type-tab" id="ltab-retard" onclick="switchLettreType('retard')">⚠️ Retard</button>
+    </div>
+
+    <!-- Contenu lettre -->
+    <textarea class="lettre-textarea" id="lettre-body"></textarea>
+
+    <!-- Email optionnel -->
+    <div style="margin-top:10px">
+      <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px">📧 Adresse e-mail du destinataire (optionnel)</label>
+      <input class="lettre-email-inp" id="lettre-email" type="email" placeholder="exemple@etablissement.gn">
+    </div>
+
+    <!-- Boutons envoi -->
+    <div class="lettre-send-row">
+      <button class="lettre-send-btn wa" onclick="sendLettreWA()">📲 WhatsApp</button>
+      <button class="lettre-send-btn mail" onclick="sendLettreMail()">📧 E-mail</button>
+      <button class="lettre-send-btn copy" onclick="copyLettre()">📋 Copier</button>
+    </div>
+    <button class="lettre-close-btn" onclick="closeLettre()">Fermer</button>
+  </div>
+</div>
+
 </div><!-- end #app-root -->
 <script>
 // SW actif uniquement sur GitHub Pages (HTTPS requis)
+// ═══════════════════════════════════════════════════════
+// TABLEAU DE BORD DIRECTEUR
+// ═══════════════════════════════════════════════════════
+function renderTdb(){
+  // Date
+  const dateEl = document.getElementById('tdb-date');
+  if(dateEl){
+    const d = new Date();
+    dateEl.textContent = d.toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  }
+
+  const today = getTodayStr();
+  const staffDay  = attendanceData[today]||{};
+  const eleveDay  = eaData[today]||{};
+
+  // KPI Personnel
+  const totalStaff   = staffList.length;
+  const presentStaff = staffList.filter(s=>staffDay[s.id]==='present').length;
+  const absentStaff  = staffList.filter(s=>staffDay[s.id]==='absent').length;
+  const lateStaff    = staffList.filter(s=>staffDay[s.id]==='late').length;
+
+  // KPI Élèves
+  let totalEleves=0, presentEleves=0, absentEleves=0;
+  groupesList.forEach(g=>{ g.eleves.forEach(e=>{ totalEleves++; const s=eleveDay[eaKey(g.id,e.id)]; if(s==='present') presentEleves++; else if(s==='absent') absentEleves++; }); });
+
+  // KPI Programmes
+  const spData = ld('edt_sp_data')||{};
+  let totalSeances=0, faitesSeances=0;
+  Object.values(spData).forEach(filiere=>{
+    (filiere.matieres||[]).forEach(m=>{ totalSeances+=m.total||0; faitesSeances+=m.faites||0; });
+  });
+  const progPct = totalSeances ? Math.round(faitesSeances/totalSeances*100) : 0;
+
+  const kpiGrid = document.getElementById('tdb-kpi-grid');
+  if(kpiGrid) kpiGrid.innerHTML = `
+    <div class="tdb-kpi">
+      <span class="tdb-kpi-val" style="color:#10b981">${totalStaff?Math.round(presentStaff/totalStaff*100):0}%</span>
+      <span class="tdb-kpi-label">Présence personnel</span>
+      <span class="tdb-kpi-sub">${presentStaff}/${totalStaff} présents</span>
+    </div>
+    <div class="tdb-kpi">
+      <span class="tdb-kpi-val" style="color:#6366f1">${totalEleves?Math.round(presentEleves/totalEleves*100):0}%</span>
+      <span class="tdb-kpi-label">Présence élèves</span>
+      <span class="tdb-kpi-sub">${presentEleves}/${totalEleves} présents</span>
+    </div>
+    <div class="tdb-kpi">
+      <span class="tdb-kpi-val" style="color:#f59e0b">${progPct}%</span>
+      <span class="tdb-kpi-label">Programmes</span>
+      <span class="tdb-kpi-sub">${faitesSeances}/${totalSeances} séances</span>
+    </div>
+    <div class="tdb-kpi">
+      <span class="tdb-kpi-val" style="color:#ec4899">${groupesList.length}</span>
+      <span class="tdb-kpi-label">Classes actives</span>
+      <span class="tdb-kpi-sub">${totalEleves} élève${totalEleves>1?'s':''}</span>
+    </div>`;
+
+  // Alertes automatiques
+  const alerts = [];
+  if(absentStaff>0) alerts.push({cls:'danger', icon:'👤', msg:`${absentStaff} membre${absentStaff>1?'s':''} du personnel absent${absentStaff>1?'s':''} aujourd'hui`});
+  if(lateStaff>0)   alerts.push({cls:'warn',   icon:'⏰', msg:`${lateStaff} membre${lateStaff>1?'s':''} en retard`});
+  if(absentEleves>0) alerts.push({cls:'warn',  icon:'🎓', msg:`${absentEleves} élève${absentEleves>1?'s':''} absent${absentEleves>1?'s':''} aujourd'hui`});
+  if(totalStaff===0)  alerts.push({cls:'info', icon:'ℹ️', msg:'Ajoutez du personnel dans l\'onglet Personnel'});
+  if(progPct>=90) alerts.push({cls:'ok', icon:'🏆', msg:'Programmes : objectif presque atteint !'});
+  else if(progPct<30 && totalSeances>0) alerts.push({cls:'warn', icon:'📚', msg:`Avancement des programmes faible (${progPct}%)`});
+  if(!alerts.length) alerts.push({cls:'ok', icon:'✅', msg:'Tout semble normal aujourd\'hui'});
+
+  const alertList = document.getElementById('tdb-alert-list');
+  if(alertList) alertList.innerHTML = alerts.map(a=>`<div class="tdb-alert ${a.cls}">${a.icon} ${a.msg}</div>`).join('');
+
+  // Présences du jour — résumé
+  const presDiv = document.getElementById('tdb-presences-today');
+  if(presDiv){
+    if(!totalStaff && !totalEleves){
+      presDiv.innerHTML = '<div style="text-align:center;padding:14px;color:#94a3b8;font-size:12px">Aucune donnée de présence disponible</div>';
+    } else {
+      presDiv.innerHTML = `
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+          <div style="flex:1;min-width:100px;background:#d1fae5;border-radius:10px;padding:10px;text-align:center">
+            <div style="font-size:20px;font-weight:800;color:#065f46">${presentStaff}</div>
+            <div style="font-size:10px;color:#065f46;font-weight:700">Personnel présent</div>
+          </div>
+          <div style="flex:1;min-width:100px;background:#fee2e2;border-radius:10px;padding:10px;text-align:center">
+            <div style="font-size:20px;font-weight:800;color:#991b1b">${absentStaff}</div>
+            <div style="font-size:10px;color:#991b1b;font-weight:700">Personnel absent</div>
+          </div>
+          <div style="flex:1;min-width:100px;background:#eef2ff;border-radius:10px;padding:10px;text-align:center">
+            <div style="font-size:20px;font-weight:800;color:#4338ca">${presentEleves}</div>
+            <div style="font-size:10px;color:#4338ca;font-weight:700">Élèves présents</div>
+          </div>
+          <div style="flex:1;min-width:100px;background:#fee2e2;border-radius:10px;padding:10px;text-align:center">
+            <div style="font-size:20px;font-weight:800;color:#991b1b">${absentEleves}</div>
+            <div style="font-size:10px;color:#991b1b;font-weight:700">Élèves absents</div>
+          </div>
+        </div>
+        <button class="sp-add-btn" style="font-size:11px;padding:5px 12px;background:#f1f5f9;color:#475569" onclick="switchTab('attend')">Gérer les présences →</button>`;
+    }
+  }
+
+  // Avancement programmes résumé
+  const progList = document.getElementById('tdb-prog-list');
+  if(progList){
+    const filieres = Object.values(spData);
+    if(!filieres.length){
+      progList.innerHTML = '<div style="text-align:center;padding:14px;color:#94a3b8;font-size:12px">Aucun programme saisi. Rendez-vous dans <strong>Suivi Programmes</strong></div>';
+    } else {
+      progList.innerHTML = filieres.slice(0,5).map(f=>{
+        const tot  = (f.matieres||[]).reduce((s,m)=>s+(m.total||0),0);
+        const fait = (f.matieres||[]).reduce((s,m)=>s+(m.faites||0),0);
+        const pct  = tot ? Math.round(fait/tot*100) : 0;
+        const col  = pct>=80?'#10b981':pct>=50?'#f59e0b':'#ef4444';
+        return `<div class="tdb-prog-row">
+          <span class="tdb-prog-name">${esc(f.name)}</span>
+          <div class="tdb-prog-bar-wrap"><div class="tdb-prog-bar" style="width:${pct}%;background:${col}"></div></div>
+          <span class="tdb-prog-pct" style="color:${col}">${pct}%</span>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  // Répartition élèves
+  const elevesDiv = document.getElementById('tdb-eleves-classes');
+  if(elevesDiv){
+    if(!groupesList.length){
+      elevesDiv.innerHTML = '<div style="text-align:center;padding:14px;color:#94a3b8;font-size:12px">Aucun groupe créé</div>';
+    } else {
+      elevesDiv.innerHTML = groupesList.map(g=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid #f1f5f9">
+          <div style="width:10px;height:10px;border-radius:50%;background:${g.color};flex-shrink:0"></div>
+          <span style="flex:1;font-size:12px;font-weight:700;color:#1a1f2e">${esc(g.name)}</span>
+          ${g.prof?`<span style="font-size:11px;color:#64748b">👤 ${esc(g.prof)}</span>`:''}
+          <span style="font-size:12px;font-weight:800;color:${g.color}">${g.eleves.length} élève${g.eleves.length>1?'s':''}</span>
+        </div>`).join('');
+    }
+  }
+
+  // Classes avec le plus d'absences
+  const classesAbsDiv = document.getElementById('tdb-classes-absences');
+  if(classesAbsDiv){
+    if(!groupesList.length){
+      classesAbsDiv.innerHTML='<div style="text-align:center;padding:14px;color:#94a3b8;font-size:12px">Aucune classe configurée</div>';
+    } else {
+      const classesData = groupesList.map(g=>{
+        const nbAbs = g.eleves.filter(e=>eleveDay[eaKey(g.id,e.id)]==='absent').length;
+        const nbLate = g.eleves.filter(e=>eleveDay[eaKey(g.id,e.id)]==='late').length;
+        const nbPres = g.eleves.filter(e=>eleveDay[eaKey(g.id,e.id)]==='present').length;
+        const pct = g.eleves.length ? Math.round((nbAbs+nbLate)/g.eleves.length*100) : 0;
+        return {g, nbAbs, nbLate, nbPres, pct};
+      }).sort((a,b)=>b.nbAbs-a.nbAbs);
+      classesAbsDiv.innerHTML = classesData.map(({g,nbAbs,nbLate,nbPres,pct})=>`
+        <div class="rapport-classe-row">
+          <div style="width:8px;height:8px;border-radius:50%;background:${g.color};flex-shrink:0"></div>
+          <span class="rapport-classe-name">${esc(g.name)}</span>
+          <div class="rapport-bar-wrap"><div class="rapport-bar" style="width:${pct}%;background:${pct>30?'#ef4444':'#f59e0b'}"></div></div>
+          <span class="rapport-bar-pct" style="color:${pct>30?'#ef4444':'#475569'}">${nbAbs>0||nbLate>0?`❌${nbAbs} ⚠️${nbLate}`:`✅${nbPres}`}</span>
+        </div>`).join('');
+    }
+  }
+
+  // Enseignants absents / en retard
+  const ensAbsDiv = document.getElementById('tdb-enseignants-absents');
+  if(ensAbsDiv){
+    const absents  = staffList.filter(s=>staffDay[s.id]==='absent');
+    const retards  = staffList.filter(s=>staffDay[s.id]==='late');
+    if(!absents.length && !retards.length){
+      ensAbsDiv.innerHTML='<div style="color:#10b981;font-size:12px;padding:8px">✅ Tout le personnel est présent aujourd\'hui</div>';
+    } else {
+      ensAbsDiv.innerHTML = [...absents.map(s=>`<div class="rapport-classe-row"><span style="font-size:18px">❌</span><span style="flex:1;font-size:12px;font-weight:700;color:#991b1b">${esc(s.name)}</span>${s.role?`<span style="font-size:11px;color:#64748b">${esc(s.role)}</span>`:''}</div>`),
+        ...retards.map(s=>`<div class="rapport-classe-row"><span style="font-size:18px">⚠️</span><span style="flex:1;font-size:12px;font-weight:700;color:#92400e">${esc(s.name)}</span>${s.role?`<span style="font-size:11px;color:#64748b">${esc(s.role)}</span>`:''}</div>`)].join('');
+    }
+  }
+
+  // Matières en retard de programme (<50%)
+  const matRetardDiv = document.getElementById('tdb-matieres-retard');
+  if(matRetardDiv){
+    const retardItems = [];
+    Object.values(spData).forEach(f=>{
+      (f.matieres||[]).forEach(m=>{
+        const pct = m.total ? Math.round((m.faites||0)/m.total*100) : 0;
+        if(pct < 50) retardItems.push({filiere:f.name, matiere:m.name, pct, faites:m.faites||0, total:m.total||0});
+      });
+    });
+    if(!retardItems.length){
+      matRetardDiv.innerHTML='<div style="color:#10b981;font-size:12px;padding:8px">✅ Aucune matière en retard critique</div>';
+    } else {
+      retardItems.sort((a,b)=>a.pct-b.pct);
+      matRetardDiv.innerHTML = retardItems.slice(0,8).map(item=>`
+        <div class="rapport-classe-row">
+          <span style="font-size:16px">📚</span>
+          <span class="rapport-classe-name">${esc(item.matiere)}<span style="font-size:10px;color:#94a3b8;font-weight:400;margin-left:4px">${esc(item.filiere)}</span></span>
+          <div class="rapport-bar-wrap"><div class="rapport-bar" style="width:${item.pct}%;background:#ef4444"></div></div>
+          <span class="rapport-bar-pct" style="color:#ef4444">${item.pct}%</span>
+        </div>`).join('');
+    }
+  }
+}
+
+// Intégrer le TDB dans la page d'accueil (au-dessus du calendrier)
+function injectTdbHome(){
+  const topBar = document.querySelector('.top-bar');
+  if(!topBar || document.getElementById('tdb-home-block')) return;
+  const block = document.createElement('div');
+  block.id = 'tdb-home-block';
+  block.style.cssText = 'width:100%;margin-bottom:12px';
+  block.innerHTML = `
+    <div class="tdb-overlay-card" style="cursor:pointer" onclick="switchTab('tableau-bord')">
+      <div class="tdb-overlay-title">📊 Tableau de bord <span style="font-size:11px;opacity:.5;margin-left:8px">— Appuyer pour détails</span></div>
+      <div class="tdb-kpi-grid" id="tdb-home-kpi"></div>
+      <div class="tdb-alert-list" id="tdb-home-alerts"></div>
+    </div>`;
+  topBar.parentNode.insertBefore(block, topBar);
+  renderTdbHome();
+}
+
+function renderTdbHome(){
+  // Utilise les mêmes données que renderTdb mais dans le bloc home
+  const today = getTodayStr();
+  const staffDay = attendanceData[today]||{};
+  const eleveDay = eaData[today]||{};
+  const totalStaff   = staffList.length;
+  const presentStaff = staffList.filter(s=>staffDay[s.id]==='present').length;
+  const absentStaff  = staffList.filter(s=>staffDay[s.id]==='absent').length;
+  let totalEleves=0, presentEleves=0;
+  groupesList.forEach(g=>{ g.eleves.forEach(e=>{ totalEleves++; if(eleveDay[eaKey(g.id,e.id)]==='present') presentEleves++; }); });
+  const spData = ld('edt_sp_data')||{};
+  let totalSeances=0, faitesSeances=0;
+  Object.values(spData).forEach(f=>{ (f.matieres||[]).forEach(m=>{ totalSeances+=m.total||0; faitesSeances+=m.faites||0; }); });
+  const progPct = totalSeances ? Math.round(faitesSeances/totalSeances*100) : 0;
+
+  const kpi = document.getElementById('tdb-home-kpi');
+  if(kpi) kpi.innerHTML = `
+    <div class="tdb-kpi"><span class="tdb-kpi-val" style="color:#10b981">${totalStaff?Math.round(presentStaff/totalStaff*100):0}%</span><span class="tdb-kpi-label">Personnel présent</span></div>
+    <div class="tdb-kpi"><span class="tdb-kpi-val" style="color:#6366f1">${totalEleves?Math.round(presentEleves/totalEleves*100):0}%</span><span class="tdb-kpi-label">Élèves présents</span></div>
+    <div class="tdb-kpi"><span class="tdb-kpi-val" style="color:#f59e0b">${progPct}%</span><span class="tdb-kpi-label">Programmes</span></div>
+    <div class="tdb-kpi"><span class="tdb-kpi-val" style="color:#ec4899">${groupesList.length}</span><span class="tdb-kpi-label">Classes</span></div>`;
+
+  const alerts = document.getElementById('tdb-home-alerts');
+  const msgs = [];
+  if(absentStaff>0) msgs.push({cls:'danger',icon:'👤',msg:`${absentStaff} absent${absentStaff>1?'s':''} personnel`});
+  if(!msgs.length && totalStaff>0) msgs.push({cls:'ok',icon:'✅',msg:'Tout semble normal'});
+  if(!totalStaff) msgs.push({cls:'info',icon:'ℹ️',msg:'Ajoutez du personnel pour commencer'});
+  if(alerts) alerts.innerHTML = msgs.map(a=>`<div class="tdb-alert ${a.cls}">${a.icon} ${a.msg}</div>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// SUIVI DES PROGRAMMES
+// ═══════════════════════════════════════════════════════
+let spData = {}; // { filiereId: { id, name, color, matieres:[{id,name,total,faites,enseignant,classe}] } }
+let spOpenFilieres = {};
+let spCurrentTab = 'filiere';
+
+const SP_COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#ec4899','#8b5cf6','#06b6d4','#f97316'];
+
+function loadSpData(){ const d=ld('edt_sp_data'); if(d) spData=d; }
+function saveSpData(){ sv('edt_sp_data', spData); }
+
+function switchSpTab(tab){
+  spCurrentTab = tab;
+  document.getElementById('sp-panel-filiere').style.display  = tab==='filiere'  ? '' : 'none';
+  document.getElementById('sp-panel-matiere').style.display  = tab==='matiere'  ? '' : 'none';
+  document.getElementById('sptab-filiere').classList.toggle('active', tab==='filiere');
+  document.getElementById('sptab-matiere').classList.toggle('active', tab==='matiere');
+  if(tab==='matiere') renderSpMatiere();
+}
+
+function addSpFiliere(){
+  const inp = document.getElementById('sp-new-filiere');
+  const name = inp.value.trim();
+  if(!name){ alert('Saisissez un nom de filière/classe'); return; }
+  const id = 'sp_'+Date.now();
+  const color = SP_COLORS[Object.keys(spData).length % SP_COLORS.length];
+  spData[id] = { id, name, color, matieres:[] };
+  saveSpData();
+  inp.value = '';
+  renderSpFiliere();
+  renderSpStats();
+  // auto-ouvrir
+  spOpenFilieres[id] = true;
+  setTimeout(()=>{ const el=document.getElementById('sp-body-'+id); if(el){ el.classList.add('open'); el.scrollIntoView({behavior:'smooth',block:'start'}); } }, 100);
+}
+
+function deleteSpFiliere(id){
+  if(!confirm('Supprimer cette filière et toutes ses matières ?')) return;
+  delete spData[id];
+  saveSpData();
+  renderSpFiliere();
+  renderSpStats();
+}
+
+function addSpMatiere(filiereId){
+  const nom = (document.getElementById('sp-mat-nom-'+filiereId)||{}).value||'';
+  const cls = (document.getElementById('sp-mat-cls-'+filiereId)||{}).value||'';
+  const ens = (document.getElementById('sp-mat-ens-'+filiereId)||{}).value||'';
+  const tot = parseInt((document.getElementById('sp-mat-tot-'+filiereId)||{}).value)||0;
+  if(!nom.trim()){ alert('Saisissez un nom de matière'); return; }
+  if(!tot){ alert('Saisissez le nombre total de séances'); return; }
+  const f = spData[filiereId]; if(!f) return;
+  f.matieres.push({ id:'m'+Date.now(), name:nom.trim(), classe:cls.trim(), enseignant:ens.trim(), total:tot, faites:0 });
+  saveSpData();
+  document.getElementById('sp-mat-nom-'+filiereId).value='';
+  document.getElementById('sp-mat-cls-'+filiereId).value='';
+  document.getElementById('sp-mat-ens-'+filiereId).value='';
+  document.getElementById('sp-mat-tot-'+filiereId).value='';
+  renderSpFiliere();
+  renderSpStats();
+}
+
+function updateSpSeances(filiereId, matId, delta){
+  const f = spData[filiereId]; if(!f) return;
+  const m = f.matieres.find(x=>x.id===matId); if(!m) return;
+  m.faites = Math.max(0, Math.min(m.total||0, (m.faites||0)+delta));
+  saveSpData();
+  renderSpFiliere();
+  renderSpStats();
+  if(document.getElementById('panel-tableau-bord').style.display!=='none') renderTdb();
+}
+
+function deleteSpMatiere(filiereId, matId){
+  const f = spData[filiereId]; if(!f) return;
+  f.matieres = f.matieres.filter(m=>m.id!==matId);
+  saveSpData();
+  renderSpFiliere();
+  renderSpStats();
+}
+
+function toggleSpFiliere(id){
+  spOpenFilieres[id] = !spOpenFilieres[id];
+  const body  = document.getElementById('sp-body-'+id);
+  const arrow = document.getElementById('sp-arrow-'+id);
+  if(body)  body.classList.toggle('open', !!spOpenFilieres[id]);
+  if(arrow) arrow.textContent = spOpenFilieres[id] ? '▲' : '▼';
+}
+
+function pctColor(p){ return p>=80?'#10b981':p>=50?'#f59e0b':'#ef4444'; }
+
+function renderSpFiliere(){
+  const container = document.getElementById('sp-filiere-list');
+  if(!container) return;
+  const filieres = Object.values(spData);
+  if(!filieres.length){
+    container.innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8;font-size:12px">Aucune filière créée. Ajoutez-en une ci-dessus.</div>';
+    return;
+  }
+  container.innerHTML = filieres.map(f=>{
+    const tot  = (f.matieres||[]).reduce((s,m)=>s+(m.total||0),0);
+    const fait = (f.matieres||[]).reduce((s,m)=>s+(m.faites||0),0);
+    const pct  = tot ? Math.round(fait/tot*100) : 0;
+    const col  = pctColor(pct);
+    const isOpen = !!spOpenFilieres[f.id];
+
+    const matHtml = (f.matieres||[]).length===0
+      ? '<div style="text-align:center;padding:10px;color:#94a3b8;font-size:11px">Aucune matière. Ajoutez-en ci-dessous.</div>'
+      : (f.matieres||[]).map(m=>{
+          const p = m.total ? Math.round((m.faites||0)/m.total*100) : 0;
+          const c = pctColor(p);
+          return `<div class="sp-matiere-row">
+            <div class="sp-mat-name">
+              📚 ${esc(m.name)}
+              ${m.classe?`<span style="font-size:10px;background:#eef2ff;color:#4338ca;border-radius:4px;padding:0 5px;margin-left:4px">${esc(m.classe)}</span>`:''}
+              ${m.enseignant?`<div style="font-size:10px;color:#64748b;margin-top:2px">👤 ${esc(m.enseignant)}</div>`:''}
+            </div>
+            <span class="sp-mat-info">${m.faites||0}/${m.total} séances</span>
+            <div class="sp-mat-bar-wrap"><div class="sp-mat-bar" style="width:${p}%;background:${c}"></div></div>
+            <span class="sp-mat-pct" style="color:${c}">${p}%</span>
+            <div class="sp-mat-btns">
+              <button class="sp-mat-btn" onclick="updateSpSeances('${f.id}','${m.id}',1)" title="Ajouter une séance">+1</button>
+              <button class="sp-mat-btn" onclick="updateSpSeances('${f.id}','${m.id}',-1)" title="Retirer une séance">-1</button>
+              <button class="sp-mat-btn danger" onclick="deleteSpMatiere('${f.id}','${m.id}')">✕</button>
+            </div>
+          </div>`;
+        }).join('');
+
+    return `<div class="sp-filiere-card">
+      <div class="sp-filiere-hdr" onclick="toggleSpFiliere('${f.id}')">
+        <div style="width:12px;height:12px;border-radius:50%;background:${f.color};flex-shrink:0"></div>
+        <span class="sp-filiere-name">${esc(f.name)}</span>
+        <div class="sp-filiere-bar-wrap"><div class="sp-filiere-bar" style="width:${pct}%;background:${col}"></div></div>
+        <span class="sp-filiere-pct" style="color:${col}">${pct}%</span>
+        <span style="font-size:11px;color:#94a3b8;margin-left:4px">${(f.matieres||[]).length} mat.</span>
+        <button onclick="event.stopPropagation();deleteSpFiliere('${f.id}')" style="background:#fee2e2;color:#ef4444;border:none;border-radius:6px;padding:2px 8px;font-size:11px;cursor:pointer;font-weight:700">✕</button>
+        <span id="sp-arrow-${f.id}" style="font-size:11px;color:#94a3b8">${isOpen?'▲':'▼'}</span>
+      </div>
+      <div class="sp-filiere-body${isOpen?' open':''}" id="sp-body-${f.id}">
+        ${matHtml}
+        <div class="sp-add-form">
+          <div style="font-size:11px;font-weight:700;color:#475569;margin-bottom:4px">➕ Ajouter une matière</div>
+          <div class="sp-add-row">
+            <input class="sp-inp" id="sp-mat-nom-${f.id}" placeholder="Nom matière *">
+            <input class="sp-inp" id="sp-mat-cls-${f.id}" placeholder="Classe (ex: 10ème)">
+          </div>
+          <div class="sp-add-row">
+            <input class="sp-inp" id="sp-mat-ens-${f.id}" placeholder="Enseignant">
+            <input class="sp-inp sp-inp-num" id="sp-mat-tot-${f.id}" type="number" min="1" placeholder="Total séances *">
+            <button class="sp-add-btn" onclick="addSpMatiere('${f.id}')">Ajouter</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderSpMatiere(){
+  const container = document.getElementById('sp-matiere-global-list');
+  if(!container) return;
+  const filieres = Object.values(spData);
+  // Regrouper toutes les matières
+  const allMats = [];
+  filieres.forEach(f=>{ (f.matieres||[]).forEach(m=>{ allMats.push({...m, filiereName:f.name, filiereId:f.id, filiereColor:f.color}); }); });
+  if(!allMats.length){
+    container.innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8;font-size:12px">Aucune matière saisie</div>';
+    return;
+  }
+  // Grouper par nom de matière
+  const byName = {};
+  allMats.forEach(m=>{ if(!byName[m.name]) byName[m.name]=[]; byName[m.name].push(m); });
+  container.innerHTML = Object.entries(byName).map(([nom, mats])=>{
+    const totAll  = mats.reduce((s,m)=>s+(m.total||0),0);
+    const faitAll = mats.reduce((s,m)=>s+(m.faites||0),0);
+    const pct = totAll ? Math.round(faitAll/totAll*100) : 0;
+    const col = pctColor(pct);
+    return `<div class="sp-section">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:800;color:#1a1f2e;flex:1">📚 ${esc(nom)}</span>
+        <div class="sp-filiere-bar-wrap" style="width:100px"><div class="sp-filiere-bar" style="width:${pct}%;background:${col}"></div></div>
+        <span style="font-size:12px;font-weight:800;color:${col};font-family:'DM Mono',monospace">${pct}%</span>
+      </div>
+      ${mats.map(m=>{
+        const p = m.total ? Math.round((m.faites||0)/m.total*100) : 0;
+        const c = pctColor(p);
+        return `<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;background:#f8fafc;border-radius:8px;margin-bottom:5px;flex-wrap:wrap">
+          <div style="width:8px;height:8px;border-radius:50%;background:${m.filiereColor};flex-shrink:0"></div>
+          <span style="font-size:11px;font-weight:700;color:#475569;flex:1">${esc(m.filiereName)}${m.classe?' · '+esc(m.classe):''}</span>
+          ${m.enseignant?`<span style="font-size:10px;color:#64748b">👤 ${esc(m.enseignant)}</span>`:''}
+          <span style="font-size:11px;color:#64748b">${m.faites||0}/${m.total}</span>
+          <div class="sp-mat-bar-wrap"><div class="sp-mat-bar" style="width:${p}%;background:${c}"></div></div>
+          <span style="font-size:11px;font-weight:800;color:${c};font-family:'DM Mono',monospace;min-width:30px;text-align:right">${p}%</span>
+          <button class="sp-mat-btn" onclick="updateSpSeances('${m.filiereId}','${m.id}',1)">+1</button>
+          <button class="sp-mat-btn" onclick="updateSpSeances('${m.filiereId}','${m.id}',-1)">-1</button>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
+function renderSpStats(){
+  const filieres = Object.values(spData);
+  let totalSeances=0, faitesSeances=0, totalMats=0;
+  filieres.forEach(f=>{ (f.matieres||[]).forEach(m=>{ totalSeances+=m.total||0; faitesSeances+=m.faites||0; totalMats++; }); });
+  const pct = totalSeances ? Math.round(faitesSeances/totalSeances*100) : 0;
+  const col = pctColor(pct);
+
+  const pctEl = document.getElementById('sp-global-pct');
+  if(pctEl){ pctEl.textContent=pct+'%'; pctEl.style.color=col==='#10b981'?'#fff':col==='#f59e0b'?'#fff':'#fff'; }
+
+  const statsEl = document.getElementById('sp-global-stats');
+  if(statsEl) statsEl.innerHTML = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <div style="text-align:center"><div style="font-size:18px;font-weight:800">${filieres.length}</div><div style="font-size:10px;opacity:.7">Filières</div></div>
+      <div style="text-align:center"><div style="font-size:18px;font-weight:800">${totalMats}</div><div style="font-size:10px;opacity:.7">Matières</div></div>
+      <div style="text-align:center"><div style="font-size:18px;font-weight:800">${faitesSeances}</div><div style="font-size:10px;opacity:.7">Séances faites</div></div>
+      <div style="text-align:center"><div style="font-size:18px;font-weight:800">${totalSeances-faitesSeances}</div><div style="font-size:10px;opacity:.7">Restantes</div></div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// LETTRE D'EXPLICATION ABSENCE / RETARD
+// ═══════════════════════════════════════════════════════
+let _lettreStaffId = null;
+let _lettreDateStr = null;
+let _lettreType    = 'absence';
+
+function openLettreMissing(staffId, dateStr){
+  _lettreStaffId = staffId;
+  _lettreDateStr = dateStr;
+  const sm = staffList.find(s=>s.id===staffId);
+  if(!sm) return;
+  const status = (attendanceData[dateStr]||{})[staffId];
+  _lettreType = status==='late' ? 'retard' : 'absence';
+  const titreEl = document.getElementById('lettre-modal-title-txt');
+  if(titreEl) titreEl.textContent = `Lettre — ${sm.name}`;
+  switchLettreType(_lettreType);
+  const emailEl = document.getElementById('lettre-email');
+  if(emailEl) emailEl.value = sm.email||'';
+  document.getElementById('lettre-overlay').classList.add('open');
+}
+
+function closeLettreOverlay(e){
+  if(e.target===document.getElementById('lettre-overlay')) closeLettre();
+}
+function closeLettre(){
+  document.getElementById('lettre-overlay').classList.remove('open');
+}
+
+function switchLettreType(type){
+  _lettreType = type;
+  document.getElementById('ltab-absence').classList.toggle('active', type==='absence');
+  document.getElementById('ltab-retard').classList.toggle('active', type==='retard');
+  const sm = staffList.find(s=>s.id===_lettreStaffId);
+  if(sm) document.getElementById('lettre-body').value = buildLettre(sm, _lettreDateStr, type);
+}
+
+function buildLettre(sm, dateStr, type){
+  const school    = manager.school || 'Notre établissement';
+  const directeur = manager.name   || 'Le Directeur';
+  const roleDir   = manager.role   || 'Directeur';
+  const dateObj   = new Date(dateStr+'T00:00:00');
+  const dateFr    = dateObj.toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const today     = new Date().toLocaleDateString('fr-FR',{year:'numeric',month:'long',day:'numeric'});
+  const nomProf   = sm.name || '—';
+  const roleProf  = sm.role || 'Enseignant(e)';
+
+  if(type==='absence'){
+    return `${school}\nLe ${today}\n\nObjet : Demande d'explication pour absence injustifiée\n\nMonsieur / Madame ${nomProf},\n${roleProf}\n\nNous avons constaté votre absence le ${dateFr} sans que nous ayons été préalablement informés ni avoir reçu un justificatif valable.\n\nEn votre qualité de ${roleProf} au sein de notre établissement, votre présence est indispensable au bon déroulement des activités pédagogiques.\n\nEn conséquence, nous vous demandons de bien vouloir nous fournir, dans un délai de 48 heures à compter de la réception du présent courrier, une explication écrite motivée justifiant cette absence.\n\nÀ défaut de réponse satisfaisante dans ce délai, nous serons contraints de prendre les mesures disciplinaires prévues par le règlement intérieur de l'établissement.\n\nDans l'attente de votre réponse, nous vous prions d'agréer, Monsieur / Madame, l'expression de nos salutations distinguées.\n\n${directeur}\n${roleDir}\n${school}`;
+  } else {
+    return `${school}\nLe ${today}\n\nObjet : Demande d'explication pour retard injustifié\n\nMonsieur / Madame ${nomProf},\n${roleProf}\n\nIl a été constaté que vous êtes arrivé(e) en retard le ${dateFr}, perturbant ainsi le bon déroulement des cours et le respect de l'emploi du temps.\n\nLa ponctualité est une obligation professionnelle fondamentale pour tout membre du personnel enseignant et administratif. Ce retard, s'il n'est pas justifié, constitue un manquement à vos obligations de service.\n\nNous vous demandons donc de bien vouloir nous faire parvenir, dans un délai de 24 heures, une explication écrite exposant les raisons de ce retard, accompagnée de tout justificatif utile.\n\nSans réponse de votre part dans ce délai, nous serons dans l'obligation d'engager une procédure disciplinaire conformément au règlement intérieur de l'établissement.\n\nVeuillez agréer, Monsieur / Madame, l'expression de nos salutations respectueuses.\n\n${directeur}\n${roleDir}\n${school}`;
+  }
+}
+
+function sendLettreWA(){
+  const sm    = staffList.find(s=>s.id===_lettreStaffId);
+  const texte = document.getElementById('lettre-body').value;
+  const waNum = (sm&&sm.wa ? sm.wa : '').replace(/\D/g,'');
+  const base  = waNum ? `https://wa.me/${waNum}` : `https://wa.me/`;
+  window.open(`${base}?text=${encodeURIComponent(texte)}`, '_blank');
+}
+
+function sendLettreMail(){
+  const sm    = staffList.find(s=>s.id===_lettreStaffId);
+  const texte = document.getElementById('lettre-body').value;
+  const email = (document.getElementById('lettre-email').value||(sm&&sm.email)||'').trim();
+  const sujet = _lettreType==='absence'
+    ? `Demande d'explication — Absence du ${_lettreDateStr}`
+    : `Demande d'explication — Retard du ${_lettreDateStr}`;
+  window.open(`mailto:${email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(texte)}`, '_blank');
+}
+
+function copyLettre(){
+  const texte = document.getElementById('lettre-body').value;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(texte).then(()=>showToastLettre('✅ Lettre copiée !'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value=texte; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    showToastLettre('✅ Lettre copiée !');
+  }
+}
+
+function showToastLettre(msg){
+  let t = document.getElementById('lettre-toast');
+  if(!t){
+    t = document.createElement('div');
+    t.id='lettre-toast';
+    t.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:#1a1f2e;color:#fff;padding:8px 18px;border-radius:10px;font-size:13px;font-weight:700;z-index:300;opacity:0;transition:opacity .2s;font-family:"DM Sans",sans-serif;pointer-events:none';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg; t.style.opacity='1';
+  setTimeout(()=>{ t.style.opacity='0'; },2200);
+}
+
 if ('serviceWorker' in navigator && location.hostname === 'boubacardraga123-sketch.github.io') {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('/emploi-du-temps-/sw.js')
@@ -5792,6 +8633,148 @@ window.installPWA = function() {
   _pwaPrompt.prompt();
   _pwaPrompt.userChoice.then(() => { _pwaPrompt = null; });
 };
+</script>
+
+<!-- ══ MODAL CONTACTER PARENT ÉLÈVE ══ -->
+<div id="parent-overlay" onclick="closeParentOverlay(event)">
+  <div id="parent-modal">
+    <div class="modal-handle"></div>
+    <div class="lettre-modal-title">
+      📩 <span id="parent-modal-title">Message au parent</span>
+    </div>
+    <div class="lettre-type-tabs">
+      <button class="lettre-type-tab active" id="ptab-absence" onclick="switchParentType('absence')">Absence</button>
+      <button class="lettre-type-tab" id="ptab-retard" onclick="switchParentType('retard')">Retard</button>
+      <button class="lettre-type-tab" id="ptab-evolution" onclick="switchParentType('evolution')">Évolution</button>
+    </div>
+    <textarea class="lettre-textarea" id="parent-body" style="min-height:180px"></textarea>
+    <div style="margin-top:10px">
+      <label style="font-size:12px;font-weight:700;color:#475569;display:block;margin-bottom:4px">📱 WhatsApp parent</label>
+      <input class="lettre-email-inp" type="tel" id="parent-wa-inp" placeholder="+224…">
+    </div>
+    <div style="margin-top:8px">
+      <label style="font-size:12px;font-weight:700;color:#475569;display:block;margin-bottom:4px">✉️ Email parent</label>
+      <input class="lettre-email-inp" type="email" id="parent-email-inp" placeholder="parent@email.com">
+    </div>
+    <div class="lettre-send-row">
+      <button class="lettre-send-btn wa" onclick="sendParentWA()">💬 WhatsApp</button>
+      <button class="lettre-send-btn mail" onclick="sendParentMail()">✉️ Email</button>
+      <button class="lettre-send-btn copy" onclick="copyParentMsg()">📋 Copier</button>
+    </div>
+    <button class="lettre-close-btn" onclick="closeParentModal()">Fermer</button>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// MESSAGE PARENT ÉLÈVE
+// ═══════════════════════════════════════════════════════
+let _parentGrpId  = null;
+let _parentEleveId = null;
+let _parentDateStr = null;
+let _parentType    = 'absence';
+
+function openParentMsgModal(grpId, eleveId, dateStr, status){
+  _parentGrpId   = grpId;
+  _parentEleveId = eleveId;
+  _parentDateStr = dateStr;
+  _parentType    = status === 'late' ? 'retard' : 'absence';
+
+  const grp = groupesList.find(g=>g.id===grpId);
+  const e   = grp ? grp.eleves.find(el=>el.id===eleveId) : null;
+  if(!e) return;
+
+  const nomEleve = [e.name, e.prenom].filter(Boolean).join(' ');
+  document.getElementById('parent-modal-title').textContent = 'Message parent — ' + nomEleve;
+
+  // Pré-remplir contacts parent
+  document.getElementById('parent-wa-inp').value    = e.wa_parent    || '';
+  document.getElementById('parent-email-inp').value = e.email_parent || '';
+
+  // Activer le bon onglet
+  ['absence','retard','evolution'].forEach(t=>{
+    document.getElementById('ptab-'+t).classList.toggle('active', t===_parentType);
+  });
+
+  document.getElementById('parent-body').value = buildParentMsg(e, grp, dateStr, _parentType);
+  document.getElementById('parent-overlay').classList.add('open');
+}
+
+function closeParentOverlay(ev){
+  if(ev.target===document.getElementById('parent-overlay')) closeParentModal();
+}
+function closeParentModal(){
+  document.getElementById('parent-overlay').classList.remove('open');
+}
+
+function switchParentType(type){
+  _parentType = type;
+  ['absence','retard','evolution'].forEach(t=>{
+    document.getElementById('ptab-'+t).classList.toggle('active', t===type);
+  });
+  const grp = groupesList.find(g=>g.id===_parentGrpId);
+  const e   = grp ? grp.eleves.find(el=>el.id===_parentEleveId) : null;
+  if(e) document.getElementById('parent-body').value = buildParentMsg(e, grp, _parentDateStr, type);
+}
+
+function buildParentMsg(e, grp, dateStr, type){
+  const school    = manager.school || 'Notre établissement';
+  const directeur = manager.name   || 'La Direction';
+  const dateObj   = new Date(dateStr+'T00:00:00');
+  const dateFr    = dateObj.toLocaleDateString('fr-FR',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  const today     = new Date().toLocaleDateString('fr-FR',{year:'numeric',month:'long',day:'numeric'});
+  const nomEleve  = [e.name, e.prenom].filter(Boolean).join(' ');
+  const classe    = (grp && grp.name) || e.classe || '—';
+
+  if(type==='absence'){
+    return `${school} — Le ${today}\n\nBonjour,\n\nNous vous informons que votre enfant *${nomEleve}* (Classe : ${classe}) était *absent(e)* le ${dateFr}.\n\nNous vous remercions de bien vouloir nous fournir un justificatif d'absence dans les plus brefs délais, ou de contacter l'établissement pour toute information complémentaire.\n\nCordialement,\n${directeur}\n${school}`;
+  } else if(type==='retard'){
+    return `${school} — Le ${today}\n\nBonjour,\n\nNous vous informons que votre enfant *${nomEleve}* (Classe : ${classe}) est arrivé(e) *en retard* le ${dateFr}.\n\nLa ponctualité est essentielle pour le bon déroulement des cours. Merci de sensibiliser votre enfant à ce sujet.\n\nCordialement,\n${directeur}\n${school}`;
+  } else {
+    // Récapitulatif évolution
+    const allDates = Object.keys(eaData).sort();
+    let nbAbsent=0, nbRetard=0, nbPresent=0;
+    allDates.forEach(d=>{
+      const s = (eaData[d]||{})[eaKey(_parentGrpId, _parentEleveId)];
+      if(s==='absent') nbAbsent++;
+      else if(s==='late') nbRetard++;
+      else if(s==='present') nbPresent++;
+    });
+    const total = nbAbsent + nbRetard + nbPresent;
+    const tauxPct = total ? Math.round(nbPresent/total*100) : 0;
+    return `${school} — Le ${today}\n\nBonjour,\n\nVoici le bilan de présence de votre enfant *${nomEleve}* (Classe : ${classe}) :\n\n✅ Présences : ${nbPresent} jour(s)\n❌ Absences  : ${nbAbsent} jour(s)\n⚠️ Retards   : ${nbRetard} fois\n📊 Taux de présence : ${tauxPct}%\n\nNous restons disponibles pour tout renseignement complémentaire.\n\nCordialement,\n${directeur}\n${school}`;
+  }
+}
+
+function sendParentWA(){
+  const texte = document.getElementById('parent-body').value;
+  const raw   = document.getElementById('parent-wa-inp').value.trim();
+  const clean = raw.replace(/\D/g,'');
+  const base  = clean ? `https://wa.me/${clean}` : `https://wa.me/`;
+  window.open(`${base}?text=${encodeURIComponent(texte)}`, '_blank');
+}
+
+function sendParentMail(){
+  const texte = document.getElementById('parent-body').value;
+  const email = document.getElementById('parent-email-inp').value.trim();
+  const sujet = _parentType==='absence'
+    ? `Absence de votre enfant — ${_parentDateStr}`
+    : _parentType==='retard'
+    ? `Retard de votre enfant — ${_parentDateStr}`
+    : `Bilan de présence — ${new Date().toLocaleDateString('fr-FR')}`;
+  window.open(`mailto:${email}?subject=${encodeURIComponent(sujet)}&body=${encodeURIComponent(texte)}`, '_blank');
+}
+
+function copyParentMsg(){
+  const texte = document.getElementById('parent-body').value;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(texte).then(()=>showToastLettre('✅ Message copié !'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value=texte; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    showToastLettre('✅ Message copié !');
+  }
+}
 </script>
 </body>
 </html>
