@@ -1004,6 +1004,35 @@ window.fbOnSnapshot = onSnapshot;
 #user-bar{background:#fff;border-radius:12px;padding:10px 14px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 #user-bar .ub-email{font-size:13px;font-weight:700;color:#1a1f2e;flex:1}
 #user-bar .ub-badge{font-size:11px;background:#eef2ff;color:#4338ca;border-radius:20px;padding:2px 10px;font-weight:700}
+/* ── OFFLINE / COMPARAISON TRIM / MESSAGERIE INTERNE ── */
+.ct-section{background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.ct-section-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#1a1f2e;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.ct-trim-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.ct-trim-card{flex:1;min-width:100px;border-radius:12px;padding:12px 14px;text-align:center}
+.ct-trim-card .ct-val{font-family:'DM Mono',monospace;font-size:22px;font-weight:800}
+.ct-trim-card .ct-lbl{font-size:10px;font-weight:700;text-transform:uppercase;margin-top:2px}
+.ct-eleve-table{width:100%;border-collapse:collapse;font-size:12px}
+.ct-eleve-table th{background:#1a1f2e;color:#fff;padding:8px 10px;text-align:center;font-weight:700;font-size:11px}
+.ct-eleve-table th:first-child{border-radius:8px 0 0 0}.ct-eleve-table th:last-child{border-radius:0 8px 0 0}
+.ct-eleve-table td{border:1px solid #e2e8f0;padding:7px 10px;text-align:center;font-size:12px}
+.ct-eleve-table tr:nth-child(even) td{background:#f8fafc}
+.ct-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700}
+.ct-up{background:#d1fae5;color:#065f46}.ct-down{background:#fee2e2;color:#991b1b}.ct-flat{background:#f1f5f9;color:#475569}
+.ct-bar-wrap{height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;margin-top:4px}
+.ct-bar{height:100%;border-radius:4px;transition:width .3s}
+.mi-conv-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1.5px solid #e2e8f0;border-radius:11px;cursor:pointer;transition:all .15s;background:#fff}
+.mi-conv-item:hover{border-color:#6366f1;background:#fafafe}
+.mi-conv-item.active{border-color:#6366f1;background:#eef2ff}
+.mi-conv-avatar{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.mi-conv-name{font-weight:700;font-size:13px;color:#1a1f2e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mi-conv-preview{font-size:11px;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.mi-unread-badge{background:#ef4444;color:#fff;border-radius:20px;padding:1px 7px;font-size:10px;font-weight:800;flex-shrink:0}
+.mi-msg-bubble{max-width:80%;padding:9px 13px;border-radius:14px;font-size:13px;line-height:1.5;position:relative}
+.mi-msg-out{background:#6366f1;color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.mi-msg-in{background:#fff;color:#1a1f2e;align-self:flex-start;border-bottom-left-radius:4px;border:1px solid #e2e8f0}
+.mi-msg-meta{font-size:10px;margin-top:4px;opacity:.65;display:flex;align-items:center;gap:4px;justify-content:flex-end}
+.mi-read-tick{font-size:11px}.mi-msg-read{color:#34d399}
+@media(max-width:600px){#mi-layout{grid-template-columns:1fr}#mi-layout>div:first-child{max-height:200px;overflow-y:auto}}
 </style>
 
 <!-- ══ AUTH OVERLAY ══ -->
@@ -1153,6 +1182,10 @@ window.fbOnSnapshot = onSnapshot;
   <button class="tab" id="tab-rapport" onclick="switchTab('rapport')">📋 Rapport mensuel</button>
   <button class="tab" id="tab-multi-etab" onclick="switchTab('multi-etab')">🏢 Multi-établissements</button>
   <button class="tab" id="tab-stat-enseignants" onclick="switchTab('stat-enseignants')">📊 Stats enseignants</button>
+  <button class="tab" id="tab-offline" onclick="switchTab('offline')">📶 Hors-ligne</button>
+  <button class="tab" id="tab-comparaison-trim" onclick="switchTab('comparaison-trim')">📊 Comparaison trim.</button>
+  <button class="tab" id="tab-messagerie-interne" onclick="switchTab('messagerie-interne')">💬 Messagerie interne</button>
+  <button class="tab" id="tab-notes-classe" onclick="switchTab('notes-classe')">🧮 Notes par classe</button>
 </div>
 
 <!-- ══════════════════ TAB: ÉVALUATIONS ══════════════════ -->
@@ -2487,7 +2520,7 @@ function saveManager(){
 // ═══════════════════════════════════════════════════════
 function switchTab(tab){
   currentTab = tab;
-  const panels = ['evaluations','student','staff','etablissement','attend','autolist','walink','schoolyear','messaging','dictation','contacts','notebook','documents','groupes','revision','tableau-bord','suivi-prog','rapport','multi-etab','stat-enseignants'];
+  const panels = ['evaluations','student','staff','etablissement','attend','autolist','walink','schoolyear','messaging','dictation','contacts','notebook','documents','groupes','revision','tableau-bord','suivi-prog','rapport','multi-etab','stat-enseignants','offline','comparaison-trim','messagerie-interne','notes-classe'];
   panels.forEach(p=>{
     document.getElementById('panel-'+p).style.display = p===tab?'block':'none';
     const tabEl = document.getElementById('tab-'+p);
@@ -2514,6 +2547,10 @@ function switchTab(tab){
   if(tab==='rapport'){ initRapportMonth(); renderRapport(); }
   if(tab==='multi-etab'){ renderMultiEtab(); }
   if(tab==='stat-enseignants'){ initSeMonth(); renderStatEnseignants(); }
+  if(tab==='offline'){ renderOfflineTab(); }
+  if(tab==='comparaison-trim'){ populateCtGroupes(); renderComparaisonTrim(); }
+  if(tab==='messagerie-interne'){ populateMiDestSelect(); renderMiConversations(); }
+  if(tab==='notes-classe'){ populateNcGroupes(); renderNcTable(); }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -8017,6 +8054,231 @@ buildSlotSelect();
 
 </div>
 
+<!-- ══════════════════ TAB: MODE HORS-LIGNE ══════════════════ -->
+<div id="panel-offline" style="display:none">
+  <div style="background:linear-gradient(135deg,#1a1f2e,#0f172a);border-radius:16px;padding:18px 20px;margin-bottom:14px;color:#fff">
+    <h2 style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:4px">📶 Mode hors-ligne</h2>
+    <p style="font-size:12px;opacity:.65">Saisie des présences et notes sans internet · Sync auto à la reconnexion</p>
+  </div>
+
+  <!-- Statut connexion -->
+  <div id="offline-status-bar" style="background:#fff;border-radius:12px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div id="offline-indicator" style="width:12px;height:12px;border-radius:50%;background:#10b981;flex-shrink:0"></div>
+    <div style="flex:1">
+      <div id="offline-status-txt" style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#1a1f2e">En ligne</div>
+      <div id="offline-status-sub" style="font-size:11px;color:#64748b;margin-top:1px">Toutes les données sont synchronisées</div>
+    </div>
+    <div id="offline-pending-badge" style="display:none;background:#f59e0b;color:#fff;border-radius:20px;padding:3px 12px;font-size:11px;font-weight:800">0 en attente</div>
+    <button class="btn btn-primary" style="font-size:12px;padding:7px 14px" onclick="syncOfflineQueue()">🔄 Synchroniser maintenant</button>
+  </div>
+
+  <!-- Stats cache -->
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+    <div style="flex:1;min-width:120px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.07);border-top:3px solid #6366f1;text-align:center">
+      <div id="offline-queue-count" style="font-family:'DM Mono',monospace;font-size:22px;font-weight:800;color:#6366f1">0</div>
+      <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase">Entrées en attente</div>
+    </div>
+    <div style="flex:1;min-width:120px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.07);border-top:3px solid #10b981;text-align:center">
+      <div id="offline-synced-count" style="font-family:'DM Mono',monospace;font-size:22px;font-weight:800;color:#10b981">0</div>
+      <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase">Synchronisés</div>
+    </div>
+    <div style="flex:1;min-width:120px;background:#fff;border-radius:12px;padding:12px 14px;box-shadow:0 1px 4px rgba(0,0,0,.07);border-top:3px solid #f59e0b;text-align:center">
+      <div id="offline-last-sync" style="font-family:'DM Mono',monospace;font-size:13px;font-weight:800;color:#f59e0b">—</div>
+      <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase">Dernière sync</div>
+    </div>
+  </div>
+
+  <!-- Saisie hors-ligne présences -->
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+    <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#1a1f2e;margin-bottom:12px;display:flex;align-items:center;gap:8px">✅ Saisie de présences hors-ligne</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <input type="date" id="ol-attend-date" style="padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+      <select id="ol-attend-groupe" style="flex:1;min-width:150px;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+        <option value="">— Sélectionner un groupe —</option>
+      </select>
+      <button class="btn btn-primary" onclick="loadOlAttend()">📋 Charger</button>
+    </div>
+    <div id="ol-attend-grid" style="display:flex;flex-direction:column;gap:6px"></div>
+    <div id="ol-attend-save-bar" style="display:none;margin-top:10px">
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="saveOlAttend()">💾 Enregistrer hors-ligne</button>
+    </div>
+  </div>
+
+  <!-- Saisie hors-ligne notes -->
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+    <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#1a1f2e;margin-bottom:12px">📝 Saisie de notes hors-ligne</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <select id="ol-notes-groupe" style="flex:1;min-width:150px;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+        <option value="">— Sélectionner un groupe —</option>
+      </select>
+      <input type="text" id="ol-notes-matiere" placeholder="Matière *" style="flex:1;min-width:120px;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+      <select id="ol-notes-trim" style="padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+        <option value="T1">Trimestre 1</option>
+        <option value="T2">Trimestre 2</option>
+        <option value="T3">Trimestre 3</option>
+      </select>
+      <button class="btn btn-primary" onclick="loadOlNotes()">📋 Charger</button>
+    </div>
+    <div id="ol-notes-grid" style="display:flex;flex-direction:column;gap:6px"></div>
+    <div id="ol-notes-save-bar" style="display:none;margin-top:10px">
+      <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="saveOlNotes()">💾 Enregistrer les notes hors-ligne</button>
+    </div>
+  </div>
+
+  <!-- File d'attente -->
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+    <div style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#1a1f2e;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      📋 File d'attente de synchronisation
+      <button class="btn btn-danger" style="font-size:11px;padding:5px 10px" onclick="clearOfflineQueue()">🗑 Vider</button>
+    </div>
+    <div id="offline-queue-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════════ TAB: COMPARAISON TRIMESTRIELLE ══════════════════ -->
+<div id="panel-comparaison-trim" style="display:none">
+  <div style="background:linear-gradient(135deg,#1a1f2e,#312e81);border-radius:16px;padding:18px 20px;margin-bottom:14px;color:#fff">
+    <h2 style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:4px">📊 Comparaison trimestrielle</h2>
+    <p style="font-size:12px;opacity:.65">Performances d'une classe sur les 3 trimestres : présences, moyennes, progression</p>
+  </div>
+
+  <!-- Sélecteurs -->
+  <div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.07);display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <select id="ct-groupe" style="flex:1;min-width:160px;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none" onchange="renderComparaisonTrim()">
+      <option value="">— Sélectionner une classe —</option>
+    </select>
+    <button class="btn btn-primary" onclick="renderComparaisonTrim()">📊 Comparer</button>
+    <button class="btn btn-pdf" style="font-size:12px;padding:7px 12px" onclick="downloadCtPDF()">⬇ PDF</button>
+    <button class="btn btn-green" style="font-size:12px;padding:7px 12px" onclick="shareCtWA()">📤 WhatsApp</button>
+  </div>
+
+  <div id="ct-content">
+    <div style="text-align:center;padding:40px;color:#94a3b8;font-size:14px">
+      <div style="font-size:36px;margin-bottom:10px">📊</div>
+      Sélectionnez une classe pour voir la comparaison trimestrielle
+    </div>
+  </div>
+</div>
+
+<!-- CSS comparaison trim and messagerie handled in main style -->
+
+<!-- ══════════════════ TAB: MESSAGERIE INTERNE ══════════════════ -->
+<div id="panel-messagerie-interne" style="display:none">
+  <div style="background:linear-gradient(135deg,#065f46,#10b981);border-radius:16px;padding:18px 20px;margin-bottom:14px;color:#fff">
+    <h2 style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:4px">💬 Messagerie interne</h2>
+    <p style="font-size:12px;opacity:.65">Canal de communication directeur ↔ enseignants · Accusé de lecture</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:260px 1fr;gap:12px;min-height:500px" id="mi-layout">
+    <!-- Sidebar : liste conversations -->
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;gap:6px;margin-bottom:4px">
+        <input type="text" id="mi-search" placeholder="🔍 Chercher…" oninput="renderMiConversations()" style="flex:1;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none">
+        <button class="btn btn-primary" style="font-size:11px;padding:7px 10px" onclick="openMiNewMsg()">✏️ Nouveau</button>
+      </div>
+      <!-- Canal général -->
+      <div id="mi-canal-general" class="mi-conv-item" onclick="openMiCanal('general')">
+        <div class="mi-conv-avatar" style="background:#6366f1;color:#fff">📢</div>
+        <div style="flex:1;min-width:0">
+          <div class="mi-conv-name">Canal général</div>
+          <div class="mi-conv-preview" id="mi-general-preview">Messages à tous les enseignants</div>
+        </div>
+        <div id="mi-general-badge" class="mi-unread-badge" style="display:none">0</div>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:#94a3b8;text-transform:uppercase;padding:4px 2px;margin-top:4px">Conversations directes</div>
+      <div id="mi-conv-list" style="display:flex;flex-direction:column;gap:4px;overflow-y:auto;max-height:380px"></div>
+    </div>
+
+    <!-- Zone de conversation -->
+    <div style="display:flex;flex-direction:column;background:#fff;border-radius:14px;box-shadow:0 1px 4px rgba(0,0,0,.07);overflow:hidden">
+      <!-- Header conversation -->
+      <div id="mi-chat-header" style="background:#1a1f2e;padding:12px 16px;display:flex;align-items:center;gap:10px">
+        <div id="mi-chat-avatar" style="width:34px;height:34px;border-radius:10px;background:#6366f1;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0;color:#fff">?</div>
+        <div style="flex:1">
+          <div id="mi-chat-name" style="font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#fff">Sélectionnez une conversation</div>
+          <div id="mi-chat-sub" style="font-size:11px;color:#94a3b8;margin-top:1px">—</div>
+        </div>
+        <div id="mi-chat-read-info" style="font-size:10px;color:#94a3b8"></div>
+      </div>
+      <!-- Messages -->
+      <div id="mi-messages-zone" style="flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px;min-height:300px;background:#f8fafc">
+        <div style="text-align:center;color:#94a3b8;font-size:13px;padding:40px 0">💬 Aucune conversation sélectionnée</div>
+      </div>
+      <!-- Zone saisie -->
+      <div id="mi-input-zone" style="padding:10px 14px;border-top:1px solid #e2e8f0;display:flex;gap:8px;align-items:flex-end;background:#fff">
+        <textarea id="mi-input-txt" placeholder="Écrire un message…" rows="1" oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMiMsg();}" style="flex:1;border:1.5px solid #e2e8f0;border-radius:10px;padding:9px 12px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;resize:none;max-height:120px;overflow-y:auto"></textarea>
+        <button class="btn btn-primary" style="padding:9px 14px;align-self:flex-end" onclick="sendMiMsg()">📤 Envoyer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- Modal nouveau message -->
+<div id="mi-new-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:none;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeMiNew()">
+  <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:440px;padding:20px 18px 28px;animation:up .22s ease">
+    <div style="width:36px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 14px"></div>
+    <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;margin-bottom:12px">✏️ Nouveau message</div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:12px;font-weight:700;color:#475569;display:block;margin-bottom:4px">Destinataire</label>
+      <select id="mi-new-dest" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+        <option value="general">📢 Canal général (tous)</option>
+      </select>
+    </div>
+    <div style="margin-bottom:10px">
+      <label style="font-size:12px;font-weight:700;color:#475569;display:block;margin-bottom:4px">Message</label>
+      <textarea id="mi-new-body" placeholder="Votre message…" style="width:100%;min-height:100px;border:1.5px solid #e2e8f0;border-radius:10px;padding:9px 12px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical"></textarea>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="closeMiNew()">Annuler</button>
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="sendMiNewMsg()">📤 Envoyer</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════ TAB: NOTES PAR CLASSE (sans coefficient) ══════════════════ -->
+<div id="panel-notes-classe" style="display:none">
+
+  <div style="background:linear-gradient(135deg,#1a1f2e,#4338ca);border-radius:16px;padding:18px 20px;margin-bottom:14px;color:#fff">
+    <h2 style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:4px">🧮 Notes par classe</h2>
+    <p style="font-size:12px;opacity:.65">Saisie et calcul des notes sans coefficient — moyennes simples par matière et par élève</p>
+  </div>
+
+  <!-- Sélecteurs -->
+  <div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <select id="nc-groupe" style="flex:1;min-width:160px;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none" onchange="renderNcTable()">
+      <option value="">— Sélectionner une classe —</option>
+    </select>
+    <select id="nc-trim" style="padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none" onchange="renderNcTable()">
+      <option value="T1">Trimestre 1</option>
+      <option value="T2">Trimestre 2</option>
+      <option value="T3">Trimestre 3</option>
+    </select>
+    <button class="btn btn-primary" onclick="renderNcTable()">📊 Calculer</button>
+    <button class="btn btn-pdf" style="font-size:12px;padding:7px 12px" onclick="downloadNcPDF()">⬇ PDF</button>
+    <button class="btn btn-green" style="font-size:12px;padding:7px 12px" onclick="shareNcWA()">📤 WhatsApp</button>
+  </div>
+
+  <!-- Ajouter une matière -->
+  <div style="background:#fff;border-radius:12px;padding:12px 14px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#1a1f2e;margin-bottom:8px">➕ Ajouter une matière</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <input type="text" id="nc-new-mat" placeholder="Nom de la matière *" style="flex:1;min-width:160px;padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+      <button class="btn btn-primary" onclick="addNcMatiere()">+ Ajouter</button>
+    </div>
+    <div id="nc-matieres-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+  </div>
+
+  <!-- Tableau de saisie -->
+  <div id="nc-table-wrap">
+    <div style="text-align:center;padding:40px;color:#94a3b8;font-size:14px">
+      <div style="font-size:36px;margin-bottom:10px">🧮</div>
+      Sélectionnez une classe pour saisir les notes
+    </div>
+  </div>
+</div>
+
 <div id="lettre-overlay" class="lettre-overlay" onclick="closeLettreOverlay(event)">
   <div class="lettre-modal">
     <div style="width:36px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 14px"></div>
@@ -8776,5 +9038,1069 @@ function copyParentMsg(){
   }
 }
 </script>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// MODE HORS-LIGNE — Présences & Notes sans internet
+// ═══════════════════════════════════════════════════════
+let offlineQueue = [];
+let offlineSyncedCount = 0;
+
+function loadOfflineQueue(){
+  const q = ld('edt_offline_queue'); if(q) offlineQueue = q;
+  const sc = ld('edt_offline_synced_count'); if(sc) offlineSyncedCount = sc;
+}
+
+function saveOfflineQueue(){
+  sv('edt_offline_queue', offlineQueue);
+  sv('edt_offline_synced_count', offlineSyncedCount);
+}
+
+function renderOfflineTab(){
+  loadOfflineQueue();
+  updateOnlineStatus();
+  populateOlGroupes();
+  renderOfflineQueueList();
+  const d = document.getElementById('ol-attend-date');
+  if(d && !d.value) d.value = getTodayStr();
+}
+
+function updateOnlineStatus(){
+  const online = navigator.onLine;
+  const ind    = document.getElementById('offline-indicator');
+  const txt    = document.getElementById('offline-status-txt');
+  const sub    = document.getElementById('offline-status-sub');
+  const badge  = document.getElementById('offline-pending-badge');
+  const qc     = document.getElementById('offline-queue-count');
+  const sc     = document.getElementById('offline-synced-count');
+  const ls     = document.getElementById('offline-last-sync');
+  const pending = offlineQueue.filter(x=>!x.synced).length;
+  if(ind) ind.style.background = online ? '#10b981' : '#ef4444';
+  if(txt) txt.textContent = online ? 'En ligne' : 'Hors-ligne';
+  if(sub) sub.textContent = online
+    ? (pending ? `${pending} entrée(s) en attente de synchronisation` : 'Toutes les données sont synchronisées')
+    : 'Les données sont sauvegardées localement';
+  if(badge){ badge.style.display = pending ? '' : 'none'; badge.textContent = `${pending} en attente`; }
+  if(qc) qc.textContent = pending;
+  if(sc) sc.textContent = offlineSyncedCount;
+  const lastSync = ld('edt_last_sync');
+  if(ls) ls.textContent = lastSync || '—';
+}
+
+function populateOlGroupes(){
+  ['ol-attend-groupe','ol-notes-groupe'].forEach(selId=>{
+    const sel = document.getElementById(selId);
+    if(!sel) return;
+    sel.innerHTML = '<option value="">— Sélectionner un groupe —</option>';
+    (typeof groupesList !== 'undefined' ? groupesList : []).forEach(g=>{
+      sel.innerHTML += `<option value="${g.id}">${esc(g.name)}</option>`;
+    });
+  });
+}
+
+function loadOlAttend(){
+  const dateStr = document.getElementById('ol-attend-date').value;
+  const grpId   = document.getElementById('ol-attend-groupe').value;
+  if(!dateStr || !grpId){ alert('Sélectionnez une date et un groupe'); return; }
+  const grp = (typeof groupesList !== 'undefined' ? groupesList : []).find(g=>g.id===grpId);
+  if(!grp || !grp.eleves.length){ alert("Ce groupe n'a aucun élève"); return; }
+  const dayData = (typeof eaData !== 'undefined' ? eaData[dateStr]||{} : {});
+  const grid = document.getElementById('ol-attend-grid');
+  grid.innerHTML = grp.eleves.map(e=>{
+    const key = (typeof eaKey === 'function') ? eaKey(grpId, e.id) : grpId+'_'+e.id;
+    const status = dayData[key] || '';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:11px;background:#fff">
+      <span style="flex:1;font-size:13px;font-weight:700;color:#1a1f2e">${esc((e.name||'')+' '+(e.prenom||''))}</span>
+      <select onchange="_olAttendPending['${grpId}|'+eaKey('${grpId}','${e.id}')] = {grpId:'${grpId}',eleveId:'${e.id}',dateStr:'${dateStr}',status:this.value}"
+        style="padding:6px 10px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none">
+        <option value="" ${!status?'selected':''}>— Non pointé —</option>
+        <option value="present" ${status==='present'?'selected':''}>✅ Présent</option>
+        <option value="absent"  ${status==='absent' ?'selected':''}>❌ Absent</option>
+        <option value="late"    ${status==='late'   ?'selected':''}>⚠️ Retard</option>
+      </select>
+    </div>`;
+  }).join('');
+  document.getElementById('ol-attend-save-bar').style.display = '';
+}
+
+let _olAttendPending = {};
+
+function saveOlAttend(){
+  Object.values(_olAttendPending).forEach(item=>{
+    if(typeof eaData !== 'undefined'){
+      if(!eaData[item.dateStr]) eaData[item.dateStr]={};
+      const key = (typeof eaKey === 'function') ? eaKey(item.grpId, item.eleveId) : item.grpId+'_'+item.eleveId;
+      eaData[item.dateStr][key] = item.status;
+    }
+    offlineQueue.push({ type:'presence', data:{...item}, ts:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+' '+item.dateStr, synced:false });
+  });
+  if(typeof sv === 'function') sv('edt_ea_data', typeof eaData !== 'undefined' ? eaData : {});
+  saveOfflineQueue();
+  _olAttendPending = {};
+  updateOnlineStatus();
+  renderOfflineQueueList();
+  if(navigator.onLine) syncOfflineQueue();
+  else alert('✅ Présences enregistrées localement ! Sync auto à la reconnexion.');
+}
+
+let _olNotesPending = {};
+
+function loadOlNotes(){
+  const grpId   = document.getElementById('ol-notes-groupe').value;
+  const matiere = document.getElementById('ol-notes-matiere').value.trim();
+  const trim    = document.getElementById('ol-notes-trim').value;
+  if(!grpId || !matiere){ alert('Sélectionnez un groupe et saisissez une matière'); return; }
+  const grp = (typeof groupesList !== 'undefined' ? groupesList : []).find(g=>g.id===grpId);
+  if(!grp || !grp.eleves.length){ alert("Ce groupe n'a aucun élève"); return; }
+  const evalKey = 'ol_notes_'+grpId+'_'+matiere+'_'+trim;
+  const existing = (typeof ld === 'function' ? ld(evalKey) : null) || {};
+  const grid = document.getElementById('ol-notes-grid');
+  grid.innerHTML = `<div style="display:flex;gap:6px;margin-bottom:6px;font-size:11px;font-weight:700;color:#475569;padding:0 2px">
+    <span style="flex:1">Élève</span><span style="width:90px;text-align:center">Note /20</span><span style="width:70px;text-align:center">Coeff.</span>
+  </div>` + grp.eleves.map((e,idx)=>{
+    const d = existing[e.id] || {};
+    return `<div style="display:flex;align-items:center;gap:6px;padding:7px 10px;border:1.5px solid #e2e8f0;border-radius:10px;background:#fff">
+      <span style="flex:1;font-size:12px;font-weight:700;color:#1a1f2e">${esc((e.name||'')+' '+(e.prenom||''))}</span>
+      <input type="number" min="0" max="20" step="0.5" value="${d.note||''}" placeholder="—" id="ol-note-${idx}"
+        style="width:80px;padding:6px 8px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;font-family:'DM Mono',monospace;outline:none;text-align:center"
+        oninput="_olNotesPending['${grpId}|${e.id}|${matiere}|${trim}']={grpId:'${grpId}',eleveId:'${e.id}',matiere:'${matiere}',trim:'${trim}',note:this.value,coeff:document.getElementById('ol-coeff-${idx}').value}">
+      <input type="number" min="1" max="10" step="1" value="${d.coeff||1}" id="ol-coeff-${idx}"
+        style="width:60px;padding:6px 8px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;font-family:'DM Mono',monospace;outline:none;text-align:center">
+    </div>`;
+  }).join('');
+  document.getElementById('ol-notes-save-bar').style.display = '';
+}
+
+function saveOlNotes(){
+  const grpId   = document.getElementById('ol-notes-groupe').value;
+  const matiere = document.getElementById('ol-notes-matiere').value.trim();
+  const trim    = document.getElementById('ol-notes-trim').value;
+  if(!grpId || !matiere) return;
+  const evalKey = 'ol_notes_'+grpId+'_'+matiere+'_'+trim;
+  let existing = (typeof ld === 'function' ? ld(evalKey) : null) || {};
+  Object.values(_olNotesPending).forEach(item=>{
+    existing[item.eleveId] = { note:item.note, coeff:item.coeff };
+    offlineQueue.push({ type:'note', data:{...item}, ts:new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+' '+trim, synced:false });
+  });
+  if(typeof sv === 'function') sv(evalKey, existing);
+  saveOfflineQueue();
+  _olNotesPending = {};
+  updateOnlineStatus();
+  renderOfflineQueueList();
+  if(navigator.onLine) syncOfflineQueue();
+  else alert('✅ Notes enregistrées localement ! Sync auto à la reconnexion.');
+}
+
+function syncOfflineQueue(){
+  const pending = offlineQueue.filter(x=>!x.synced);
+  if(!pending.length){ updateOnlineStatus(); return; }
+  if(!navigator.onLine){ alert('Connexion indisponible. Sync auto dès reconnexion.'); return; }
+  pending.forEach(x=>{ x.synced=true; offlineSyncedCount++; });
+  const now = new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+' '+new Date().toLocaleDateString('fr-FR');
+  if(typeof sv === 'function') sv('edt_last_sync', now);
+  saveOfflineQueue();
+  updateOnlineStatus();
+  renderOfflineQueueList();
+  alert(`✅ ${pending.length} entrée(s) synchronisée(s) !`);
+}
+
+function renderOfflineQueueList(){
+  const list = document.getElementById('offline-queue-list');
+  if(!list) return;
+  const items = [...offlineQueue].reverse().slice(0,30);
+  if(!items.length){
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px">Aucune entrée en file d\'attente</div>';
+    return;
+  }
+  list.innerHTML = items.map(x=>`<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid #e2e8f0;border-radius:9px;margin-bottom:4px;background:${x.synced?'#f0fdf4':'#fffbeb'}">
+    <span style="font-size:14px">${x.type==='presence'?'✅':'📝'}</span>
+    <span style="flex:1;font-size:12px;font-weight:700;color:#1a1f2e">${x.type==='presence'?'Présence':'Note'}</span>
+    <span style="font-size:11px;color:#64748b">${x.ts}</span>
+    <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;${x.synced?'background:#d1fae5;color:#065f46':'background:#fef3c7;color:#92400e'}">${x.synced?'✓ Synced':'En attente'}</span>
+  </div>`).join('');
+}
+
+function clearOfflineQueue(){
+  if(!confirm('Vider la file d\'attente ?')) return;
+  offlineQueue=[]; offlineSyncedCount=0;
+  saveOfflineQueue(); updateOnlineStatus(); renderOfflineQueueList();
+}
+
+window.addEventListener('online',  ()=>{ updateOnlineStatus(); const p=offlineQueue.filter(x=>!x.synced).length; if(p) syncOfflineQueue(); });
+window.addEventListener('offline', ()=>{ updateOnlineStatus(); });
+loadOfflineQueue();
+
+// ═══════════════════════════════════════════════════════
+// COMPARAISON TRIMESTRIELLE
+// ═══════════════════════════════════════════════════════
+function populateCtGroupes(){
+  const sel = document.getElementById('ct-groupe');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">— Sélectionner une classe —</option>';
+  (typeof groupesList !== 'undefined' ? groupesList : []).forEach(g=>{
+    sel.innerHTML += `<option value="${g.id}">${esc(g.name)}</option>`;
+  });
+}
+
+function getNotesForEleve(grpId, eleveId, trim){
+  const notesList = [];
+  // Chercher toutes les clés ol_notes_<grpId>_*_<trim> dans localStorage
+  for(let i=0; i<localStorage.length; i++){
+    const k = localStorage.key(i);
+    if(k && k.startsWith('ol_notes_'+grpId+'_') && k.endsWith('_'+trim)){
+      const matiere = k.replace('ol_notes_'+grpId+'_','').replace('_'+trim,'');
+      const data = (typeof ld === 'function' ? ld(k) : null);
+      if(data && data[eleveId] && data[eleveId].note !== ''){
+        const n = parseFloat(data[eleveId].note);
+        const c = parseFloat(data[eleveId].coeff)||1;
+        if(!isNaN(n)) notesList.push({ mat:matiere, note:n, coeff:c });
+      }
+    }
+  }
+  if(!notesList.length) return { avg:null, matieres:[] };
+  const total  = notesList.reduce((s,x)=>s+x.note*x.coeff, 0);
+  const coeffs = notesList.reduce((s,x)=>s+x.coeff, 0);
+  return { avg: coeffs ? (total/coeffs).toFixed(2) : null, matieres:notesList };
+}
+
+function getPresenceForEleve(grpId, eleveId){
+  const ea = typeof eaData !== 'undefined' ? eaData : {};
+  let p=0,a=0,r=0;
+  Object.keys(ea).forEach(d=>{
+    const key = (typeof eaKey === 'function') ? eaKey(grpId, eleveId) : grpId+'_'+eleveId;
+    const s = (ea[d]||{})[key];
+    if(s==='present') p++; else if(s==='absent') a++; else if(s==='late') r++;
+  });
+  const total=p+a+r;
+  return { present:p, absent:a, late:r, total, taux:total?Math.round(p/total*100):null };
+}
+
+function renderComparaisonTrim(){
+  const grpId   = (document.getElementById('ct-groupe')||{}).value;
+  const content = document.getElementById('ct-content');
+  if(!content) return;
+  if(!grpId){
+    content.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:14px"><div style="font-size:36px;margin-bottom:10px">📊</div>Sélectionnez une classe pour voir la comparaison trimestrielle</div>';
+    return;
+  }
+  const grp = (typeof groupesList !== 'undefined' ? groupesList : []).find(g=>g.id===grpId);
+  if(!grp){ content.innerHTML='<div style="text-align:center;padding:30px;color:#94a3b8">Groupe introuvable</div>'; return; }
+
+  const trims = ['T1','T2','T3'];
+  const trimColors = {'T1':'#6366f1','T2':'#10b981','T3':'#f59e0b'};
+  const trimLabels = {'T1':'Trimestre 1','T2':'Trimestre 2','T3':'Trimestre 3'};
+
+  const globalAvgs = {};
+  trims.forEach(t=>{
+    const avgs = grp.eleves.map(e=>getNotesForEleve(grpId,e.id,t).avg).filter(x=>x!==null).map(Number);
+    globalAvgs[t] = avgs.length ? (avgs.reduce((a,b)=>a+b,0)/avgs.length).toFixed(2) : null;
+  });
+
+  const presentAll = grp.eleves.reduce((s,e)=>s+getPresenceForEleve(grpId,e.id).present,0);
+  const absentAll  = grp.eleves.reduce((s,e)=>s+getPresenceForEleve(grpId,e.id).absent,0);
+  const totalPres  = presentAll+absentAll;
+  const tauxPres   = totalPres ? Math.round(presentAll/totalPres*100) : null;
+
+  let html = '';
+
+  // KPI moyennes
+  html += `<div class="ct-section">
+    <div class="ct-section-title">📈 Moyennes générales — ${esc(grp.name)}</div>
+    <div class="ct-trim-row">
+      ${trims.map(t=>`<div class="ct-trim-card" style="background:${trimColors[t]}18;border:2px solid ${trimColors[t]}50">
+        <div class="ct-val" style="color:${trimColors[t]}">${globalAvgs[t]!==null?globalAvgs[t]+'/20':'—'}</div>
+        <div class="ct-lbl" style="color:${trimColors[t]}">${trimLabels[t]}</div>
+      </div>`).join('')}
+    </div>
+    ${(globalAvgs.T1!==null&&globalAvgs.T3!==null)?`<div style="font-size:12px;font-weight:700;color:#475569;margin-top:6px">
+      Progression T1→T3 : <span style="color:${Number(globalAvgs.T3)>=Number(globalAvgs.T1)?'#10b981':'#ef4444'};font-weight:800">
+        ${Number(globalAvgs.T3)>=Number(globalAvgs.T1)?'▲':'▼'} ${Math.abs(Number(globalAvgs.T3)-Number(globalAvgs.T1)).toFixed(2)} pts
+      </span></div>`:''}
+  </div>`;
+
+  // Taux de présence
+  html += `<div class="ct-section">
+    <div class="ct-section-title">✅ Taux de présence global</div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+      <div style="text-align:center;min-width:80px">
+        <div style="font-family:'DM Mono',monospace;font-size:26px;font-weight:800;color:${tauxPres!==null?(tauxPres>=80?'#10b981':tauxPres>=60?'#f59e0b':'#ef4444'):'#94a3b8'}">${tauxPres!==null?tauxPres+'%':'—'}</div>
+        <div style="font-size:10px;color:#64748b;font-weight:700">Taux de présence</div>
+      </div>
+      <div style="flex:1;min-width:160px">
+        <div class="ct-bar-wrap"><div class="ct-bar" style="width:${tauxPres||0}%;background:${tauxPres!==null&&tauxPres>=80?'#10b981':tauxPres!==null&&tauxPres>=60?'#f59e0b':'#ef4444'}"></div></div>
+        <div style="font-size:11px;color:#64748b;margin-top:4px">${presentAll} présences · ${absentAll} absences · ${grp.eleves.length} élèves</div>
+      </div>
+    </div>
+  </div>`;
+
+  // Tableau individuel
+  html += `<div class="ct-section">
+    <div class="ct-section-title">👥 Comparaison individuelle</div>
+    <div style="overflow-x:auto;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+      <table class="ct-eleve-table">
+        <thead>
+          <tr>
+            <th style="text-align:left;min-width:130px">Élève</th>
+            <th style="background:#6366f1">T1 /20</th>
+            <th style="background:#10b981">T2 /20</th>
+            <th style="background:#f59e0b">T3 /20</th>
+            <th>Progression</th>
+            <th>Présence %</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${grp.eleves.map(e=>{
+            const n1=getNotesForEleve(grpId,e.id,'T1').avg;
+            const n2=getNotesForEleve(grpId,e.id,'T2').avg;
+            const n3=getNotesForEleve(grpId,e.id,'T3').avg;
+            const pres=getPresenceForEleve(grpId,e.id);
+            const prog=(n1!==null&&n3!==null)
+              ?(Number(n3)>=Number(n1)
+                ?`<span class="ct-badge ct-up">▲ +${(Number(n3)-Number(n1)).toFixed(2)}</span>`
+                :`<span class="ct-badge ct-down">▼ ${(Number(n3)-Number(n1)).toFixed(2)}</span>`)
+              :'<span class="ct-badge ct-flat">—</span>';
+            const tauxE=pres.taux;
+            return `<tr>
+              <td style="text-align:left;font-weight:700">${esc((e.name||'')+' '+(e.prenom||''))}</td>
+              <td>${n1!==null?n1:'—'}</td>
+              <td>${n2!==null?n2:'—'}</td>
+              <td>${n3!==null?n3:'—'}</td>
+              <td>${prog}</td>
+              <td><span style="font-weight:800;color:${tauxE!==null?(tauxE>=80?'#10b981':tauxE>=60?'#f59e0b':'#ef4444'):'#94a3b8'}">${tauxE!==null?tauxE+'%':'—'}</span></td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:10px;font-size:11px;color:#94a3b8">💡 Les notes viennent de la saisie hors-ligne (onglet 📶). Les présences viennent de l'onglet ✅ Présences Élèves.</div>
+  </div>`;
+
+  content.innerHTML = html;
+}
+
+function downloadCtPDF(){
+  const grpId = (document.getElementById('ct-groupe')||{}).value;
+  if(!grpId){ alert('Sélectionnez une classe'); return; }
+  const grp = (typeof groupesList !== 'undefined' ? groupesList : []).find(g=>g.id===grpId);
+  if(!grp) return;
+  const content = document.getElementById('ct-content');
+  if(!content) return;
+  const now = new Date().toLocaleDateString('fr-FR');
+  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Comparaison trimestrielle</title>
+  <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;padding:20px;color:#1a1f2e;font-size:13px}
+  .ct-section{background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px 14px;margin-bottom:12px}
+  .ct-section-title{font-size:14px;font-weight:800;margin-bottom:10px}
+  .ct-eleve-table{width:100%;border-collapse:collapse}
+  .ct-eleve-table th,.ct-eleve-table td{border:1px solid #e2e8f0;padding:7px 10px;text-align:center}
+  .ct-eleve-table th{background:#1a1f2e;color:#fff}
+  .ct-trim-row{display:flex;gap:8px;flex-wrap:wrap}
+  .ct-trim-card{flex:1;min-width:80px;padding:10px;text-align:center;border-radius:8px;border:1.5px solid #e2e8f0}
+  .ct-val{font-size:20px;font-weight:800}
+  .ct-lbl{font-size:10px;font-weight:700;text-transform:uppercase}
+  .ct-bar-wrap{height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden}
+  .ct-bar{height:100%;border-radius:4px}
+  .ct-badge{padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700}
+  .ct-up{background:#d1fae5;color:#065f46}.ct-down{background:#fee2e2;color:#991b1b}.ct-flat{background:#f1f5f9;color:#475569}
+  @media print{@page{margin:12mm;size:A4}}
+  </style></head><body>
+  <div style="margin-bottom:16px"><h2>📊 Comparaison trimestrielle — ${esc(grp.name)}</h2>
+  <p style="font-size:11px;color:#64748b">Imprimé le ${now} · ${manager.school||''}</p></div>
+  ${content.innerHTML}
+  </body></html>`;
+  const win = window.open('','_blank');
+  if(win){ win.document.write(html); win.document.close(); win.focus(); win.print(); }
+}
+
+function shareCtWA(){
+  const grpId = (document.getElementById('ct-groupe')||{}).value;
+  if(!grpId){ alert('Sélectionnez une classe'); return; }
+  const grp = (typeof groupesList !== 'undefined' ? groupesList : []).find(g=>g.id===grpId);
+  if(!grp) return;
+  const lines = [`📊 *Comparaison trimestrielle — ${grp.name}*`,`🏫 ${manager.school||''}`,``];
+  grp.eleves.forEach(e=>{
+    const n1=getNotesForEleve(grpId,e.id,'T1').avg;
+    const n2=getNotesForEleve(grpId,e.id,'T2').avg;
+    const n3=getNotesForEleve(grpId,e.id,'T3').avg;
+    const pres=getPresenceForEleve(grpId,e.id);
+    lines.push(`*${esc((e.name||'')+' '+(e.prenom||''))}* — T1:${n1||'—'} T2:${n2||'—'} T3:${n3||'—'} | Présence:${pres.taux!==null?pres.taux+'%':'—'}`);
+  });
+  window.open(`https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`, '_blank');
+}
+
+// ═══════════════════════════════════════════════════════
+// MESSAGERIE INTERNE ENSEIGNANTS
+// ═══════════════════════════════════════════════════════
+let miMessages = {};
+let miCurrentConv = null;
+let miCurrentIsCanal = false;
+
+function loadMiMessages(){
+  const m = (typeof ld === 'function') ? ld('edt_mi_messages') : null;
+  if(m) miMessages = m;
+}
+
+function saveMiMessages(){
+  if(typeof sv === 'function') sv('edt_mi_messages', miMessages);
+}
+
+function getMiConvId(staffId){ return 'conv_'+staffId; }
+function getMyRole(){ return manager.name || 'Directeur'; }
+
+function populateMiDestSelect(){
+  loadMiMessages();
+  const sel = document.getElementById('mi-new-dest');
+  if(!sel) return;
+  sel.innerHTML = '<option value="general">📢 Canal général (tous)</option>';
+  (typeof staffList !== 'undefined' ? staffList : []).forEach(sm=>{
+    sel.innerHTML += `<option value="${sm.id}">${esc(sm.name)}${sm.role?' · '+esc(sm.role):''}</option>`;
+  });
+}
+
+function renderMiConversations(){
+  loadMiMessages();
+  const search = ((document.getElementById('mi-search')||{}).value||'').toLowerCase();
+  const list   = document.getElementById('mi-conv-list');
+  if(!list) return;
+
+  // Canal général
+  const generalMsgs = miMessages['general'] || [];
+  const lastGen = generalMsgs[generalMsgs.length-1];
+  const genPreview = document.getElementById('mi-general-preview');
+  const genBadge   = document.getElementById('mi-general-badge');
+  if(genPreview) genPreview.textContent = lastGen ? esc(lastGen.body.substring(0,40))+'…' : 'Messages à tous les enseignants';
+  const unreadGen = generalMsgs.filter(m=>!(m.readBy||[]).includes('directeur')).length;
+  if(genBadge){ genBadge.style.display=unreadGen?'':'none'; genBadge.textContent=unreadGen; }
+
+  const canal = document.getElementById('mi-canal-general');
+  if(canal) canal.className = 'mi-conv-item'+(miCurrentIsCanal?' active':'');
+
+  const staff = (typeof staffList !== 'undefined' ? staffList : []).filter(sm=>!search||sm.name.toLowerCase().includes(search));
+  if(!staff.length){
+    list.innerHTML = '<div style="text-align:center;padding:20px;color:#94a3b8;font-size:12px">Aucun membre du personnel</div>';
+    return;
+  }
+  list.innerHTML = staff.map(sm=>{
+    const convId = getMiConvId(sm.id);
+    const msgs   = miMessages[convId] || [];
+    const last   = msgs[msgs.length-1];
+    const unread = msgs.filter(m=>!(m.readBy||[]).includes('directeur')).length;
+    const col    = (typeof avatarColor === 'function') ? avatarColor(sm.name) : '#6366f1';
+    const isActive = miCurrentConv===convId && !miCurrentIsCanal;
+    return `<div class="mi-conv-item${isActive?' active':''}" onclick="openMiConv(${sm.id})">
+      <div class="mi-conv-avatar" style="background:${col}22;color:${col}">${(typeof initials==='function')?initials(sm.name):sm.name.slice(0,2).toUpperCase()}</div>
+      <div style="flex:1;min-width:0">
+        <div class="mi-conv-name">${esc(sm.name)}${sm.role?` <span style="font-size:10px;color:#94a3b8">${esc(sm.role)}</span>`:''}</div>
+        <div class="mi-conv-preview">${last?esc(last.body.substring(0,35))+'…':'Aucun message'}</div>
+      </div>
+      ${unread?`<div class="mi-unread-badge">${unread}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function openMiConv(staffId){
+  miCurrentIsCanal = false;
+  miCurrentConv = getMiConvId(staffId);
+  const sm = (typeof staffList !== 'undefined' ? staffList : []).find(s=>s.id===staffId);
+  if(!sm) return;
+  const col = (typeof avatarColor === 'function') ? avatarColor(sm.name) : '#6366f1';
+  const av  = document.getElementById('mi-chat-avatar');
+  if(av){ av.textContent=(typeof initials==='function')?initials(sm.name):sm.name.slice(0,2).toUpperCase(); av.style.background=col+'22'; av.style.color=col; }
+  const nameEl = document.getElementById('mi-chat-name');
+  const subEl  = document.getElementById('mi-chat-sub');
+  if(nameEl) nameEl.textContent = sm.name;
+  if(subEl)  subEl.textContent  = sm.role || 'Enseignant';
+  markMiRead(miCurrentConv, 'directeur');
+  renderMiMessages();
+  renderMiConversations();
+}
+
+function openMiCanal(){
+  miCurrentIsCanal = true;
+  miCurrentConv = 'general';
+  const av = document.getElementById('mi-chat-avatar');
+  if(av){ av.textContent='📢'; av.style.background='#6366f1'; av.style.color='#fff'; }
+  const nameEl = document.getElementById('mi-chat-name');
+  const subEl  = document.getElementById('mi-chat-sub');
+  if(nameEl) nameEl.textContent = 'Canal général';
+  if(subEl)  subEl.textContent  = `${(typeof staffList!=='undefined'?staffList:[]).length} enseignant(s)`;
+  markMiRead('general', 'directeur');
+  renderMiMessages();
+  renderMiConversations();
+}
+
+function markMiRead(convId, userId){
+  loadMiMessages();
+  (miMessages[convId]||[]).forEach(m=>{
+    if(!(m.readBy=m.readBy||[]).includes(userId)) m.readBy.push(userId);
+  });
+  saveMiMessages();
+}
+
+function renderMiMessages(){
+  if(!miCurrentConv) return;
+  loadMiMessages();
+  const msgs = miMessages[miCurrentConv] || [];
+  const zone = document.getElementById('mi-messages-zone');
+  if(!zone) return;
+  if(!msgs.length){
+    zone.innerHTML = '<div style="text-align:center;color:#94a3b8;font-size:13px;padding:40px 0">💬 Aucun message — envoyez le premier !</div>';
+    return;
+  }
+  zone.innerHTML = msgs.map(m=>{
+    const isOut = m.from === 'directeur';
+    let readMark = '';
+    if(isOut){
+      const r = (m.readBy||[]).filter(x=>x!=='directeur').length;
+      readMark = r > 0
+        ? `<span class="mi-read-tick mi-msg-read">✓✓ Lu${miCurrentIsCanal?' ('+r+')':''}</span>`
+        : `<span class="mi-read-tick">✓ Envoyé</span>`;
+    }
+    return `<div style="display:flex;flex-direction:column;align-items:${isOut?'flex-end':'flex-start'}">
+      ${!isOut?`<div style="font-size:10px;font-weight:700;color:#6366f1;margin-bottom:2px">${esc(m.fromName||m.from)}</div>`:''}
+      <div class="mi-msg-bubble ${isOut?'mi-msg-out':'mi-msg-in'}" style="white-space:pre-wrap">${esc(m.body)}
+        <div class="mi-msg-meta">${m.ts} ${readMark}</div>
+      </div>
+    </div>`;
+  }).join('');
+  zone.scrollTop = zone.scrollHeight;
+
+  // Header read info
+  const headerInfo = document.getElementById('mi-chat-read-info');
+  if(headerInfo){
+    const last = msgs[msgs.length-1];
+    if(last && last.from==='directeur'){
+      const r = (last.readBy||[]).filter(x=>x!=='directeur').length;
+      headerInfo.textContent = r ? `✓✓ Lu par ${r}` : '✓ Envoyé';
+    } else {
+      headerInfo.textContent = '';
+    }
+  }
+}
+
+function sendMiMsg(){
+  if(!miCurrentConv){ alert('Sélectionnez une conversation'); return; }
+  const inp  = document.getElementById('mi-input-txt');
+  if(!inp) return;
+  const body = inp.value.trim();
+  if(!body) return;
+  loadMiMessages();
+  if(!miMessages[miCurrentConv]) miMessages[miCurrentConv] = [];
+  miMessages[miCurrentConv].push({
+    id: Date.now(),
+    from: 'directeur',
+    fromName: getMyRole(),
+    body,
+    ts: new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
+    readBy: ['directeur']
+  });
+  saveMiMessages();
+  inp.value = '';
+  inp.style.height = 'auto';
+  renderMiMessages();
+  renderMiConversations();
+}
+
+function openMiNewMsg(){
+  populateMiDestSelect();
+  document.getElementById('mi-new-overlay').style.display = 'flex';
+  document.getElementById('mi-new-body').value = '';
+}
+
+function closeMiNew(){
+  document.getElementById('mi-new-overlay').style.display = 'none';
+}
+
+function sendMiNewMsg(){
+  const dest = document.getElementById('mi-new-dest').value;
+  const body = document.getElementById('mi-new-body').value.trim();
+  if(!body){ alert('Écrivez un message'); return; }
+  loadMiMessages();
+  const convId = dest === 'general' ? 'general' : getMiConvId(parseInt(dest));
+  if(!miMessages[convId]) miMessages[convId] = [];
+  miMessages[convId].push({
+    id: Date.now(),
+    from: 'directeur',
+    fromName: getMyRole(),
+    body,
+    ts: new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}),
+    readBy: ['directeur']
+  });
+  saveMiMessages();
+  closeMiNew();
+  if(dest==='general'){ openMiCanal(); }
+  else { openMiConv(parseInt(dest)); }
+  renderMiConversations();
+}
+
+loadMiMessages();
+</script>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// NOTES PAR CLASSE — sans coefficient
+// ═══════════════════════════════════════════════════════
+function ncKey(grpId, trim){ return 'edt_nc_'+grpId+'_'+trim; }
+
+function loadNcData(grpId, trim){
+  return ld(ncKey(grpId, trim)) || { matieres:[], notes:{} };
+}
+function saveNcData(grpId, trim, data){
+  sv(ncKey(grpId, trim), data);
+}
+
+function populateNcGroupes(){
+  const sel = document.getElementById('nc-groupe');
+  if(!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">— Sélectionner une classe —</option>';
+  (typeof groupesList !== 'undefined' ? groupesList : []).forEach(g=>{
+    sel.innerHTML += `<option value="${g.id}"${g.id===cur?' selected':''}>${esc(g.name)}</option>`;
+  });
+}
+
+function addNcMatiere(){
+  const grpId = (document.getElementById('nc-groupe')||{}).value;
+  const trim  = (document.getElementById('nc-trim')||{}).value || 'T1';
+  const inp   = document.getElementById('nc-new-mat');
+  const name  = inp ? inp.value.trim() : '';
+  if(!grpId){ alert('Sélectionnez une classe d\'abord'); return; }
+  if(!name){ alert('Saisissez un nom de matière'); return; }
+
+  const data = loadNcData(grpId, trim);
+  if(data.matieres.includes(name)){ alert('Cette matière existe déjà'); return; }
+  data.matieres.push(name);
+  saveNcData(grpId, trim, data);
+  if(inp) inp.value = '';
+  renderNcTable();
+}
+
+function deleteNcMatiere(grpId, trim, matiere){
+  if(!confirm('Supprimer la matière "'+matiere+'" et toutes ses notes ?')) return;
+  const data = loadNcData(grpId, trim);
+  data.matieres = data.matieres.filter(m=>m!==matiere);
+  // Supprimer les notes de cette matière
+  Object.keys(data.notes).forEach(eleveId=>{
+    if(data.notes[eleveId]) delete data.notes[eleveId][matiere];
+  });
+  saveNcData(grpId, trim, data);
+  renderNcTable();
+}
+
+function setNcNote(grpId, trim, eleveId, matiere, val){
+  const data = loadNcData(grpId, trim);
+  if(!data.notes[eleveId]) data.notes[eleveId] = {};
+  const n = parseFloat(val);
+  if(val==='' || isNaN(n)){
+    delete data.notes[eleveId][matiere];
+  } else {
+    data.notes[eleveId][matiere] = Math.min(20, Math.max(0, n));
+  }
+  saveNcData(grpId, trim, data);
+  // Mise à jour en direct des moyennes sans re-render complet
+  updateNcAverages(grpId, trim, data);
+}
+
+function updateNcAverages(grpId, trim, data){
+  const grp = (typeof groupesList !== 'undefined' ? groupesList : []).find(g=>g.id===grpId);
+  if(!grp) return;
+
+  // Moyennes par élève
+  grp.eleves.forEach(e=>{
+    const notesDEleve = data.matieres.map(m=>{
+      const v = (data.notes[e.id]||{})[m];
+      return (v !== undefined && v !== null) ? v : null;
+    }).filter(x=>x!==null);
+    const avg = notesDEleve.length
+      ? (notesDEleve.reduce((a,b)=>a+b,0)/notesDEleve.length).toFixed(2)
+      : '—';
+    const el = document.getElementById('nc-avg-eleve-'+e.id);
+    if(el){
+      el.textContent = avg !== '—' ? avg+'/20' : '—';
+      el.style.color = avg !== '—' ? (Number(avg)>=10?'#10b981':'#ef4444') : '#94a3b8';
+    }
+  });
+
+  // Moyennes par matière
+  data.matieres.forEach(m=>{
+    const vals = grp.eleves.map(e=>{
+      const v = (data.notes[e.id]||{})[m];
+      return (v!==undefined && v!==null) ? v : null;
+    }).filter(x=>x!==null);
+    const avg = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2) : '—';
+    const el = document.getElementById('nc-avg-mat-'+CSS.escape(m));
+    if(el){
+      el.textContent = avg !== '—' ? avg+'/20' : '—';
+      el.style.color = avg !== '—' ? (Number(avg)>=10?'#10b981':'#ef4444') : '#94a3b8';
+    }
+  });
+
+  // Moyenne générale classe
+  const allNotes = [];
+  grp.eleves.forEach(e=>{
+    data.matieres.forEach(m=>{
+      const v = (data.notes[e.id]||{})[m];
+      if(v!==undefined && v!==null) allNotes.push(v);
+    });
+  });
+  const genEl = document.getElementById('nc-avg-general');
+  if(genEl){
+    const gen = allNotes.length ? (allNotes.reduce((a,b)=>a+b,0)/allNotes.length).toFixed(2) : '—';
+    genEl.textContent = gen !== '—' ? gen+'/20' : '—';
+    genEl.style.color = gen !== '—' ? (Number(gen)>=10?'#10b981':'#ef4444') : '#94a3b8';
+  }
+}
+
+function renderNcTable(){
+  const grpId = (document.getElementById('nc-groupe')||{}).value;
+  const trim  = (document.getElementById('nc-trim')||{}).value || 'T1';
+  const wrap  = document.getElementById('nc-table-wrap');
+  if(!wrap) return;
+
+  // Chips matières
+  renderNcChips(grpId, trim);
+
+  if(!grpId){
+    wrap.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;font-size:14px"><div style="font-size:36px;margin-bottom:10px">🧮</div>Sélectionnez une classe pour saisir les notes</div>';
+    return;
+  }
+
+  const grp = (typeof groupesList !== 'undefined' ? groupesList : []).find(g=>g.id===grpId);
+  if(!grp || !grp.eleves.length){
+    wrap.innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8;font-size:13px">Ce groupe n\'a aucun élève.</div>';
+    return;
+  }
+
+  const data = loadNcData(grpId, trim);
+
+  if(!data.matieres.length){
+    wrap.innerHTML = '<div style="text-align:center;padding:30px;color:#94a3b8;font-size:13px">Ajoutez au moins une matière pour commencer.</div>';
+    return;
+  }
+
+  // En-têtes matières
+  const thMats = data.matieres.map(m=>`
+    <th style="background:#4338ca;color:#fff;padding:8px 10px;font-size:11px;min-width:90px;position:relative">
+      ${esc(m)}
+      <button onclick="deleteNcMatiere('${grpId}','${trim}','${m.replace(/'/g,"\\'")}');event.stopPropagation()"
+        style="position:absolute;top:3px;right:4px;background:rgba(255,255,255,.2);border:none;color:#fff;border-radius:4px;padding:0 4px;font-size:10px;cursor:pointer;line-height:1.4">✕</button>
+    </th>`).join('');
+
+  // Lignes élèves
+  const rows = grp.eleves.map((e,idx)=>{
+    const notesDEleve = data.matieres.map(m=>{
+      const v = (data.notes[e.id]||{})[m];
+      return (v!==undefined && v!==null) ? v : null;
+    }).filter(x=>x!==null);
+    const avg = notesDEleve.length
+      ? (notesDEleve.reduce((a,b)=>a+b,0)/notesDEleve.length).toFixed(2)
+      : null;
+
+    const cells = data.matieres.map(m=>{
+      const v = (data.notes[e.id]||{})[m];
+      const val = (v!==undefined && v!==null) ? v : '';
+      return `<td style="border:1px solid #e2e8f0;padding:4px 6px;text-align:center">
+        <input type="number" min="0" max="20" step="0.5" value="${val}" placeholder="—"
+          onchange="setNcNote('${grpId}','${trim}','${e.id}','${m.replace(/'/g,"\\'")}',this.value)"
+          style="width:70px;padding:5px 6px;border:1.5px solid #e2e8f0;border-radius:7px;font-size:12px;font-family:'DM Mono',monospace;outline:none;text-align:center;background:#fafbfc"
+          onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#e2e8f0'">
+      </td>`;
+    }).join('');
+
+    const rowBg = idx%2===0 ? '#fff' : '#f8fafc';
+    return `<tr style="background:${rowBg}">
+      <td style="border:1px solid #e2e8f0;padding:8px 12px;font-weight:700;font-size:12px;color:#1a1f2e;white-space:nowrap;background:${rowBg}">
+        ${idx+1}. ${esc((e.name||'')+' '+(e.prenom||''))}
+      </td>
+      ${cells}
+      <td style="border:1px solid #e2e8f0;padding:8px 10px;text-align:center;background:#eef2ff">
+        <span id="nc-avg-eleve-${e.id}" style="font-family:'DM Mono',monospace;font-size:13px;font-weight:800;color:${avg!==null?(Number(avg)>=10?'#10b981':'#ef4444'):'#94a3b8'}">
+          ${avg!==null?avg+'/20':'—'}
+        </span>
+      </td>
+      <td style="border:1px solid #e2e8f0;padding:6px 8px;text-align:center;background:#f0fdf4">
+        <button onclick="openNcParentModal('${grpId}','${trim}','${e.id}')"
+          style="background:#25d366;color:#fff;border:none;border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:3px;white-space:nowrap">
+          📩 Parent
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Ligne moyennes par matière
+  const avgCells = data.matieres.map(m=>{
+    const vals = grp.eleves.map(e=>{
+      const v = (data.notes[e.id]||{})[m];
+      return (v!==undefined && v!==null) ? v : null;
+    }).filter(x=>x!==null);
+    const avg = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2) : null;
+    // Utilise un id "safe" basé sur index
+    const midx = data.matieres.indexOf(m);
+    return `<td style="border:1px solid #e2e8f0;padding:8px 10px;text-align:center;background:#fff0e0">
+      <span id="nc-avg-mat-${midx}" style="font-family:'DM Mono',monospace;font-size:12px;font-weight:800;color:${avg!==null?(Number(avg)>=10?'#10b981':'#ef4444'):'#94a3b8'}">
+        ${avg!==null?avg+'/20':'—'}
+      </span>
+    </td>`;
+  }).join('');
+
+  // Moyenne générale
+  const allNotes = [];
+  grp.eleves.forEach(e=>{ data.matieres.forEach(m=>{ const v=(data.notes[e.id]||{})[m]; if(v!==undefined&&v!==null) allNotes.push(v); }); });
+  const gen = allNotes.length ? (allNotes.reduce((a,b)=>a+b,0)/allNotes.length).toFixed(2) : null;
+
+  // Compter élèves admis (moy >= 10)
+  const admis = grp.eleves.filter(e=>{
+    const ns = data.matieres.map(m=>{ const v=(data.notes[e.id]||{})[m]; return (v!==undefined&&v!==null)?v:null; }).filter(x=>x!==null);
+    return ns.length && ns.reduce((a,b)=>a+b,0)/ns.length >= 10;
+  }).length;
+
+  wrap.innerHTML = `
+    <!-- KPI rapides -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+      <div style="flex:1;min-width:100px;background:#fff;border-radius:12px;padding:11px 14px;box-shadow:0 1px 4px rgba(0,0,0,.07);border-top:3px solid #6366f1;text-align:center">
+        <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:800;color:#6366f1">${grp.eleves.length}</div>
+        <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase">Élèves</div>
+      </div>
+      <div style="flex:1;min-width:100px;background:#fff;border-radius:12px;padding:11px 14px;box-shadow:0 1px 4px rgba(0,0,0,.07);border-top:3px solid #4338ca;text-align:center">
+        <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:800;color:#4338ca">${data.matieres.length}</div>
+        <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase">Matières</div>
+      </div>
+      <div style="flex:1;min-width:100px;background:#fff;border-radius:12px;padding:11px 14px;box-shadow:0 1px 4px rgba(0,0,0,.07);border-top:3px solid #10b981;text-align:center">
+        <div id="nc-avg-general" style="font-family:'DM Mono',monospace;font-size:20px;font-weight:800;color:${gen!==null?(Number(gen)>=10?'#10b981':'#ef4444'):'#94a3b8'}">${gen!==null?gen+'/20':'—'}</div>
+        <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase">Moy. classe</div>
+      </div>
+      <div style="flex:1;min-width:100px;background:#fff;border-radius:12px;padding:11px 14px;box-shadow:0 1px 4px rgba(0,0,0,.07);border-top:3px solid #f59e0b;text-align:center">
+        <div style="font-family:'DM Mono',monospace;font-size:20px;font-weight:800;color:#f59e0b">${admis}/${grp.eleves.length}</div>
+        <div style="font-size:10px;color:#64748b;font-weight:700;text-transform:uppercase">Admis (≥10)</div>
+      </div>
+    </div>
+
+    <!-- Tableau -->
+    <div style="overflow-x:auto;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.08);background:#fff;margin-bottom:10px">
+      <table style="width:100%;border-collapse:collapse;min-width:400px">
+        <thead>
+          <tr>
+            <th style="background:#1a1f2e;color:#fff;padding:10px 12px;font-size:12px;text-align:left;min-width:150px;border-radius:14px 0 0 0">Élève</th>
+            ${thMats}
+            <th style="background:#3730a3;color:#fff;padding:10px 12px;font-size:11px;min-width:80px">Moyenne</th>
+            <th style="background:#065f46;color:#fff;padding:10px 12px;font-size:11px;min-width:80px;border-radius:0 14px 0 0">Envoyer</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+          <tr style="background:#fff8ed">
+            <td style="border:1px solid #e2e8f0;padding:8px 12px;font-size:11px;font-weight:800;color:#92400e">📊 Moy. matière</td>
+            ${avgCells}
+            <td style="border:1px solid #e2e8f0;padding:8px 10px;text-align:center;background:#fff0e0">
+              <span style="font-family:'DM Mono',monospace;font-size:12px;font-weight:800;color:${gen!==null?(Number(gen)>=10?'#10b981':'#ef4444'):'#94a3b8'}">${gen!==null?gen+'/20':'—'}</span>
+            </td>
+            <td style="border:1px solid #e2e8f0;background:#fff8ed"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="font-size:11px;color:#94a3b8;text-align:center">Moyennes calculées sans coefficient · Barème /20 · ${esc(grp.name)} — Trimestre ${trim.replace('T','')}</div>`;
+
+  // Patch: update avg-mat ids to use index-based
+  data.matieres.forEach((m,midx)=>{
+    const el = document.getElementById('nc-avg-mat-'+midx);
+    if(el){
+      const vals = grp.eleves.map(e=>{ const v=(data.notes[e.id]||{})[m]; return (v!==undefined&&v!==null)?v:null; }).filter(x=>x!==null);
+      const avg = vals.length ? (vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2) : null;
+      el.textContent = avg!==null?avg+'/20':'—';
+      el.style.color = avg!==null?(Number(avg)>=10?'#10b981':'#ef4444'):'#94a3b8';
+    }
+  });
+}
+
+function renderNcChips(grpId, trim){
+  const zone = document.getElementById('nc-matieres-chips');
+  if(!zone) return;
+  if(!grpId){ zone.innerHTML=''; return; }
+  const data = loadNcData(grpId, trim);
+  if(!data.matieres.length){
+    zone.innerHTML = '<span style="font-size:11px;color:#94a3b8">Aucune matière — ajoutez-en une ci-dessus</span>';
+    return;
+  }
+  zone.innerHTML = data.matieres.map(m=>`
+    <span style="display:inline-flex;align-items:center;gap:4px;background:#eef2ff;color:#4338ca;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700">
+      ${esc(m)}
+      <button onclick="deleteNcMatiere('${grpId}','${trim}','${m.replace(/'/g,"\\'")}');event.stopPropagation()"
+        style="background:none;border:none;color:#6366f1;cursor:pointer;font-size:13px;line-height:1;padding:0 2px">✕</button>
+    </span>`).join('');
+}
+
+function downloadNcPDF(){
+  const grpId = (document.getElementById('nc-groupe')||{}).value;
+  const trim  = (document.getElementById('nc-trim')||{}).value || 'T1';
+  if(!grpId){ alert('Sélectionnez une classe'); return; }
+  const grp = (typeof groupesList !== 'undefined' ? groupesList : []).find(g=>g.id===grpId);
+  if(!grp) return;
+  const data = loadNcData(grpId, trim);
+  if(!data.matieres.length){ alert('Aucune matière saisie'); return; }
+  const now = new Date().toLocaleDateString('fr-FR');
+  const school = (typeof manager !== 'undefined' ? manager.school : '') || '';
+
+  const thMats = data.matieres.map(m=>`<th style="background:#4338ca;color:#fff;padding:7px 10px;font-size:11px">${esc(m)}</th>`).join('');
+  const rows = grp.eleves.map((e,idx)=>{
+    const ns = data.matieres.map(m=>{ const v=(data.notes[e.id]||{})[m]; return (v!==undefined&&v!==null)?v:null; });
+    const valid = ns.filter(x=>x!==null);
+    const avg = valid.length ? (valid.reduce((a,b)=>a+b,0)/valid.length).toFixed(2) : '—';
+    const cells = ns.map(v=>`<td style="border:1px solid #e2e8f0;padding:6px 8px;text-align:center">${v!==null?v:'—'}</td>`).join('');
+    return `<tr style="background:${idx%2===0?'#fff':'#f8fafc'}">
+      <td style="border:1px solid #e2e8f0;padding:7px 10px;font-weight:700;font-size:12px">${idx+1}. ${esc((e.name||'')+' '+(e.prenom||''))}</td>
+      ${cells}
+      <td style="border:1px solid #e2e8f0;padding:7px 10px;text-align:center;font-weight:800;color:${avg!=='—'&&Number(avg)>=10?'#10b981':'#ef4444'}">${avg!=='—'?avg+'/20':avg}</td>
+    </tr>`;
+  }).join('');
+  const allNotes=[];
+  grp.eleves.forEach(e=>{ data.matieres.forEach(m=>{ const v=(data.notes[e.id]||{})[m]; if(v!==undefined&&v!==null) allNotes.push(v); }); });
+  const gen = allNotes.length ? (allNotes.reduce((a,b)=>a+b,0)/allNotes.length).toFixed(2) : '—';
+  const admis = grp.eleves.filter(e=>{ const ns=data.matieres.map(m=>{ const v=(data.notes[e.id]||{})[m]; return (v!==undefined&&v!==null)?v:null; }).filter(x=>x!==null); return ns.length&&ns.reduce((a,b)=>a+b,0)/ns.length>=10; }).length;
+
+  const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Notes — ${esc(grp.name)}</title>
+  <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;padding:20px;color:#1a1f2e;font-size:13px}
+  h2{font-size:16px;font-weight:800;margin-bottom:4px}table{width:100%;border-collapse:collapse}
+  th{background:#1a1f2e;color:#fff;padding:8px 10px;text-align:center;font-size:11px}
+  @media print{@page{margin:12mm;size:A4}}</style></head><body>
+  <div style="margin-bottom:16px;border-bottom:2px solid #6366f1;padding-bottom:10px">
+    <h2>🧮 Notes par classe — ${esc(grp.name)} — Trimestre ${trim.replace('T','')}</h2>
+    <p style="font-size:11px;color:#64748b;margin-top:4px">${school} · Imprimé le ${now} · Moyennes sans coefficient · Barème /20</p>
+    <p style="font-size:11px;margin-top:4px">Moyenne classe : <strong>${gen!=='—'?gen+'/20':gen}</strong> · Admis (≥10) : <strong>${admis}/${grp.eleves.length}</strong></p>
+  </div>
+  <table>
+    <thead><tr>
+      <th style="text-align:left;min-width:150px">Élève</th>
+      ${thMats}
+      <th style="background:#3730a3">Moyenne</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  </body></html>`;
+  const win = window.open('','_blank');
+  if(win){ win.document.write(html); win.document.close(); win.focus(); win.print(); }
+}
+
+function shareNcWA(){
+  const grpId = (document.getElementById('nc-groupe')||{}).value;
+  const trim  = (document.getElementById('nc-trim')||{}).value || 'T1';
+  if(!grpId){ alert('Sélectionnez une classe'); return; }
+  const grp = (typeof groupesList !== 'undefined' ? groupesList : []).find(g=>g.id===grpId);
+  if(!grp) return;
+  const data = loadNcData(grpId, trim);
+  const school = (typeof manager !== 'undefined' ? manager.school : '') || '';
+  const lines = [
+    `🧮 *Notes — ${grp.name} — Trimestre ${trim.replace('T','')}*`,
+    `🏫 ${school}`,
+    `📚 Matières : ${data.matieres.join(', ')||'—'}`,
+    ``
+  ];
+  grp.eleves.forEach((e,idx)=>{
+    const ns = data.matieres.map(m=>{ const v=(data.notes[e.id]||{})[m]; return (v!==undefined&&v!==null)?v:null; }).filter(x=>x!==null);
+    const avg = ns.length ? (ns.reduce((a,b)=>a+b,0)/ns.length).toFixed(2) : '—';
+    lines.push(`${idx+1}. *${esc((e.name||'')+' '+(e.prenom||''))}* → Moy: ${avg!=='—'?avg+'/20':avg}`);
+  });
+  const allNotes=[];
+  grp.eleves.forEach(e=>{ data.matieres.forEach(m=>{ const v=(data.notes[e.id]||{})[m]; if(v!==undefined&&v!==null) allNotes.push(v); }); });
+  const gen = allNotes.length ? (allNotes.reduce((a,b)=>a+b,0)/allNotes.length).toFixed(2) : '—';
+  lines.push(``, `📊 *Moyenne générale classe : ${gen!=='—'?gen+'/20':gen}*`);
+  window.open(`https://wa.me/?text=${encodeURIComponent(lines.join('\n'))}`, '_blank');
+}
+</script>
+
+<!-- ══ MODAL ENVOYER NOTES AU PARENT ══ -->
+<div id="nc-parent-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;align-items:flex-end;justify-content:center" onclick="if(event.target===this)closeNcParentModal()">
+  <div style="background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:20px 18px 28px;animation:up .22s ease;max-height:90vh;overflow-y:auto">
+    <div style="width:36px;height:4px;background:#e2e8f0;border-radius:2px;margin:0 auto 14px"></div>
+    <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#1a1f2e;margin-bottom:14px;display:flex;align-items:center;gap:8px">
+      📩 <span id="nc-parent-modal-title">Relevé de notes — Élève</span>
+    </div>
+    <textarea id="nc-parent-body" style="width:100%;min-height:220px;border:1.5px solid #e2e8f0;border-radius:12px;padding:12px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none;line-height:1.6;resize:vertical"></textarea>
+    <div style="margin-top:10px">
+      <label style="font-size:12px;font-weight:700;color:#475569;display:block;margin-bottom:4px">📱 WhatsApp parent</label>
+      <input type="tel" id="nc-parent-wa" placeholder="+224…" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:8px">
+    </div>
+    <div>
+      <label style="font-size:12px;font-weight:700;color:#475569;display:block;margin-bottom:4px">✉️ Email parent</label>
+      <input type="email" id="nc-parent-email" placeholder="parent@email.com" style="width:100%;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+      <button onclick="sendNcParentWA()" style="flex:1;padding:10px;border-radius:10px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;background:#25d366;color:#fff;display:flex;align-items:center;justify-content:center;gap:6px">💬 WhatsApp</button>
+      <button onclick="sendNcParentMail()" style="flex:1;padding:10px;border-radius:10px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;background:#6366f1;color:#fff;display:flex;align-items:center;justify-content:center;gap:6px">✉️ Email</button>
+      <button onclick="copyNcParentMsg()" style="flex:1;padding:10px;border-radius:10px;border:none;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;background:#f1f5f9;color:#475569;display:flex;align-items:center;justify-content:center;gap:6px">📋 Copier</button>
+    </div>
+    <button onclick="closeNcParentModal()" style="width:100%;margin-top:8px;padding:9px;border-radius:10px;border:1.5px solid #e2e8f0;background:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;color:#64748b">Fermer</button>
+  </div>
+</div>
+
+<script>
+let _ncParentGrpId = null;
+let _ncParentTrim  = null;
+let _ncParentEleveId = null;
+
+function openNcParentModal(grpId, trim, eleveId){
+  _ncParentGrpId   = grpId;
+  _ncParentTrim    = trim;
+  _ncParentEleveId = eleveId;
+  const grp = (typeof groupesList!=='undefined'?groupesList:[]).find(g=>g.id===grpId);
+  const e   = grp ? grp.eleves.find(el=>el.id===eleveId) : null;
+  if(!e) return;
+  const nomEleve = [e.name, e.prenom].filter(Boolean).join(' ');
+  document.getElementById('nc-parent-modal-title').textContent = 'Relevé de notes — '+nomEleve;
+  document.getElementById('nc-parent-wa').value    = e.wa_parent||e.pere_wa||'';
+  document.getElementById('nc-parent-email').value = e.email_parent||e.pere_email||'';
+  document.getElementById('nc-parent-body').value  = buildNcParentMsg(grp, e, trim);
+  document.getElementById('nc-parent-overlay').style.display = 'flex';
+}
+
+function closeNcParentModal(){
+  document.getElementById('nc-parent-overlay').style.display = 'none';
+}
+
+function buildNcParentMsg(grp, e, trim){
+  const school    = (typeof manager!=='undefined'?manager.school:'')||'Notre établissement';
+  const directeur = (typeof manager!=='undefined'?manager.name  :'')||'La Direction';
+  const today     = new Date().toLocaleDateString('fr-FR',{year:'numeric',month:'long',day:'numeric'});
+  const nomEleve  = [e.name,e.prenom].filter(Boolean).join(' ');
+  const classe    = grp.name||e.classe||'—';
+  const trimLabel = trim==='T1'?'1er trimestre':trim==='T2'?'2e trimestre':'3e trimestre';
+  const data = loadNcData(grp.id, trim);
+  const lignesNotes = data.matieres.map(m=>{
+    const v=(data.notes[e.id]||{})[m];
+    return '  • '+m+' : '+(v!==undefined&&v!==null?v+'/20':'Non noté');
+  }).join('\n');
+  const ns = data.matieres.map(m=>{ const v=(data.notes[e.id]||{})[m]; return (v!==undefined&&v!==null)?v:null; }).filter(x=>x!==null);
+  const avg = ns.length?(ns.reduce((a,b)=>a+b,0)/ns.length).toFixed(2):null;
+  const mention = avg===null?'':Number(avg)>=16?'Très bien':Number(avg)>=14?'Bien':Number(avg)>=12?'Assez bien':Number(avg)>=10?'Passable':'Insuffisant';
+  const statut  = avg!==null?(Number(avg)>=10?'✅ Admis(e)':'❌ Résultats insuffisants — entretien souhaitable'):'';
+  return school+' — Le '+today+'\n\nBonjour,\n\nVeuillez trouver ci-dessous le relevé de notes de votre enfant *'+nomEleve+'* (Classe : '+classe+') pour le *'+trimLabel+' * :\n\n'+(lignesNotes||'  Aucune note saisie')+'\n\n📊 *Moyenne générale : '+(avg!==null?avg+'/20':'—')+'*'+(mention?' ('+mention+')':'')+'\n'+statut+'\n\nNous restons disponibles pour tout renseignement.\n\nCordialement,\n'+directeur+'\n'+school;
+}
+
+function sendNcParentWA(){
+  const texte = document.getElementById('nc-parent-body').value;
+  const clean = document.getElementById('nc-parent-wa').value.trim().replace(/\D/g,'');
+  window.open((clean?'https://wa.me/'+clean:'https://wa.me/')+'?text='+encodeURIComponent(texte),'_blank');
+}
+
+function sendNcParentMail(){
+  const texte = document.getElementById('nc-parent-body').value;
+  const email = document.getElementById('nc-parent-email').value.trim();
+  const trim  = _ncParentTrim||'';
+  const trimLabel = trim==='T1'?'1er trimestre':trim==='T2'?'2e trimestre':'3e trimestre';
+  const grp = (typeof groupesList!=='undefined'?groupesList:[]).find(g=>g.id===_ncParentGrpId);
+  const e   = grp?grp.eleves.find(el=>el.id===_ncParentEleveId):null;
+  const nomEleve = e?[e.name,e.prenom].filter(Boolean).join(' '):'Élève';
+  const sujet = 'Relevé de notes — '+nomEleve+' — '+trimLabel;
+  window.open('mailto:'+email+'?subject='+encodeURIComponent(sujet)+'&body='+encodeURIComponent(texte),'_blank');
+}
+
+function copyNcParentMsg(){
+  const texte = document.getElementById('nc-parent-body').value;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(texte).then(()=>{ if(typeof showToastLettre==='function') showToastLettre('✅ Message copié !'); });
+  } else {
+    const ta=document.createElement('textarea'); ta.value=texte; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+    if(typeof showToastLettre==='function') showToastLettre('✅ Message copié !');
+  }
+}
+</script>
 </body>
-</html>
