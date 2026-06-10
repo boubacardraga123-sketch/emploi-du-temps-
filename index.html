@@ -5958,6 +5958,7 @@ function renderGroupes(){
       </div>
     </div>`;
   }).join('');
+  if(typeof populateNcGroupes === 'function') populateNcGroupes();
 }
 
 function renderGrpStats(){
@@ -9654,8 +9655,9 @@ function populateNcGroupes(){
   const cur = sel.value;
   sel.innerHTML = '<option value="">— Sélectionner une classe —</option>';
   (typeof groupesList !== 'undefined' ? groupesList : []).forEach(g=>{
-    sel.innerHTML += `<option value="${g.id}"${g.id===cur?' selected':''}>${esc(g.name)}</option>`;
+    sel.innerHTML += `<option value="${g.id}"${String(g.id)===String(cur)?' selected':''}>${esc(g.name)}</option>`;
   });
+  if(cur && sel.value === String(cur)) renderNcTable();
 }
 
 function addNcMatiere(){
