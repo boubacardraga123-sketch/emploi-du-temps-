@@ -763,6 +763,44 @@ td.time-col.current-slot{background:#eef2ff;color:#6366f1;border-left:3px solid 
 .docs-type-chip.active{border-color:#6366f1;background:#eef2ff;color:#4338ca}
 
 
+/* ── PLANNING JOURNALIER ── */
+.planning-header-band{background:linear-gradient(135deg,#1a1f2e,#065f46);border-radius:16px;padding:18px 20px;margin-bottom:14px;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.planning-header-band h2{font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:4px}
+.planning-header-band p{font-size:12px;opacity:.65}
+.planning-add-form{background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.planning-form-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#1a1f2e;margin-bottom:10px}
+.planning-form-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.planning-inp{flex:1;min-width:140px;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none}
+.planning-inp:focus{border-color:#10b981}
+.planning-date-nav{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.planning-date-nav button{background:#fff;border:1.5px solid #e2e8f0;border-radius:10px;padding:7px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;color:#475569}
+.planning-date-nav button:hover{background:#f0fdf4;border-color:#10b981;color:#065f46}
+.planning-date-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#1a1f2e;flex:1;text-align:center}
+.planning-notif-banner{background:#f0fdf4;border:1.5px solid #10b981;border-radius:12px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;font-size:12px;color:#065f46;flex-wrap:wrap}
+.planning-notif-banner.warn{background:#fef3c7;border-color:#f59e0b;color:#92400e}
+.planning-notif-banner.err{background:#fee2e2;border-color:#ef4444;color:#991b1b}
+.planning-timeline{display:flex;flex-direction:column;gap:8px}
+.planning-item{background:#fff;border-radius:12px;border:1.5px solid #e2e8f0;overflow:hidden;transition:box-shadow .15s;display:flex;align-items:stretch}
+.planning-item:hover{box-shadow:0 3px 10px rgba(0,0,0,.09)}
+.planning-item.done-item{opacity:.6}
+.planning-item.overdue-item{border-color:#fca5a5}
+.planning-item.now-item{border-color:#10b981;box-shadow:0 0 0 2px #10b98130}
+.planning-time-col{min-width:70px;background:#f1f5f9;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 6px;border-right:1.5px solid #e2e8f0;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:#475569;flex-shrink:0}
+.planning-time-col.now-time{background:#d1fae5;color:#065f46}
+.planning-item-body{flex:1;padding:10px 14px;min-width:0}
+.planning-item-title{font-size:13px;font-weight:800;color:#1a1f2e;margin-bottom:4px}
+.planning-item.done-item .planning-item-title{text-decoration:line-through;color:#94a3b8}
+.planning-item-meta{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.planning-cat-tag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+.planning-item-note{font-size:11px;color:#64748b;margin-top:5px;padding:5px 8px;background:#f8fafc;border-radius:7px}
+.planning-item-actions{display:flex;flex-direction:column;gap:4px;padding:8px 10px;flex-shrink:0;justify-content:center}
+.planning-action-btn{padding:5px 10px;border:none;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.planning-empty{text-align:center;padding:40px;color:#94a3b8;font-size:14px;background:#fff;border-radius:14px}
+.planning-kpi-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.planning-kpi{flex:1;min-width:70px;background:#fff;border-radius:10px;padding:10px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.planning-kpi-val{font-size:20px;font-weight:800;font-family:'DM Mono',monospace}
+.planning-kpi-lbl{font-size:10px;color:#64748b;font-weight:700}
+
 @media print{
   body{background:#fff;padding:0}
   .no-print,.tabs,.toolbar,.add-staff-bar,.manager-card,.top-bar,#overlay,#pdf-overlay{display:none!important}
@@ -856,9 +894,38 @@ window.fbLd = async function(k) {
   } catch(e) { return null; }
 };
 
+// ── Clés applicatives à isoler par utilisateur ──
+const APP_KEYS = [
+  'edt_data','edt_student','edt_week','edt_staff','edt_etab',
+  'edt_etab_name','edt_etab_week','edt_staff_week','edt_manager',
+  'edt_attendance','edt_autolist','edt_sy','edt_msg_history',
+  'edt_contacts','edt_notes','edt_evals','edt_docs','edt_groupes',
+  'edt_rev_data','edt_archives','edt_slots','edt_multi_etabs',
+  'edt_active_etab','edt_ea_data','edt_ea_remarques','edt_sp_data',
+  'edt_student_wa','edt_etab_wa','edt_taches','edt_planning'
+];
+
+// ── Vider les données locales applicatives ──
+function clearLocalAppData() {
+  APP_KEYS.forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
+  // Aussi vider toute clé commençant par edt_ ou ol_
+  const toRemove = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && (k.startsWith('edt_') || k.startsWith('ol_'))) toRemove.push(k);
+  }
+  toRemove.forEach(k => { try { localStorage.removeItem(k); } catch(e) {} });
+}
+
 // ── Auth state ──
+let _previousUid = null;
 onAuthStateChanged(fbAuth, async (user) => {
   if (user) {
+    // Si c'est un autre utilisateur que le précédent → vider le cache local
+    if (_previousUid && _previousUid !== user.uid) {
+      clearLocalAppData();
+    }
+    _previousUid = user.uid;
     window.currentUser = user;
     window.viewingUid  = null;
     // Check admin
@@ -879,6 +946,9 @@ onAuthStateChanged(fbAuth, async (user) => {
     // Update user info bar
     document.getElementById('auth-user-email').textContent = user.email || user.displayName || 'Connecté';
   } else {
+    // Déconnexion → vider toutes les données locales
+    clearLocalAppData();
+    _previousUid = null;
     window.currentUser = null;
     window.isAdmin = false;
     document.getElementById('auth-overlay').style.display = 'flex';
@@ -952,6 +1022,7 @@ window._authReset = async function() {
 // ── Déconnexion ──
 window._authLogout = async function() {
   if (!confirm('Se déconnecter ?')) return;
+  clearLocalAppData(); // Vider les données locales avant de déconnecter
   await signOut(fbAuth);
 };
 
@@ -1208,8 +1279,174 @@ window.fbOnSnapshot = onSnapshot;
   <button class="tab" id="tab-comparaison-trim" onclick="switchTab('comparaison-trim')">📊 Comparaison trim.</button>
   <button class="tab" id="tab-messagerie-interne" onclick="switchTab('messagerie-interne')">💬 Messagerie interne</button>
   <button class="tab" id="tab-taches" onclick="switchTab('taches')">🔔 Tâches</button>
+  <button class="tab" id="tab-planning" onclick="switchTab('planning')">📅 Mon Planning</button>
   <button class="tab" id="tab-notes-classe" onclick="switchTab('notes-classe')">🧮 Notes par classe</button>
+  <button class="tab" id="tab-calcul-notes" onclick="switchTab('calcul-notes')">🏆 Calcul des notes</button>
 </div>
+
+<!-- ══════════════════ TAB: MON PLANNING JOURNALIER ══════════════════ -->
+<div id="panel-planning" style="display:none">
+
+  <!-- En-tête -->
+  <div class="planning-header-band no-print">
+    <div>
+      <h2>📅 Mon Planning Journalier</h2>
+      <p>Planifiez votre journée · Rappels automatiques même application fermée</p>
+    </div>
+    <button class="btn" id="planning-notif-btn" onclick="planningRequestNotif()"
+      style="background:rgba(255,255,255,.15);color:#fff;border:1.5px solid rgba(255,255,255,.3);font-size:12px;padding:7px 14px">
+      🔔 Activer les rappels
+    </button>
+  </div>
+
+  <!-- Bannière statut notifications -->
+  <div id="planning-notif-banner" style="display:none" class="planning-notif-banner"></div>
+
+  <!-- KPI -->
+  <div class="planning-kpi-bar" id="planning-kpi"></div>
+
+  <!-- Navigation date -->
+  <div class="planning-date-nav no-print">
+    <button onclick="planningNavDay(-1)">◀</button>
+    <div class="planning-date-title" id="planning-date-title">—</div>
+    <button onclick="planningNavDay(1)">▶</button>
+    <button onclick="planningGoToday()" style="background:#10b981;color:#fff;border-color:#10b981">Aujourd'hui</button>
+  </div>
+
+  <!-- Formulaire ajout -->
+  <div class="planning-add-form no-print">
+    <div class="planning-form-title">➕ Ajouter un rendez-vous / tâche</div>
+    <div class="planning-form-row">
+      <input id="pl-inp-titre" class="planning-inp" placeholder="Titre *" style="flex:2;min-width:200px">
+      <input id="pl-inp-heure" type="time" class="planning-inp" style="min-width:110px;flex:none">
+      <input id="pl-inp-heure-fin" type="time" class="planning-inp" placeholder="Heure fin" style="min-width:110px;flex:none">
+    </div>
+    <div class="planning-form-row">
+      <select id="pl-inp-cat" class="planning-inp" style="flex:1;min-width:150px">
+        <option value="cours">📖 Cours</option>
+        <option value="reunion">🤝 Réunion</option>
+        <option value="admin">📁 Administration</option>
+        <option value="perso">👤 Personnel</option>
+        <option value="eval">📝 Évaluation</option>
+        <option value="autre">⚙️ Autre</option>
+      </select>
+      <input id="pl-inp-lieu" class="planning-inp" placeholder="Lieu (optionnel)" style="flex:1;min-width:130px">
+      <input id="pl-inp-rappel" type="number" min="0" max="120" class="planning-inp" placeholder="Rappel (min avant)" style="flex:none;width:130px" value="15">
+    </div>
+    <div class="planning-form-row">
+      <textarea id="pl-inp-note" class="planning-inp" rows="2" placeholder="Note optionnelle…" style="flex:1;resize:vertical"></textarea>
+    </div>
+    <button class="btn btn-primary" onclick="planningAdd()" style="background:#10b981;width:100%;justify-content:center">
+      💾 Ajouter au planning
+    </button>
+  </div>
+
+  <!-- Timeline -->
+  <div class="planning-timeline" id="planning-list"></div>
+
+</div>
+
+<!-- ══════════════════ TAB: CALCUL DES NOTES ══════════════════ -->
+<div id="panel-calcul-notes" style="display:none">
+
+  <!-- Bandeau titre -->
+  <div style="background:linear-gradient(135deg,#1a1f2e,#4338ca);border-radius:16px;padding:16px 18px;margin-bottom:12px;color:#fff">
+    <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:2px">🏆 Calcul des notes</div>
+    <div style="font-size:12px;opacity:.65">Saisie des notes · Moyennes · Bulletins par WhatsApp ou Email</div>
+  </div>
+
+  <!-- KPI -->
+  <div id="cn-kpi" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"></div>
+
+  <!-- Config classe & trimestre -->
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#1a1f2e;margin-bottom:10px">⚙️ Configuration</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <input type="text" id="cn-classe" placeholder="Nom de la classe (ex: 3ème A)" oninput="cnSaveConfig()"
+        style="flex:1;min-width:160px;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+      <select id="cn-trim" onchange="cnSaveConfig()"
+        style="padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;background:#fff">
+        <option value="T1">1er Trimestre</option>
+        <option value="T2">2ème Trimestre</option>
+        <option value="T3">3ème Trimestre</option>
+        <option value="S1">1er Semestre</option>
+        <option value="S2">2ème Semestre</option>
+        <option value="Annuel">Annuel</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Deux colonnes : Élèves + Matières -->
+  <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+
+    <!-- Ajouter élèves -->
+    <div style="flex:1;min-width:260px;background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+      <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#1a1f2e;margin-bottom:10px">👤 Élèves</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
+        <input type="text" id="cn-inp-nom" placeholder="Nom de l'élève *"
+          style="padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+        <input type="tel" id="cn-inp-wa" placeholder="WhatsApp (ex: +22600000000)"
+          style="padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+        <input type="email" id="cn-inp-email" placeholder="Email (optionnel)"
+          style="padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+        <button onclick="cnAddEleve()"
+          style="background:#6366f1;color:#fff;border:none;border-radius:10px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">➕ Ajouter l'élève</button>
+      </div>
+      <div id="cn-list-eleves" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto"></div>
+    </div>
+
+    <!-- Ajouter matières -->
+    <div style="flex:1;min-width:220px;background:#fff;border-radius:14px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+      <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#1a1f2e;margin-bottom:10px">📚 Matières</div>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
+        <input type="text" id="cn-inp-mat" placeholder="Nom de la matière *"
+          style="padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+        <input type="number" id="cn-inp-coeff" placeholder="Coefficient" value="1" min="0.5" step="0.5"
+          style="padding:8px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Mono',monospace;outline:none">
+        <button onclick="cnAddMatiere()"
+          style="background:#0369a1;color:#fff;border:none;border-radius:10px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">➕ Ajouter la matière</button>
+      </div>
+      <div id="cn-list-matieres" style="display:flex;flex-direction:column;gap:6px;max-height:220px;overflow-y:auto"></div>
+    </div>
+  </div>
+
+  <!-- Exports PDF -->
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#1a1f2e;margin-bottom:10px">📥 Télécharger en PDF</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button onclick="cnPdfResultats()" style="background:#0f172a;color:#fff;border:none;border-radius:10px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px">📄 Résultats par classe</button>
+      <button onclick="cnPdfAbsents()" style="background:#ef4444;color:#fff;border:none;border-radius:10px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px">❌ Liste des absents</button>
+      <button onclick="cnPdfListe()" style="background:#0369a1;color:#fff;border:none;border-radius:10px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px">👥 Liste des élèves</button>
+    </div>
+  </div>
+
+  <!-- Tableau des notes -->
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#1a1f2e;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+      <span>📊 Grille des notes</span>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button onclick="cnSendAll('wa')" style="background:#25d366;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📲 Envoyer tout par WA</button>
+        <button onclick="cnSendAll('email')" style="background:#6366f1;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">✉️ Envoyer tout par Email</button>
+      </div>
+    </div>
+    <div id="cn-table-wrap"></div>
+  </div>
+
+  <!-- Légende mentions -->
+  <div style="background:#fff;border-radius:14px;padding:12px 16px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+    <div style="font-size:12px;font-weight:700;color:#475569;margin-bottom:8px">📋 Légende des mentions</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:#d1fae5;color:#065f46">Excellent ≥18</span>
+      <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:#dbeafe;color:#1d4ed8">Très Bien ≥16</span>
+      <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:#eef2ff;color:#4338ca">Bien ≥14</span>
+      <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:#e0f2fe;color:#0369a1">Assez Bien ≥12</span>
+      <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:#fef3c7;color:#92400e">Passable ≥10</span>
+      <span style="font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:#fee2e2;color:#991b1b">Insuffisant &lt;10</span>
+    </div>
+  </div>
+
+</div>
+<!-- ══════════════════ FIN TAB: CALCUL DES NOTES ══════════════════ -->
 
 <!-- ══════════════════ TAB: ÉVALUATIONS ══════════════════ -->
 <div id="panel-evaluations" style="display:none">
@@ -2543,7 +2780,7 @@ function saveManager(){
 // ═══════════════════════════════════════════════════════
 function switchTab(tab){
   currentTab = tab;
-  const panels = ['evaluations','student','staff','etablissement','attend','autolist','walink','schoolyear','messaging','dictation','contacts','notebook','documents','groupes','revision','tableau-bord','suivi-prog','rapport','multi-etab','stat-enseignants','offline','comparaison-trim','messagerie-interne','notes-classe','taches'];
+  const panels = ['evaluations','student','staff','etablissement','attend','autolist','walink','schoolyear','messaging','dictation','contacts','notebook','documents','groupes','revision','tableau-bord','suivi-prog','rapport','multi-etab','stat-enseignants','offline','comparaison-trim','messagerie-interne','notes-classe','taches','planning','calcul-notes'];
   panels.forEach(p=>{
     document.getElementById('panel-'+p).style.display = p===tab?'block':'none';
     const tabEl = document.getElementById('tab-'+p);
@@ -2575,6 +2812,8 @@ function switchTab(tab){
   if(tab==='messagerie-interne'){ populateMiDestSelect(); renderMiConversations(); }
   if(tab==='notes-classe'){ populateNcGroupes(); renderNcTable(); }
   if(tab==='taches'){ renderTaches(); }
+  if(tab==='planning'){ renderPlanning(); }
+  if(tab==='calcul-notes'){ cnRender(); }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -7759,6 +7998,7 @@ renderEdtArchives();
 // Tableau de bord home
 injectTdbHome();
   if(typeof tachesInitBadge==='function') tachesInitBadge();
+  if(typeof planningInit==='function') planningInit();
 const adEl = document.getElementById('attend-date');
 if(adEl) adEl.value = getTodayStr();
 
@@ -10361,6 +10601,912 @@ function tachesInitBadge(){
   }
 }
 // ══════════════════ FIN TÂCHES ══════════════════
+
+// ══════════════════════════════════════════════════════════
+// PLANNING JOURNALIER — avec rappels push (Service Worker)
+// ══════════════════════════════════════════════════════════
+
+// ── Service Worker inline (enregistré dynamiquement) ──
+const PLANNING_SW_CODE = `
+const CACHE = 'gestion-scolaire-sw-v1';
+self.addEventListener('install', e => self.skipWaiting());
+self.addEventListener('activate', e => e.waitUntil(self.clients.claim()));
+
+// Réception d'un message "scheduleNotif"
+self.addEventListener('message', e => {
+  if (e.data && e.data.type === 'scheduleNotif') {
+    const { id, title, body, delay } = e.data;
+    setTimeout(() => {
+      self.registration.showNotification(title, {
+        body,
+        icon: '/emploi-du-temps-/icon-192.png',
+        badge: '/emploi-du-temps-/icon-192.png',
+        tag: 'planning-' + id,
+        renotify: true,
+        requireInteraction: false,
+        data: { id }
+      });
+    }, delay);
+  }
+});
+`;
+
+let _planningSWReg = null;
+
+async function planningRegisterSW() {
+  if (!('serviceWorker' in navigator)) return null;
+  if (_planningSWReg) return _planningSWReg;
+  try {
+    // Créer le SW comme Blob URL
+    const blob = new Blob([PLANNING_SW_CODE], { type: 'application/javascript' });
+    const swUrl = URL.createObjectURL(blob);
+    // Note: certains navigateurs refusent les blob: SW, fallback sur postMessage natif
+    _planningSWReg = await navigator.serviceWorker.register(swUrl, { scope: '/' }).catch(() => null);
+    return _planningSWReg;
+  } catch(e) { return null; }
+}
+
+// ── Données planning ──
+let planningViewDate = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+let _planningNotifScheduled = {}; // id → timeoutId
+
+const PL_CATS = {
+  cours:   { label: 'Cours',          icon: '📖', bg: '#eef2ff', color: '#4338ca' },
+  reunion: { label: 'Réunion',        icon: '🤝', bg: '#fce7f3', color: '#9d174d' },
+  admin:   { label: 'Administration', icon: '📁', bg: '#f1f5f9', color: '#475569' },
+  perso:   { label: 'Personnel',      icon: '👤', bg: '#d1fae5', color: '#065f46' },
+  eval:    { label: 'Évaluation',     icon: '📝', bg: '#fef3c7', color: '#92400e' },
+  autre:   { label: 'Autre',          icon: '⚙️', bg: '#f8fafc', color: '#64748b' }
+};
+
+function planningLoad() {
+  return (typeof ld === 'function' ? ld('edt_planning') : null) || {};
+  // Structure: { 'YYYY-MM-DD': [{id, titre, heure, heureFin, cat, lieu, note, rappel, done, createdAt}] }
+}
+function planningSave(data) {
+  if (typeof sv === 'function') sv('edt_planning', data);
+}
+
+function planningGetDay(dateStr) {
+  const data = planningLoad();
+  return (data[dateStr] || []).slice().sort((a, b) => (a.heure || '00:00').localeCompare(b.heure || '00:00'));
+}
+
+// ── Navigation date ──
+function planningNavDay(delta) {
+  const d = new Date(planningViewDate + 'T00:00:00');
+  d.setDate(d.getDate() + delta);
+  planningViewDate = d.toISOString().split('T')[0];
+  renderPlanning();
+}
+function planningGoToday() {
+  planningViewDate = new Date().toISOString().split('T')[0];
+  renderPlanning();
+}
+
+function planningFmtDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00');
+  const jours = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+  const mois  = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  const today = new Date().toISOString().split('T')[0];
+  const diff  = Math.round((new Date(dateStr + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
+  let label = '';
+  if (diff === 0) label = '(Aujourd\'hui) ';
+  else if (diff === 1) label = '(Demain) ';
+  else if (diff === -1) label = '(Hier) ';
+  return `${label}${jours[d.getDay()]} ${d.getDate()} ${mois[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// ── Ajouter un item ──
+function planningAdd() {
+  const titre = (document.getElementById('pl-inp-titre')?.value || '').trim();
+  if (!titre) { alert('Le titre est obligatoire.'); return; }
+  const heure    = document.getElementById('pl-inp-heure')?.value || '';
+  const heureFin = document.getElementById('pl-inp-heure-fin')?.value || '';
+  const cat      = document.getElementById('pl-inp-cat')?.value || 'autre';
+  const lieu     = (document.getElementById('pl-inp-lieu')?.value || '').trim();
+  const note     = (document.getElementById('pl-inp-note')?.value || '').trim();
+  const rappel   = parseInt(document.getElementById('pl-inp-rappel')?.value || '15', 10) || 15;
+
+  const data = planningLoad();
+  if (!data[planningViewDate]) data[planningViewDate] = [];
+  const item = {
+    id: 'pl_' + Date.now(),
+    titre, heure, heureFin, cat, lieu, note, rappel,
+    done: false,
+    createdAt: new Date().toISOString()
+  };
+  data[planningViewDate].push(item);
+  planningSave(data);
+
+  // Vider formulaire
+  document.getElementById('pl-inp-titre').value = '';
+  document.getElementById('pl-inp-heure').value = '';
+  document.getElementById('pl-inp-heure-fin').value = '';
+  document.getElementById('pl-inp-lieu').value = '';
+  document.getElementById('pl-inp-note').value = '';
+
+  // Programmer le rappel si heure définie et date = aujourd'hui ou futur
+  planningScheduleNotif(item, planningViewDate);
+  renderPlanning();
+}
+
+// ── Programmer une notification ──
+async function planningScheduleNotif(item, dateStr) {
+  if (!item.heure) return;
+  if (Notification.permission !== 'granted') return;
+
+  const [h, m] = item.heure.split(':').map(Number);
+  const rappelMin = item.rappel ?? 15;
+  const targetMs = new Date(dateStr + 'T' + String(h).padStart(2,'0') + ':' + String(m).padStart(2,'0') + ':00').getTime();
+  const notifMs  = targetMs - rappelMin * 60 * 1000;
+  const delay    = notifMs - Date.now();
+
+  if (delay < -60000) return; // déjà passé de plus d'une minute
+
+  const catLabel = (PL_CATS[item.cat] || PL_CATS.autre).label;
+  const title = `📅 ${item.titre}`;
+  const body  = `${catLabel}${item.heure ? ' à ' + item.heure : ''}${item.lieu ? ' · ' + item.lieu : ''}${rappelMin > 0 ? '\nRappel ' + rappelMin + ' min avant' : ''}`;
+
+  // Annuler l'ancien si existe
+  if (_planningNotifScheduled[item.id]) clearTimeout(_planningNotifScheduled[item.id]);
+
+  // Essayer via Service Worker (survit à la fermeture de la page si SW actif)
+  let usedSW = false;
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    try {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'scheduleNotif', id: item.id, title, body, delay: Math.max(0, delay)
+      });
+      usedSW = true;
+    } catch(e) {}
+  }
+
+  // Fallback : setTimeout dans la page (fonctionne tant que la page est ouverte)
+  const tid = setTimeout(() => {
+    if (Notification.permission === 'granted') {
+      new Notification(title, {
+        body,
+        icon: '/emploi-du-temps-/icon-192.png',
+        tag: 'planning-' + item.id
+      });
+    }
+  }, Math.max(0, delay));
+  _planningNotifScheduled[item.id] = tid;
+}
+
+// ── Re-programmer tous les rappels du jour à l'ouverture ──
+function planningRescheduleAll() {
+  if (Notification.permission !== 'granted') return;
+  const today = new Date().toISOString().split('T')[0];
+  const items = planningGetDay(today);
+  items.forEach(item => {
+    if (!item.done) planningScheduleNotif(item, today);
+  });
+  // Aussi demain
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+  planningGetDay(tomorrowStr).forEach(item => {
+    if (!item.done) planningScheduleNotif(item, tomorrowStr);
+  });
+}
+
+// ── Demander permission notifications ──
+async function planningRequestNotif() {
+  if (!('Notification' in window)) {
+    planningShowBanner('❌ Votre navigateur ne supporte pas les notifications.', 'err');
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    planningShowBanner('✅ Notifications déjà activées ! Les rappels fonctionneront même si vous fermez l\'application.', 'ok');
+    // Enregistrer le SW pour la persistance
+    await planningRegisterSW();
+    planningRescheduleAll();
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    planningShowBanner('🔕 Notifications bloquées. Autorisez-les dans les paramètres de votre navigateur.', 'err');
+    return;
+  }
+  const perm = await Notification.requestPermission();
+  if (perm === 'granted') {
+    planningShowBanner('✅ Notifications activées ! Vos rappels fonctionneront même application fermée.', 'ok');
+    await planningRegisterSW();
+    planningRescheduleAll();
+    renderPlanning();
+  } else {
+    planningShowBanner('🔕 Permission refusée. Vous ne recevrez pas de rappels.', 'err');
+  }
+}
+
+function planningShowBanner(msg, type) {
+  const el = document.getElementById('planning-notif-banner');
+  if (!el) return;
+  el.style.display = 'flex';
+  el.className = 'planning-notif-banner' + (type === 'err' ? ' err' : type === 'warn' ? ' warn' : '');
+  el.innerHTML = `<span style="font-size:18px">${type === 'err' ? '🔕' : type === 'warn' ? '⚠️' : '🔔'}</span><span>${msg}</span>`;
+}
+
+// ── Marquer fait / supprimer ──
+function planningToggleDone(id, dateStr) {
+  const data = planningLoad();
+  if (!data[dateStr]) return;
+  const item = data[dateStr].find(x => x.id === id);
+  if (!item) return;
+  item.done = !item.done;
+  if (item.done && _planningNotifScheduled[id]) {
+    clearTimeout(_planningNotifScheduled[id]);
+    delete _planningNotifScheduled[id];
+  }
+  planningSave(data);
+  renderPlanning();
+}
+
+function planningDelete(id, dateStr) {
+  if (!confirm('Supprimer ce rendez-vous ?')) return;
+  const data = planningLoad();
+  if (!data[dateStr]) return;
+  data[dateStr] = data[dateStr].filter(x => x.id !== id);
+  if (!data[dateStr].length) delete data[dateStr];
+  if (_planningNotifScheduled[id]) { clearTimeout(_planningNotifScheduled[id]); delete _planningNotifScheduled[id]; }
+  planningSave(data);
+  renderPlanning();
+}
+
+// ── Rendu principal ──
+function renderPlanning() {
+  const dateTitle = document.getElementById('planning-date-title');
+  if (dateTitle) dateTitle.textContent = planningFmtDate(planningViewDate);
+
+  // Statut notification
+  const btn = document.getElementById('planning-notif-btn');
+  if (btn) {
+    if (!('Notification' in window)) {
+      btn.textContent = '❌ Non supporté';
+      btn.style.opacity = '.5';
+      btn.disabled = true;
+    } else if (Notification.permission === 'granted') {
+      btn.textContent = '✅ Rappels activés';
+      btn.style.background = '#10b981';
+      btn.style.borderColor = '#10b981';
+    } else if (Notification.permission === 'denied') {
+      btn.textContent = '🔕 Rappels bloqués';
+      btn.style.background = '#ef4444';
+      btn.style.borderColor = '#ef4444';
+    } else {
+      btn.textContent = '🔔 Activer les rappels';
+    }
+  }
+
+  const items = planningGetDay(planningViewDate);
+  const nowStr = new Date().toTimeString().slice(0,5);
+  const today  = new Date().toISOString().split('T')[0];
+  const isToday = planningViewDate === today;
+
+  // KPI
+  const total   = items.length;
+  const done    = items.filter(x => x.done).length;
+  const upcoming = items.filter(x => !x.done && (!x.heure || x.heure >= nowStr)).length;
+  const passed  = items.filter(x => !x.done && x.heure && x.heure < nowStr).length;
+  const kpiEl = document.getElementById('planning-kpi');
+  if (kpiEl) kpiEl.innerHTML = [
+    { val: total,    lbl: 'Total',        col: '#6366f1' },
+    { val: upcoming, lbl: 'À venir',      col: '#10b981' },
+    { val: passed,   lbl: 'Passés',       col: '#f59e0b' },
+    { val: done,     lbl: 'Terminés',     col: '#94a3b8' }
+  ].map(k => `<div class="planning-kpi">
+    <div class="planning-kpi-val" style="color:${k.col}">${k.val}</div>
+    <div class="planning-kpi-lbl">${k.lbl}</div>
+  </div>`).join('');
+
+  const container = document.getElementById('planning-list');
+  if (!container) return;
+
+  if (!items.length) {
+    container.innerHTML = `<div class="planning-empty">📅 Aucun rendez-vous planifié pour cette journée.<br><span style="font-size:12px">Utilisez le formulaire ci-dessus pour ajouter une tâche.</span></div>`;
+    return;
+  }
+
+  container.innerHTML = items.map(item => {
+    const cat   = PL_CATS[item.cat] || PL_CATS.autre;
+    const isNow = isToday && item.heure && item.heureFin
+      ? (nowStr >= item.heure && nowStr <= item.heureFin)
+      : (isToday && item.heure && item.heure === nowStr.slice(0,5));
+    const isPassed = isToday && item.heure && item.heure < nowStr && !item.done;
+    const timeLabel = item.heure ? item.heure + (item.heureFin ? ' – ' + item.heureFin : '') : '—';
+    const rappelLabel = item.rappel && item.heure ? `🔔 Rappel ${item.rappel} min avant` : '';
+
+    return `<div class="planning-item${item.done ? ' done-item' : ''}${isPassed && !item.done ? ' overdue-item' : ''}${isNow ? ' now-item' : ''}">
+      <div class="planning-time-col${isNow ? ' now-time' : ''}">
+        <span>${item.heure || '—'}</span>
+        ${item.heureFin ? `<span style="font-size:10px;color:#94a3b8;margin-top:2px">${item.heureFin}</span>` : ''}
+        ${isNow ? '<span style="font-size:9px;color:#10b981;margin-top:2px;font-weight:700">EN COURS</span>' : ''}
+      </div>
+      <div class="planning-item-body">
+        <div class="planning-item-title">${esc(item.titre)}</div>
+        <div class="planning-item-meta">
+          <span class="planning-cat-tag" style="background:${cat.bg};color:${cat.color}">${cat.icon} ${cat.label}</span>
+          ${item.lieu ? `<span style="font-size:10px;color:#64748b">📍 ${esc(item.lieu)}</span>` : ''}
+          ${rappelLabel ? `<span style="font-size:10px;color:#6366f1">${rappelLabel}</span>` : ''}
+          ${isPassed && !item.done ? '<span style="font-size:10px;color:#f59e0b;font-weight:700">⏰ Passé</span>' : ''}
+        </div>
+        ${item.note ? `<div class="planning-item-note">${esc(item.note)}</div>` : ''}
+      </div>
+      <div class="planning-item-actions">
+        <button class="planning-action-btn" onclick="planningToggleDone('${item.id}','${planningViewDate}')"
+          style="background:${item.done ? '#f1f5f9' : '#d1fae5'};color:${item.done ? '#94a3b8' : '#065f46'}">
+          ${item.done ? '↩ Rouvrir' : '✅ Fait'}
+        </button>
+        <button class="planning-action-btn" onclick="planningDelete('${item.id}','${planningViewDate}')"
+          style="background:#fee2e2;color:#ef4444">
+          🗑 Suppr.
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Init au démarrage de l'app ──
+function planningInit() {
+  // Demander auto si déjà accordé → re-programmer les rappels
+  if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    planningRegisterSW().then(() => planningRescheduleAll());
+  }
+}
+
+// ══════════════════ FIN PLANNING JOURNALIER ══════════════════
+
+// ══════════════════════════════════════════════════════════
+// CALCUL DES NOTES — sv/ld clé: cn_eleves, cn_matieres, cn_notes
+// ══════════════════════════════════════════════════════════
+(function(){
+
+/* ── Persistance ── */
+function cnSave(key, val){ sv('cn_'+key, val); }
+function cnLoad(key, def){ return ld('cn_'+key) ?? def; }
+
+/* ── État ── */
+let cnEleves  = cnLoad('eleves', []);   // [{id,nom,wa,email}]
+let cnMatieres= cnLoad('matieres', []); // [{id,nom,coeff}]
+let cnNotes   = cnLoad('notes', {});    // {eleveId: {matiereId: note}}
+let cnClasse  = cnLoad('classe', '');
+let cnTrimestre= cnLoad('trim', 'T1');
+
+/* ── Helpers ── */
+function cnId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
+function cnEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function cnMoyenneEleve(eid){
+  let sum=0, totalCoeff=0;
+  cnMatieres.forEach(m=>{
+    const n = cnNotes[eid]?.[m.id];
+    if(n!==undefined && n!==''){
+      const note = parseFloat(n);
+      const coeff= parseFloat(m.coeff)||1;
+      if(!isNaN(note)){ sum+=note*coeff; totalCoeff+=coeff; }
+    }
+  });
+  return totalCoeff>0 ? (sum/totalCoeff) : null;
+}
+
+function cnMention(moy){
+  if(moy===null) return {t:'—',c:'#94a3b8',bg:'#f1f5f9'};
+  if(moy>=18)  return {t:'Excellent',c:'#065f46',bg:'#d1fae5'};
+  if(moy>=16)  return {t:'Très Bien',c:'#1d4ed8',bg:'#dbeafe'};
+  if(moy>=14)  return {t:'Bien',c:'#4338ca',bg:'#eef2ff'};
+  if(moy>=12)  return {t:'Assez Bien',c:'#0369a1',bg:'#e0f2fe'};
+  if(moy>=10)  return {t:'Passable',c:'#92400e',bg:'#fef3c7'};
+  return           {t:'Insuffisant',c:'#991b1b',bg:'#fee2e2'};
+}
+
+function cnRank(eid){
+  const myMoy = cnMoyenneEleve(eid);
+  if(myMoy===null) return '—';
+  let rank=1;
+  cnEleves.forEach(e=>{
+    if(e.id===eid) return;
+    const m=cnMoyenneEleve(e.id);
+    if(m!==null && m>myMoy) rank++;
+  });
+  return rank+'/'+cnEleves.length;
+}
+
+function cnBulletin(e){
+  const moy = cnMoyenneEleve(e.id);
+  const men = cnMention(moy);
+  const rank = cnRank(e.id);
+  let lines = [`📋 BULLETIN DE NOTES — ${cnClasse||'Classe'} — ${cnTrimestre}\n`];
+  lines.push(`👤 Élève : ${e.nom}`);
+  lines.push('─────────────────');
+  cnMatieres.forEach(m=>{
+    const n = cnNotes[e.id]?.[m.id];
+    const noteStr = (n!==undefined&&n!=='') ? parseFloat(n).toFixed(2)+'/20' : 'Absent';
+    lines.push(`📚 ${m.nom} (×${m.coeff||1}) : ${noteStr}`);
+  });
+  lines.push('─────────────────');
+  lines.push(`📊 Moyenne : ${moy!==null?moy.toFixed(2)+'/20':'—'}`);
+  lines.push(`🏅 Mention : ${men.t}`);
+  lines.push(`🏆 Rang : ${rank}`);
+  return lines.join('\n');
+}
+
+/* ── Render principal ── */
+window.cnRender = function(){
+  const panel = document.getElementById('panel-calcul-notes');
+  if(!panel) return;
+
+  // KPI row
+  const total = cnEleves.length;
+  const avgs  = cnEleves.map(e=>cnMoyenneEleve(e.id)).filter(v=>v!==null);
+  const classMoy = avgs.length ? (avgs.reduce((a,b)=>a+b,0)/avgs.length) : null;
+  const reussi  = avgs.filter(v=>v>=10).length;
+
+  panel.querySelector('#cn-kpi').innerHTML = [
+    {v:total,       l:'Élèves',      c:'#6366f1'},
+    {v:cnMatieres.length, l:'Matières',c:'#0369a1'},
+    {v:classMoy!==null?classMoy.toFixed(2):'—', l:'Moy. classe', c:'#10b981'},
+    {v:reussi,      l:'Réussi ≥10',  c:'#f59e0b'}
+  ].map(k=>`<div style="flex:1;min-width:70px;background:#fff;border-radius:10px;padding:10px;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.07);border-top:3px solid ${k.c}">
+    <div style="font-size:20px;font-weight:800;color:${k.c};font-family:'DM Mono',monospace">${k.v}</div>
+    <div style="font-size:10px;color:#64748b;font-weight:700">${k.l}</div>
+  </div>`).join('');
+
+  // Table des notes
+  if(!cnEleves.length || !cnMatieres.length){
+    panel.querySelector('#cn-table-wrap').innerHTML =
+      '<div style="text-align:center;padding:30px;color:#94a3b8;font-size:13px">➕ Ajoutez des élèves et des matières pour commencer.</div>';
+    return;
+  }
+
+  let thead = '<thead><tr><th style="background:#1a1f2e;color:#fff;padding:10px;text-align:left;font-size:12px;border-radius:12px 0 0 0">Élève</th>';
+  cnMatieres.forEach(m=>{
+    thead+=`<th style="background:#1a1f2e;color:#fff;padding:10px;text-align:center;font-size:11px;white-space:nowrap">${cnEsc(m.nom)}<br><span style="color:#94a3b8;font-weight:400">×${m.coeff||1}</span></th>`;
+  });
+  thead+=`<th style="background:#6366f1;color:#fff;padding:10px;text-align:center;font-size:12px">Moy.</th>
+           <th style="background:#6366f1;color:#fff;padding:10px;text-align:center;font-size:12px">Mention</th>
+           <th style="background:#6366f1;color:#fff;padding:10px;text-align:center;font-size:12px;border-radius:0 12px 0 0">Rang</th>
+           <th style="background:#1a1f2e;color:#fff;padding:10px;text-align:center;font-size:11px">Envoi</th></tr></thead>`;
+
+  // Trier par moyenne décroissante
+  const sorted = [...cnEleves].sort((a,b)=>{
+    const ma=cnMoyenneEleve(a.id)??-1, mb=cnMoyenneEleve(b.id)??-1;
+    return mb-ma;
+  });
+
+  let tbody='<tbody>';
+  sorted.forEach((e,idx)=>{
+    const moy=cnMoyenneEleve(e.id);
+    const men=cnMention(moy);
+    const rank=cnRank(e.id);
+    tbody+=`<tr style="${idx%2?'background:#f8fafc':''}">
+      <td style="padding:8px 10px;font-weight:700;font-size:13px;color:#1a1f2e;border:1px solid #e2e8f0;white-space:nowrap">${cnEsc(e.nom)}</td>`;
+    cnMatieres.forEach(m=>{
+      const n=cnNotes[e.id]?.[m.id];
+      const val=(n!==undefined&&n!=='') ? parseFloat(n) : null;
+      const clr=val===null?'#94a3b8':val>=10?'#065f46':'#991b1b';
+      const bg =val===null?'':val>=10?'#f0fdf4':'#fff5f5';
+      tbody+=`<td style="padding:4px;border:1px solid #e2e8f0;text-align:center">
+        <input type="number" min="0" max="20" step="0.25"
+          value="${val!==null?val:''}"
+          placeholder="—"
+          onchange="cnSetNote('${e.id}','${m.id}',this.value)"
+          style="width:56px;padding:6px 4px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:13px;text-align:center;font-family:'DM Mono',monospace;outline:none;color:${clr}"
+        ></td>`;
+    });
+    tbody+=`<td style="padding:8px;border:1px solid #e2e8f0;text-align:center;font-family:'DM Mono',monospace;font-weight:800;font-size:14px;color:${moy!==null?(moy>=10?'#065f46':'#991b1b'):'#94a3b8'}">${moy!==null?moy.toFixed(2):'—'}</td>
+      <td style="padding:6px;border:1px solid #e2e8f0;text-align:center">
+        <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px;background:${men.bg};color:${men.c}">${men.t}</span>
+      </td>
+      <td style="padding:8px;border:1px solid #e2e8f0;text-align:center;font-weight:700;font-size:12px;color:#6366f1">${rank}</td>
+      <td style="padding:6px;border:1px solid #e2e8f0;text-align:center">
+        <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap">
+          ${e.wa?`<button onclick="cnSendWA('${e.id}')" style="background:#25d366;color:#fff;border:none;border-radius:7px;padding:4px 8px;font-size:11px;cursor:pointer;font-weight:700">📲 WA</button>`:''}
+          ${e.email?`<button onclick="cnSendEmail('${e.id}')" style="background:#6366f1;color:#fff;border:none;border-radius:7px;padding:4px 8px;font-size:11px;cursor:pointer;font-weight:700">✉️ Email</button>`:''}
+          ${!e.wa&&!e.email?`<span style="font-size:10px;color:#94a3b8">Aucun contact</span>`:''}
+        </div>
+      </td>
+    </tr>`;
+  });
+  tbody+='</tbody>';
+
+  panel.querySelector('#cn-table-wrap').innerHTML =
+    `<div style="overflow-x:auto;border-radius:14px;box-shadow:0 2px 8px rgba(0,0,0,.08)"><table style="width:100%;border-collapse:collapse;min-width:500px">${thead}${tbody}</table></div>`;
+};
+
+/* ── Saisir une note ── */
+window.cnSetNote = function(eid, mid, val){
+  if(!cnNotes[eid]) cnNotes[eid]={};
+  cnNotes[eid][mid] = val===''?'':parseFloat(val);
+  cnSave('notes', cnNotes);
+  cnRender();
+};
+
+/* ── Ajouter élève ── */
+window.cnAddEleve = function(){
+  const nom   = document.getElementById('cn-inp-nom').value.trim();
+  const wa    = document.getElementById('cn-inp-wa').value.trim();
+  const email = document.getElementById('cn-inp-email').value.trim();
+  if(!nom){ alert('Nom requis.'); return; }
+  cnEleves.push({id:cnId(), nom, wa, email});
+  cnSave('eleves', cnEleves);
+  document.getElementById('cn-inp-nom').value='';
+  document.getElementById('cn-inp-wa').value='';
+  document.getElementById('cn-inp-email').value='';
+  cnRender();
+};
+
+/* ── Supprimer élève ── */
+window.cnDelEleve = function(id){
+  if(!confirm('Supprimer cet élève ?')) return;
+  cnEleves = cnEleves.filter(e=>e.id!==id);
+  delete cnNotes[id];
+  cnSave('eleves', cnEleves);
+  cnSave('notes', cnNotes);
+  cnRender();
+  cnRenderEleves();
+};
+
+/* ── Ajouter matière ── */
+window.cnAddMatiere = function(){
+  const nom   = document.getElementById('cn-inp-mat').value.trim();
+  const coeff = parseFloat(document.getElementById('cn-inp-coeff').value)||1;
+  if(!nom){ alert('Nom de matière requis.'); return; }
+  cnMatieres.push({id:cnId(), nom, coeff});
+  cnSave('matieres', cnMatieres);
+  document.getElementById('cn-inp-mat').value='';
+  document.getElementById('cn-inp-coeff').value='1';
+  cnRender();
+  cnRenderMatieres();
+};
+
+/* ── Supprimer matière ── */
+window.cnDelMatiere = function(id){
+  if(!confirm('Supprimer cette matière ?')) return;
+  cnMatieres = cnMatieres.filter(m=>m.id!==id);
+  // Supprimer les notes liées
+  Object.keys(cnNotes).forEach(eid=>{ delete cnNotes[eid][id]; });
+  cnSave('matieres', cnMatieres);
+  cnSave('notes', cnNotes);
+  cnRender();
+  cnRenderMatieres();
+};
+
+/* ── Render liste élèves ── */
+window.cnRenderEleves = function(){
+  const c = document.getElementById('cn-list-eleves');
+  if(!c) return;
+  if(!cnEleves.length){ c.innerHTML='<div style="color:#94a3b8;font-size:12px;padding:8px">Aucun élève.</div>'; return; }
+  c.innerHTML = cnEleves.map(e=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:10px;background:#fff;flex-wrap:wrap">
+      <div style="flex:1;min-width:100px">
+        <div style="font-weight:700;font-size:13px;color:#1a1f2e">${cnEsc(e.nom)}</div>
+        <div style="font-size:11px;color:#64748b">${e.wa||''} ${e.email?'· '+e.email:''}</div>
+      </div>
+      <button onclick="cnDelEleve('${e.id}')" style="background:#fee2e2;color:#ef4444;border:none;border-radius:7px;padding:4px 9px;font-size:11px;cursor:pointer;font-weight:700">🗑</button>
+    </div>`).join('');
+};
+
+/* ── Render liste matières ── */
+window.cnRenderMatieres = function(){
+  const c = document.getElementById('cn-list-matieres');
+  if(!c) return;
+  if(!cnMatieres.length){ c.innerHTML='<div style="color:#94a3b8;font-size:12px;padding:8px">Aucune matière.</div>'; return; }
+  c.innerHTML = cnMatieres.map(m=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:10px;background:#fff;flex-wrap:wrap">
+      <div style="flex:1;min-width:100px">
+        <span style="font-weight:700;font-size:13px;color:#1a1f2e">${cnEsc(m.nom)}</span>
+        <span style="font-size:11px;color:#6366f1;margin-left:6px;font-weight:700">×${m.coeff||1}</span>
+      </div>
+      <button onclick="cnDelMatiere('${m.id}')" style="background:#fee2e2;color:#ef4444;border:none;border-radius:7px;padding:4px 9px;font-size:11px;cursor:pointer;font-weight:700">🗑</button>
+    </div>`).join('');
+};
+
+/* ── Envoi WhatsApp ── */
+window.cnSendWA = function(eid){
+  const e = cnEleves.find(x=>x.id===eid);
+  if(!e||!e.wa){ alert('Numéro WhatsApp manquant.'); return; }
+  const msg = encodeURIComponent(cnBulletin(e));
+  const num = e.wa.replace(/\D/g,'');
+  window.open('https://wa.me/'+num+'?text='+msg, '_blank');
+};
+
+/* ── Envoi Email ── */
+window.cnSendEmail = function(eid){
+  const e = cnEleves.find(x=>x.id===eid);
+  if(!e||!e.email){ alert('Email manquant.'); return; }
+  const sub = encodeURIComponent(`Bulletin de notes — ${e.nom} — ${cnClasse||'Classe'} — ${cnTrimestre}`);
+  const body= encodeURIComponent(cnBulletin(e));
+  window.open(`mailto:${e.email}?subject=${sub}&body=${body}`, '_blank');
+};
+
+/* ── Envoi à tous ── */
+window.cnSendAll = function(via){
+  const targets = cnEleves.filter(e=> via==='wa' ? e.wa : e.email);
+  if(!targets.length){ alert('Aucun élève n\'a de '+(via==='wa'?'numéro WhatsApp':'email')+'.'); return; }
+  targets.forEach((e,i)=>{
+    setTimeout(()=>{
+      if(via==='wa') cnSendWA(e.id);
+      else cnSendEmail(e.id);
+    }, i*300);
+  });
+};
+
+/* ── Sauvegarder classe & trimestre ── */
+window.cnSaveConfig = function(){
+  cnClasse    = document.getElementById('cn-classe').value.trim();
+  cnTrimestre = document.getElementById('cn-trim').value;
+  cnSave('classe', cnClasse);
+  cnSave('trim',   cnTrimestre);
+  cnRender();
+};
+
+/* ── Init listes au premier rendu du panel ── */
+const _cnOrig = window.cnRender;
+window.cnRender = function(){
+  _cnOrig();
+  cnRenderEleves();
+  cnRenderMatieres();
+  // Restaurer champs config
+  const clEl = document.getElementById('cn-classe');
+  if(clEl && !clEl._init){ clEl.value=cnClasse; clEl._init=true; }
+  const trEl = document.getElementById('cn-trim');
+  if(trEl && !trEl._init){ trEl.value=cnTrimestre; trEl._init=true; }
+};
+
+/* ── Helper PDF commun : ouvrir une fenêtre HTML imprimable ── */
+function cnOpenPdf(html, filename){
+  const blob = new Blob([html],{type:'text/html;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const win  = window.open(url,'_blank');
+  if(!win){
+    const a = document.createElement('a');
+    a.href=url; a.download=filename+'.html'; a.click();
+  }
+  setTimeout(()=>URL.revokeObjectURL(url),15000);
+}
+
+function cnHeader(titre, sous){
+  const school = (typeof manager!=='undefined'&&manager.school)||'';
+  const mgrName= (typeof manager!=='undefined'&&manager.name)||'';
+  const logo   = (typeof manager!=='undefined'&&manager.logo)||'';
+  const annee  = (typeof syData!=='undefined'&&syData&&syData.label)||'';
+  const today  = new Date().toLocaleDateString('fr-FR');
+  const logoHtml = logo
+    ? `<img src="${logo}" style="height:60px;width:60px;object-fit:contain;border-radius:8px;border:1.5px solid #e2e8f0" alt="Logo">`
+    : `<div style="width:60px;height:60px;border-radius:8px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🏫</div>`;
+  return `<div style="display:flex;align-items:flex-start;gap:14px;padding-bottom:12px;border-bottom:2.5px solid #6366f1;margin-bottom:14px;flex-wrap:wrap">
+    ${logoHtml}
+    <div style="flex:1;min-width:150px">
+      <div style="font-size:16px;font-weight:800;color:#1a1f2e">${cnEsc(school)||'Établissement'}</div>
+      ${annee?`<div style="font-size:11px;color:#6366f1;font-weight:700;margin-top:2px">📅 ${cnEsc(annee)}</div>`:''}
+      ${mgrName?`<div style="font-size:11px;color:#475569;margin-top:2px">👤 ${cnEsc(mgrName)}</div>`:''}
+    </div>
+    <div style="text-align:right;min-width:130px">
+      <div style="font-size:13px;font-weight:800;color:#1a1f2e">${titre}</div>
+      <div style="font-size:11px;color:#6366f1;font-weight:700;margin-top:3px">${sous}</div>
+      <div style="font-size:10px;color:#94a3b8;margin-top:3px">Édité le ${today}</div>
+    </div>
+  </div>`;
+}
+
+function cnPdfStyle(){
+  return `<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:Arial,sans-serif;background:#fff;color:#1a1f2e;font-size:12px}
+  @page{size:A4 portrait;margin:14mm 12mm}
+  @media print{body{padding:0}.no-print{display:none!important}table{page-break-inside:auto}tr{page-break-inside:avoid}}
+  @media screen{body{max-width:210mm;margin:0 auto;padding:20px;background:#f0f4f8}}
+  .page{background:#fff;padding:18px 20px}
+  @media screen{.page{border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,.1)}}
+  .print-btn{display:flex;gap:8px;margin-bottom:16px}
+  .print-btn button{padding:9px 18px;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:Arial,sans-serif}</style>`;
+}
+
+/* ── PDF 1 : Résultats par classe ── */
+window.cnPdfResultats = function(){
+  if(!cnEleves.length){ alert('Aucun élève enregistré.'); return; }
+  if(!cnMatieres.length){ alert('Aucune matière enregistrée.'); return; }
+
+  const today  = new Date().toLocaleDateString('fr-FR');
+  const classe = cnClasse||'Classe';
+  const trim   = cnTrimestre||'T1';
+
+  const avgs  = cnEleves.map(e=>cnMoyenneEleve(e.id)).filter(v=>v!==null);
+  const classMoy = avgs.length ? (avgs.reduce((a,b)=>a+b,0)/avgs.length).toFixed(2) : '—';
+  const admis    = avgs.filter(v=>v>=10).length;
+
+  const thMats = cnMatieres.map(m=>`<th style="background:#4338ca;color:#fff;padding:7px 9px;font-size:10px;text-align:center">${cnEsc(m.nom)}<br><span style="font-weight:400;opacity:.8">×${m.coeff||1}</span></th>`).join('');
+
+  const sorted = [...cnEleves].sort((a,b)=>{
+    const ma=cnMoyenneEleve(a.id)??-1, mb=cnMoyenneEleve(b.id)??-1; return mb-ma;
+  });
+
+  const rows = sorted.map((e,idx)=>{
+    const moy = cnMoyenneEleve(e.id);
+    const men = cnMention(moy);
+    const bg  = idx%2===0?'#fff':'#f8fafc';
+    const cells = cnMatieres.map(m=>{
+      const n = cnNotes[e.id]?.[m.id];
+      const v = (n!==undefined&&n!=='') ? parseFloat(n) : null;
+      const c = v===null?'#94a3b8':v>=10?'#065f46':'#991b1b';
+      return `<td style="border:1px solid #e2e8f0;padding:6px 8px;text-align:center;color:${c};font-weight:700">${v!==null?v:'—'}</td>`;
+    }).join('');
+    return `<tr style="background:${bg}">
+      <td style="border:1px solid #e2e8f0;padding:7px 10px;font-weight:700;font-size:12px;width:24px;text-align:center;color:#94a3b8">${idx+1}</td>
+      <td style="border:1px solid #e2e8f0;padding:7px 10px;font-weight:700;font-size:12px">${cnEsc(e.nom)}</td>
+      ${cells}
+      <td style="border:1px solid #e2e8f0;padding:7px 10px;text-align:center;font-weight:800;font-size:13px;color:${moy!==null?(moy>=10?'#10b981':'#ef4444'):'#94a3b8'}">${moy!==null?moy.toFixed(2)+'/20':'—'}</td>
+      <td style="border:1px solid #e2e8f0;padding:6px 8px;text-align:center">
+        <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:5px;background:${men.bg};color:${men.c}">${men.t}</span>
+      </td>
+      <td style="border:1px solid #e2e8f0;padding:7px 10px;text-align:center;font-weight:700;color:#6366f1;font-size:11px">${cnRank(e.id)}</td>
+    </tr>`;
+  }).join('');
+
+  const html=`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Résultats ${classe} ${trim}</title>${cnPdfStyle()}</head>
+<body><div class="no-print print-btn">
+  <button onclick="window.print()" style="background:#6366f1;color:#fff">🖨️ Imprimer / Enregistrer PDF</button>
+  <button onclick="window.close()" style="background:#f1f5f9;color:#475569">✕ Fermer</button>
+</div>
+<div class="page">
+  ${cnHeader('Résultats des élèves', `${cnEsc(classe)} · ${trim}`)}
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <div style="background:#eef2ff;border-radius:8px;padding:8px 14px;text-align:center;flex:1;min-width:60px">
+      <div style="font-size:18px;font-weight:800;color:#4338ca">${cnEleves.length}</div>
+      <div style="font-size:10px;color:#4338ca;font-weight:700">Élèves</div>
+    </div>
+    <div style="background:#d1fae5;border-radius:8px;padding:8px 14px;text-align:center;flex:1;min-width:60px">
+      <div style="font-size:18px;font-weight:800;color:#065f46">${admis}</div>
+      <div style="font-size:10px;color:#065f46;font-weight:700">Admis ≥10</div>
+    </div>
+    <div style="background:#fee2e2;border-radius:8px;padding:8px 14px;text-align:center;flex:1;min-width:60px">
+      <div style="font-size:18px;font-weight:800;color:#991b1b">${cnEleves.length-admis}</div>
+      <div style="font-size:10px;color:#991b1b;font-weight:700">Recalés</div>
+    </div>
+    <div style="background:#fef3c7;border-radius:8px;padding:8px 14px;text-align:center;flex:1;min-width:80px">
+      <div style="font-size:18px;font-weight:800;color:#92400e">${classMoy!=='—'?classMoy+'/20':classMoy}</div>
+      <div style="font-size:10px;color:#92400e;font-weight:700">Moy. classe</div>
+    </div>
+  </div>
+  <table style="width:100%;border-collapse:collapse">
+    <thead><tr>
+      <th style="background:#1a1f2e;color:#fff;padding:8px;text-align:center;font-size:11px;width:24px">#</th>
+      <th style="background:#1a1f2e;color:#fff;padding:8px 10px;text-align:left;font-size:11px">Élève</th>
+      ${thMats}
+      <th style="background:#3730a3;color:#fff;padding:8px 10px;text-align:center;font-size:11px">Moyenne</th>
+      <th style="background:#3730a3;color:#fff;padding:8px 10px;text-align:center;font-size:11px">Mention</th>
+      <th style="background:#3730a3;color:#fff;padding:8px 10px;text-align:center;font-size:11px">Rang</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div style="margin-top:16px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <div style="font-size:10px;color:#94a3b8">Gestion Scolaire · ${today}</div>
+    <div style="font-size:11px;color:#475569;text-align:right">
+      <div style="font-weight:700;margin-bottom:22px">Signature du responsable :</div>
+      <div style="border-top:1px solid #94a3b8;width:160px;text-align:center;padding-top:4px;font-size:10px;color:#94a3b8">Cachet &amp; Signature</div>
+    </div>
+  </div>
+</div></body></html>`;
+  cnOpenPdf(html, `Resultats_${classe}_${trim}`);
+};
+
+/* ── PDF 2 : Liste des absents (élèves avec au moins une note manquante) ── */
+window.cnPdfAbsents = function(){
+  if(!cnEleves.length){ alert('Aucun élève enregistré.'); return; }
+  if(!cnMatieres.length){ alert('Aucune matière enregistrée.'); return; }
+
+  const classe = cnClasse||'Classe';
+  const trim   = cnTrimestre||'T1';
+  const today  = new Date().toLocaleDateString('fr-FR');
+
+  // Élèves avec au moins une note manquante = "absent" à une évaluation
+  const absents = cnEleves.filter(e =>
+    cnMatieres.some(m => { const n=cnNotes[e.id]?.[m.id]; return n===undefined||n===''; })
+  );
+
+  if(!absents.length){
+    alert('Aucun élève absent ou avec note manquante pour cette classe.');
+    return;
+  }
+
+  const rows = absents.map((e,idx)=>{
+    const matieresMqtes = cnMatieres.filter(m=>{ const n=cnNotes[e.id]?.[m.id]; return n===undefined||n===''; }).map(m=>m.nom);
+    const moy = cnMoyenneEleve(e.id);
+    return `<tr style="background:${idx%2===0?'#fff':'#fff5f5'}">
+      <td style="border:1px solid #e2e8f0;padding:7px 8px;text-align:center;color:#94a3b8;font-size:11px;width:28px">${idx+1}</td>
+      <td style="border:1px solid #e2e8f0;padding:7px 10px;font-weight:700;font-size:12px;color:#1a1f2e">${cnEsc(e.nom)}</td>
+      <td style="border:1px solid #e2e8f0;padding:7px 10px;font-size:11px;color:#991b1b">${matieresMqtes.map(m=>`<span style="background:#fee2e2;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-right:3px">${cnEsc(m)}</span>`).join('')}</td>
+      <td style="border:1px solid #e2e8f0;padding:7px 10px;text-align:center;font-weight:700;color:${moy!==null?(moy>=10?'#065f46':'#991b1b'):'#94a3b8'};font-family:monospace">${moy!==null?moy.toFixed(2)+'/20':'—'}</td>
+      <td style="border:1px solid #e2e8f0;padding:7px 10px;width:120px"><div style="border-bottom:1px solid #cbd5e1;height:18px"></div></td>
+    </tr>`;
+  }).join('');
+
+  const html=`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Absents ${classe} ${trim}</title>${cnPdfStyle()}</head>
+<body><div class="no-print print-btn">
+  <button onclick="window.print()" style="background:#ef4444;color:#fff">🖨️ Imprimer / Enregistrer PDF</button>
+  <button onclick="window.close()" style="background:#f1f5f9;color:#475569">✕ Fermer</button>
+</div>
+<div class="page">
+  ${cnHeader('Liste des absents / notes manquantes', `${cnEsc(classe)} · ${trim}`)}
+  <div style="background:#fee2e2;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+    <span style="font-size:22px;font-weight:800;color:#991b1b">${absents.length}</span>
+    <div>
+      <div style="font-size:12px;font-weight:700;color:#991b1b">élève${absents.length>1?'s':''} avec note${absents.length>1?'s':''} manquante${absents.length>1?'s':''}</div>
+      <div style="font-size:11px;color:#991b1b;opacity:.8">sur ${cnEleves.length} élèves · ${cnMatieres.length} matière${cnMatieres.length>1?'s':''}</div>
+    </div>
+  </div>
+  <table style="width:100%;border-collapse:collapse">
+    <thead><tr style="background:#1a1f2e">
+      <th style="color:#fff;padding:8px;text-align:center;font-size:11px;width:28px">#</th>
+      <th style="color:#fff;padding:8px 10px;text-align:left;font-size:11px">Élève</th>
+      <th style="color:#fff;padding:8px 10px;text-align:left;font-size:11px">Matières manquantes</th>
+      <th style="color:#fff;padding:8px 10px;text-align:center;font-size:11px">Moy. partielle</th>
+      <th style="color:#fff;padding:8px 10px;font-size:11px;width:120px">Signature</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div style="margin-top:16px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <div style="font-size:10px;color:#94a3b8">Gestion Scolaire · ${today}</div>
+    <div style="font-size:11px;color:#475569;text-align:right">
+      <div style="font-weight:700;margin-bottom:22px">Signature du responsable :</div>
+      <div style="border-top:1px solid #94a3b8;width:160px;text-align:center;padding-top:4px;font-size:10px;color:#94a3b8">Cachet &amp; Signature</div>
+    </div>
+  </div>
+</div></body></html>`;
+  cnOpenPdf(html, `Absents_${classe}_${trim}`);
+};
+
+/* ── PDF 3 : Liste des élèves par classe (annuaire) ── */
+window.cnPdfListe = function(){
+  if(!cnEleves.length){ alert('Aucun élève enregistré.'); return; }
+
+  const classe = cnClasse||'Classe';
+  const trim   = cnTrimestre||'T1';
+  const today  = new Date().toLocaleDateString('fr-FR');
+
+  const rows = cnEleves.map((e,idx)=>{
+    return `<tr style="background:${idx%2===0?'#fff':'#f8fafc'}">
+      <td style="border:1px solid #e2e8f0;padding:8px 8px;text-align:center;color:#94a3b8;font-size:11px;width:28px">${idx+1}</td>
+      <td style="border:1px solid #e2e8f0;padding:8px 10px;font-weight:700;font-size:13px;color:#1a1f2e">${cnEsc(e.nom)}</td>
+      <td style="border:1px solid #e2e8f0;padding:8px 10px;font-size:12px;color:#475569;font-family:monospace">${cnEsc(e.wa||'—')}</td>
+      <td style="border:1px solid #e2e8f0;padding:8px 10px;font-size:11px;color:#64748b">${cnEsc(e.email||'—')}</td>
+      <td style="border:1px solid #e2e8f0;padding:8px 10px;width:100px"><div style="border-bottom:1px solid #cbd5e1;height:18px"></div></td>
+    </tr>`;
+  }).join('');
+
+  const html=`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Liste élèves ${classe}</title>${cnPdfStyle()}</head>
+<body><div class="no-print print-btn">
+  <button onclick="window.print()" style="background:#0369a1;color:#fff">🖨️ Imprimer / Enregistrer PDF</button>
+  <button onclick="window.close()" style="background:#f1f5f9;color:#475569">✕ Fermer</button>
+</div>
+<div class="page">
+  ${cnHeader('Liste des élèves', `${cnEsc(classe)} · ${trim}`)}
+  <div style="background:#eef2ff;border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+    <span style="font-size:22px;font-weight:800;color:#4338ca">${cnEleves.length}</span>
+    <div style="font-size:12px;font-weight:700;color:#4338ca">élève${cnEleves.length>1?'s':''} enregistré${cnEleves.length>1?'s':''}</div>
+  </div>
+  <table style="width:100%;border-collapse:collapse">
+    <thead><tr style="background:#1a1f2e">
+      <th style="color:#fff;padding:8px;text-align:center;font-size:11px;width:28px">#</th>
+      <th style="color:#fff;padding:8px 10px;text-align:left;font-size:11px">Nom complet</th>
+      <th style="color:#fff;padding:8px 10px;text-align:left;font-size:11px">WhatsApp</th>
+      <th style="color:#fff;padding:8px 10px;text-align:left;font-size:11px">Email</th>
+      <th style="color:#fff;padding:8px 10px;font-size:11px;width:100px">Signature</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div style="margin-top:16px;padding-top:10px;border-top:1px solid #e2e8f0;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    <div style="font-size:10px;color:#94a3b8">Gestion Scolaire · ${today}</div>
+    <div style="font-size:11px;color:#475569;text-align:right">
+      <div style="font-weight:700;margin-bottom:22px">Visa du responsable :</div>
+      <div style="border-top:1px solid #94a3b8;width:160px;text-align:center;padding-top:4px;font-size:10px;color:#94a3b8">Cachet &amp; Signature</div>
+    </div>
+  </div>
+</div></body></html>`;
+  cnOpenPdf(html, `Liste_Eleves_${classe}`);
+};
+
+})(); // fin IIFE calcul-notes
+// ══════════════════ FIN CALCUL DES NOTES ══════════════════
 
 </script>
 </body>
