@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#6366f1">
+<title>Espace Professeur</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#f0f4f8;font-family:'DM Sans',sans-serif;min-height:100vh}
+.screen{display:none;min-height:100vh}
+.screen.active{display:block}
+
+/* ── LOGIN ── */
+#loginScreen{display:flex;align-items:center;justify-content:center;padding:24px;min-height:100vh}
+.login-card{background:#fff;border-radius:18px;padding:28px 24px;max-width:360px;width:100%;box-shadow:0 4px 20px rgba(0,0,0,.08);text-align:center}
+.login-ico{width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 14px}
+.login-card h1{font-family:'Syne',sans-serif;font-size:19px;font-weight:800;color:#1a1f2e;margin-bottom:4px}
+.login-card p{font-size:12.5px;color:#64748b;margin-bottom:18px}
+.login-card input{width:100%;border:1.5px solid #e2e8f0;border-radius:10px;padding:12px 14px;font-size:15px;font-family:'DM Mono',monospace;text-align:center;letter-spacing:1px;outline:none;margin-bottom:10px}
+.login-card input:focus{border-color:#6366f1}
+.btn{border:none;border-radius:10px;padding:12px 16px;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;width:100%}
+.btn-primary{background:#6366f1;color:#fff}
+.btn-primary:active{background:#4f46e5}
+.err-box{display:none;background:#fee2e2;color:#991b1b;border-radius:8px;padding:8px 10px;font-size:12px;margin-bottom:10px;text-align:left}
+.err-box.show{display:block}
+
+/* ── MAIN APP ── */
+.hdr{background:#1a1f2e;color:#fff;padding:16px 18px;display:flex;align-items:center;gap:12px}
+.hdr-avatar{width:42px;height:42px;border-radius:11px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.hdr-info{flex:1;min-width:0}
+.hdr-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:800}
+.hdr-sub{font-size:11.5px;color:#94a3b8;margin-top:1px}
+.hdr-btn{background:none;border:none;color:#fff;font-size:18px;cursor:pointer;opacity:.85}
+
+.wrap{padding:16px;max-width:520px;margin:0 auto}
+.card{background:#fff;border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.card h2{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:#1a1f2e;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.fg{margin-bottom:10px}
+.fg label{display:block;font-size:11.5px;font-weight:700;color:#475569;margin-bottom:4px}
+.fg select,.fg input{width:100%;border:1.5px solid #e2e8f0;border-radius:9px;padding:9px 11px;font-size:13.5px;font-family:'DM Sans',sans-serif;outline:none;background:#fff}
+.fg select:focus,.fg input:focus{border-color:#6366f1}
+.hint{font-size:11px;color:#94a3b8;margin-top:8px}
+
+.sub-item{display:flex;align-items:center;gap:10px;padding:10px;border:1.5px solid #eef2f6;border-radius:10px;margin-bottom:8px}
+.sub-ico{font-size:18px;width:32px;height:32px;border-radius:9px;background:#eef2ff;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sub-mid{flex:1;min-width:0}
+.sub-title{font-size:13px;font-weight:700;color:#1a1f2e}
+.sub-meta{font-size:11px;color:#64748b;margin-top:1px}
+.badge{font-size:10.5px;font-weight:700;border-radius:20px;padding:3px 9px;white-space:nowrap}
+.badge-attente{background:#fef3c7;color:#92400e}
+.badge-valide{background:#d1fae5;color:#065f46}
+.badge-rejete{background:#fee2e2;color:#991b1b}
+.empty-list{text-align:center;padding:24px 10px;color:#94a3b8;font-size:12.5px}
+</style>
+</head>
+<body>
+
+<!-- ══ LOGIN ══ -->
+<div id="loginScreen" class="screen active">
+  <div class="login-card">
+    <div class="login-ico">🍎</div>
+    <h1>Espace Professeur</h1>
+    <p>Entrez votre code d'accès personnel pour saisir vos notes.</p>
+    <div class="err-box" id="loginErr">Code invalide. Vérifiez auprès de l'administration.</div>
+    <input type="text" id="loginCode" placeholder="Code d'accès" autocomplete="off">
+    <button class="btn btn-primary" id="loginBtn">Accéder à mon espace</button>
+  </div>
+</div>
+
+<!-- ══ MAIN APP ══ -->
+<div id="mainScreen" class="screen">
+  <div class="hdr">
+    <div class="hdr-avatar">👨‍🏫</div>
+    <div class="hdr-info">
+      <div class="hdr-title" id="profNom">—</div>
+      <div class="hdr-sub" id="profMatieres">—</div>
+    </div>
+    <button class="hdr-btn" id="logoutBtn" title="Quitter">↩</button>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <h2>📝 Saisir une note</h2>
+      <div class="fg">
+        <label>Classe</label>
+        <select id="selClasse"><option value="">— Choisir une classe —</option></select>
+      </div>
+      <div class="fg">
+        <label>Élève</label>
+        <select id="selEleve"><option value="">— Choisir un élève —</option></select>
+      </div>
+      <div class="fg">
+        <label>Matière</label>
+        <select id="selMatiere"><option value="">— Choisir une matière —</option></select>
+      </div>
+      <div class="fg">
+        <label>Note sur 20</label>
+        <input type="number" id="inpNote" min="0" max="20" step="0.25" placeholder="Ex : 14.5">
+      </div>
+      <div class="fg">
+        <label>Trimestre</label>
+        <select id="selTrim">
+          <option value="T1">Trimestre 1</option>
+          <option value="T2">Trimestre 2</option>
+          <option value="T3">Trimestre 3</option>
+        </select>
+      </div>
+      <button class="btn btn-primary" id="submitBtn">Envoyer pour validation</button>
+      <div class="hint">La note sera visible pour l'élève une fois validée par l'administration.</div>
+    </div>
+
+    <div class="card">
+      <h2>📋 Mes soumissions</h2>
+      <div id="subList"><div class="empty-list">Aucune soumission pour le moment.</div></div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, doc, getDoc, setDoc, collection, getDocs, addDoc,
+  onSnapshot, query, where, serverTimestamp
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// ── Même projet Firebase que les autres apps de la suite ──
+const firebaseConfig = {
+  apiKey: "AIzaSyBYeYPOptN2wEak_Ctcr4a8t5qXpj4riLE",
+  authDomain: "emploi-temps.firebaseapp.com",
+  projectId: "emploi-temps",
+  storageBucket: "emploi-temps.firebasestorage.app",
+  messagingSenderId: "665985283894",
+  appId: "1:665985283894:web:b0c4cb14824bb8fed9a597"
+};
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+
+const PROFS_COL = 'profs';
+const ROSTER_COL = 'edtxRoster';
+const SOUMISSIONS_COL = 'profSoumissions';
+const LS_KEY = 'espaceProf_code';
+
+let profCode = null, profData = null, roster = [], subUnsub = null;
+
+function esc(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ── LOGIN ──
+async function tryLogin(code){
+  const errBox = document.getElementById('loginErr');
+  errBox.classList.remove('show');
+  if(!code){ return; }
+  try{
+    const snap = await getDoc(doc(db, PROFS_COL, code));
+    if(!snap.exists()){
+      errBox.textContent = "Code invalide. Vérifiez auprès de l'administration.";
+      errBox.classList.add('show');
+      return;
+    }
+    profCode = code;
+    profData = snap.data();
+    localStorage.setItem(LS_KEY, code);
+    enterApp();
+  }catch(e){
+    errBox.textContent = "Erreur de connexion. Réessayez.";
+    errBox.classList.add('show');
+  }
+}
+
+document.getElementById('loginBtn').onclick = () => tryLogin(document.getElementById('loginCode').value.trim());
+document.getElementById('loginCode').addEventListener('keydown', e => { if(e.key === 'Enter') tryLogin(e.target.value.trim()); });
+
+document.getElementById('logoutBtn').onclick = () => {
+  localStorage.removeItem(LS_KEY);
+  if(subUnsub) subUnsub();
+  profCode = null; profData = null;
+  document.getElementById('loginCode').value = '';
+  showScreen('loginScreen');
+};
+
+// ── APP ──
+async function enterApp(){
+  showScreen('mainScreen');
+  document.getElementById('profNom').textContent = profData.nom || 'Professeur';
+  document.getElementById('profMatieres').textContent = (profData.matieres && profData.matieres.length)
+    ? 'Matières : ' + profData.matieres.join(', ')
+    : 'Aucune matière attribuée — contactez l\'administration';
+
+  fillMatiereSelect();
+  await loadRoster();
+  listenSoumissions();
+}
+
+function fillMatiereSelect(){
+  const sel = document.getElementById('selMatiere');
+  const mats = profData.matieres || [];
+  sel.innerHTML = '<option value="">— Choisir une matière —</option>' +
+    mats.map(m => `<option value="${esc(m)}">${esc(m)}</option>`).join('');
+}
+
+async function loadRoster(){
+  try{
+    const snap = await getDocs(collection(db, ROSTER_COL));
+    roster = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  }catch(e){ roster = []; }
+  const selClasse = document.getElementById('selClasse');
+  selClasse.innerHTML = '<option value="">— Choisir une classe —</option>' +
+    roster.map(g => `<option value="${esc(g.id)}">${esc(g.name || g.id)}</option>`).join('');
+  document.getElementById('selEleve').innerHTML = '<option value="">— Choisir un élève —</option>';
+}
+
+document.getElementById('selClasse').addEventListener('change', e => {
+  const grp = roster.find(g => g.id === e.target.value);
+  const selEleve = document.getElementById('selEleve');
+  const eleves = (grp && grp.eleves) || [];
+  selEleve.innerHTML = '<option value="">— Choisir un élève —</option>' +
+    eleves.map(el => `<option value="${esc(el.id)}">${esc([el.name, el.prenom].filter(Boolean).join(' '))}</option>`).join('');
+});
+
+document.getElementById('submitBtn').onclick = async () => {
+  const groupId = document.getElementById('selClasse').value;
+  const eleveId = document.getElementById('selEleve').value;
+  const matiere = document.getElementById('selMatiere').value;
+  const note = document.getElementById('inpNote').value;
+  const trim = document.getElementById('selTrim').value;
+
+  if(!groupId || !eleveId){ alert('Veuillez choisir une classe et un élève.'); return; }
+  if(!matiere){ alert('Veuillez choisir une matière.'); return; }
+  const noteNum = Number(note);
+  if(note === '' || isNaN(noteNum) || noteNum < 0 || noteNum > 20){ alert('Veuillez saisir une note valide entre 0 et 20.'); return; }
+
+  const grp = roster.find(g => g.id === groupId);
+  const el = grp ? (grp.eleves || []).find(e => String(e.id) === String(eleveId)) : null;
+
+  try{
+    await addDoc(collection(db, SOUMISSIONS_COL), {
+      profCode, profNom: profData.nom || '',
+      groupId, groupName: grp ? (grp.name || '') : '',
+      eleveId: String(eleveId), eleveNom: el ? [el.name, el.prenom].filter(Boolean).join(' ') : '',
+      matiere, note: noteNum, trim,
+      statut: 'en_attente',
+      createdAt: Date.now()
+    });
+    document.getElementById('inpNote').value = '';
+    alert('✅ Note envoyée pour validation.');
+  }catch(e){
+    alert('Erreur lors de l\'envoi : ' + (e && e.message ? e.message : e));
+  }
+};
+
+function listenSoumissions(){
+  if(subUnsub) subUnsub();
+  subUnsub = onSnapshot(query(collection(db, SOUMISSIONS_COL), where('profCode', '==', profCode)), snap => {
+    const list = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => (b.createdAt||0) - (a.createdAt||0));
+    renderSoumissions(list);
+  });
+}
+
+const STATUT_INFO = {
+  en_attente: { label: '⏳ À valider', cls: 'badge-attente' },
+  valide:     { label: '✅ Validé', cls: 'badge-valide' },
+  rejete:     { label: '❌ Rejeté', cls: 'badge-rejete' }
+};
+
+function renderSoumissions(list){
+  const el = document.getElementById('subList');
+  if(!list.length){ el.innerHTML = '<div class="empty-list">Aucune soumission pour le moment.</div>'; return; }
+  el.innerHTML = list.map(s => {
+    const si = STATUT_INFO[s.statut] || STATUT_INFO.en_attente;
+    return `<div class="sub-item">
+      <div class="sub-ico">📘</div>
+      <div class="sub-mid">
+        <div class="sub-title">${esc(s.eleveNom)} — ${esc(s.matiere)}</div>
+        <div class="sub-meta">${esc(s.groupName)} · ${esc(s.trim)} · ${s.note}/20</div>
+      </div>
+      <span class="badge ${si.cls}">${si.label}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Auto-login : priorité au code présent dans le lien personnel (?code=...),
+//    sinon au code déjà enregistré sur cet appareil ──
+const urlCode = new URLSearchParams(window.location.search).get('code');
+const savedCode = urlCode || localStorage.getItem(LS_KEY);
+if(savedCode) tryLogin(savedCode);
+</script>
+</body>
+</html>
