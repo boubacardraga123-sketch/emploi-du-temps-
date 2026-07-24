@@ -68,6 +68,27 @@ body{background:#f0f4f8;font-family:'DM Sans',sans-serif;min-height:100vh}
 #installBanner button{border:none;border-radius:9px;padding:9px 14px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap}
 #installBanner .ib-install{background:#6366f1;color:#fff}
 #installBanner .ib-close{background:transparent;color:#94a3b8;padding:9px 8px}
+
+/* ── COPIES REÇUES (devoirs & évaluations) ── */
+.card-badge{background:#6366f1;color:#fff;font-size:10.5px;font-weight:700;border-radius:20px;padding:2px 8px;margin-left:auto}
+.card h2{justify-content:flex-start}
+.recu-thumb{width:44px;height:44px;border-radius:9px;object-fit:cover;flex-shrink:0;cursor:pointer;border:1px solid #e2e8f0}
+.mini-btn{background:#eef2ff;color:#4338ca;border:none;border-radius:8px;padding:7px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.mini-btn:active{background:#e0e7ff}
+.devoir-item{border:1.5px solid #eef2f6;border-radius:12px;padding:10px;margin-bottom:10px}
+.di-top{display:flex;gap:10px;align-items:flex-start;margin-bottom:8px}
+.di-info{flex:1;min-width:0}
+.di-note-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding-top:8px;border-top:1px solid #f1f5f9}
+.di-note-row label{font-size:11.5px;font-weight:700;color:#475569}
+.di-note-row input{width:64px;border:1.5px solid #e2e8f0;border-radius:8px;padding:6px 8px;font-size:13.5px;font-family:'DM Sans',sans-serif;outline:none;text-align:center}
+.di-note-row input:focus{border-color:#6366f1}
+.di-note-row .unit{font-size:11.5px;color:#94a3b8}
+.di-save-btn{background:#6366f1;color:#fff}
+.di-saved{font-size:11px;color:#059669;font-weight:700}
+#photoModal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:1100;align-items:center;justify-content:center;padding:26px}
+#photoModal.show{display:flex}
+#photoModal img{max-width:100%;max-height:100%;border-radius:10px}
+#photoModal .pm-close{position:absolute;top:18px;right:20px;color:#fff;font-size:30px;background:none;border:none;cursor:pointer;line-height:1}
 </style>
 </head>
 <body>
@@ -148,7 +169,24 @@ body{background:#f0f4f8;font-family:'DM Sans',sans-serif;min-height:100vh}
       <h2>📋 Mes soumissions</h2>
       <div id="subList"><div class="empty-list">Aucune soumission pour le moment.</div></div>
     </div>
+
+    <div class="card">
+      <h2>📒 Devoirs reçus <span class="card-badge" id="devoirsRecusCount">0</span></h2>
+      <div id="devoirsRecusList"><div class="empty-list">Aucune copie de devoir reçue.</div></div>
+      <div class="hint">Saisissez la note directement sous chaque copie, puis « Enregistrer ». Elle sera visible par l'élève.</div>
+    </div>
+
+    <div class="card">
+      <h2>🧪 Évaluations reçues <span class="card-badge" id="evalsRecusCount">0</span></h2>
+      <div id="evalsRecusList"><div class="empty-list">Aucune copie d'évaluation reçue.</div></div>
+    </div>
   </div>
+</div>
+
+<!-- ══ MODALE PHOTO (copies de devoirs) ══ -->
+<div id="photoModal">
+  <button class="pm-close" id="pmClose">✕</button>
+  <img id="pmImg" src="" alt="Copie de l'élève">
 </div>
 
 <script type="module">
@@ -173,9 +211,16 @@ const db = getFirestore(fbApp);
 const PROFS_COL = 'profs';
 const ROSTER_COL = 'edtxRoster';
 const SOUMISSIONS_COL = 'profSoumissions';
+const DEVOIRS_COL = 'edtx_devoirs';
+const EVALS_COL = 'edtx_evals';
+const EVAL_RESULTS_COL = 'edtx_eval_results';
 const LS_KEY = 'espaceProf_code';
 
 let profCode = null, profData = null, roster = [], subUnsub = null;
+
+// ── Copies reçues : devoirs (photos) & évaluations ──
+let devoirsMainUnsub = null, devoirsSubUnsubs = {}, devoirsReponsesMap = {};
+let evalsMainUnsub = null, evalsSubUnsubs = {}, evalsResultsMap = {};
 
 function esc(s){ return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function showScreen(id){
@@ -217,6 +262,7 @@ document.getElementById('loginCode').addEventListener('keydown', e => { if(e.key
 document.getElementById('logoutBtn').onclick = () => {
   localStorage.removeItem(LS_KEY);
   if(subUnsub) subUnsub();
+  stopRecusListeners();
   profCode = null; profData = null;
   document.getElementById('loginCode').value = '';
   showScreen('loginScreen');
@@ -233,6 +279,8 @@ async function enterApp(){
   fillMatiereSelect();
   await loadRoster();
   listenSoumissions();
+  listenDevoirsRecus();
+  listenEvalsRecus();
 }
 
 function fillMatiereSelect(){
@@ -325,6 +373,179 @@ function renderSoumissions(list){
       <span class="badge ${si.cls}">${si.label}</span>
     </div>`;
   }).join('');
+}
+
+// =====================================================================
+// COPIES REÇUES — devoirs (photos) et évaluations des élèves
+// Filtrés automatiquement sur les matières attribuées au professeur.
+// =====================================================================
+
+function stopRecusListeners(){
+  if(devoirsMainUnsub) devoirsMainUnsub();
+  Object.values(devoirsSubUnsubs).forEach(u => u());
+  devoirsMainUnsub = null; devoirsSubUnsubs = {}; devoirsReponsesMap = {};
+  if(evalsMainUnsub) evalsMainUnsub();
+  Object.values(evalsSubUnsubs).forEach(u => u());
+  evalsMainUnsub = null; evalsSubUnsubs = {}; evalsResultsMap = {};
+}
+
+function listenDevoirsRecus(){
+  const mats = (profData.matieres || []).filter(Boolean);
+  if(!mats.length){ renderDevoirsRecus(); return; }
+  devoirsMainUnsub = onSnapshot(
+    query(collection(db, DEVOIRS_COL), where('matiere', 'in', mats.slice(0, 10))),
+    snap => {
+      const currentIds = snap.docs.map(d => String((d.data() || {}).id));
+      Object.keys(devoirsSubUnsubs).forEach(id => {
+        if(!currentIds.includes(id)){ devoirsSubUnsubs[id](); delete devoirsSubUnsubs[id]; delete devoirsReponsesMap[id]; }
+      });
+      snap.docs.forEach(d => {
+        const dv = d.data();
+        const dvId = String(dv.id);
+        if(devoirsSubUnsubs[dvId]) return;
+        devoirsReponsesMap[dvId] = { titre: dv.titre, matiere: dv.matiere, reponses: [] };
+        devoirsSubUnsubs[dvId] = onSnapshot(collection(db, DEVOIRS_COL, dvId, 'reponses'), rsnap => {
+          devoirsReponsesMap[dvId].reponses = rsnap.docs.map(r => ({ id: r.id, ...r.data() }));
+          renderDevoirsRecus();
+        });
+      });
+      renderDevoirsRecus();
+    },
+    () => renderDevoirsRecus()
+  );
+}
+
+function renderDevoirsRecus(){
+  const el = document.getElementById('devoirsRecusList');
+  const badge = document.getElementById('devoirsRecusCount');
+  if(!el) return;
+  const items = [];
+  Object.entries(devoirsReponsesMap).forEach(([dvId, dv]) => {
+    dv.reponses.forEach(r => items.push({ dvId, titre: dv.titre, matiere: dv.matiere, ...r }));
+  });
+  items.sort((a, b) => (b.date || 0) - (a.date || 0));
+  if(badge) badge.textContent = String(items.length);
+  if(!items.length){ el.innerHTML = '<div class="empty-list">Aucune copie de devoir reçue.</div>'; return; }
+  el.innerHTML = items.map(it => {
+    const noteVal = (it.note !== undefined && it.note !== null) ? it.note : '';
+    return `
+    <div class="devoir-item">
+      <div class="di-top">
+        ${it.photoData ? `<img src="${it.photoData}" class="recu-thumb">` : '<div class="sub-ico">📒</div>'}
+        <div class="di-info">
+          <div class="sub-title">${esc(it.nom)} — ${esc(it.titre)}</div>
+          <div class="sub-meta">${esc(it.matiere || '')}${it.date ? ' · ' + new Date(it.date).toLocaleString('fr-FR') : ''}</div>
+        </div>
+      </div>
+      <div class="di-note-row">
+        <label>📝 Note</label>
+        <input type="number" min="0" max="20" step="0.25" id="dv-note-${it.id}" value="${noteVal}" placeholder="ex: 14.5">
+        <span class="unit">/ 20</span>
+        <button class="mini-btn di-save-btn" data-devoir="${it.dvId}" data-rep="${it.id}">✅ Enregistrer</button>
+        <span class="di-saved" id="dv-saved-${it.id}"></span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function listenEvalsRecus(){
+  const mats = (profData.matieres || []).filter(Boolean);
+  if(!mats.length){ renderEvalsRecus(); return; }
+  evalsMainUnsub = onSnapshot(
+    query(collection(db, EVALS_COL), where('dept', 'in', mats.slice(0, 10))),
+    snap => {
+      const currentIds = snap.docs.map(d => String((d.data() || {}).id));
+      Object.keys(evalsSubUnsubs).forEach(id => {
+        if(!currentIds.includes(id)){ evalsSubUnsubs[id](); delete evalsSubUnsubs[id]; delete evalsResultsMap[id]; }
+      });
+      snap.docs.forEach(d => {
+        const ev = d.data();
+        const evId = String(ev.id);
+        const maxScore = (ev.questions || []).reduce((s, q) => s + (q.points || 0), 0);
+        if(evalsSubUnsubs[evId]){
+          evalsResultsMap[evId].title = ev.title; evalsResultsMap[evId].dept = ev.dept; evalsResultsMap[evId].maxScore = maxScore;
+          return;
+        }
+        evalsResultsMap[evId] = { title: ev.title, dept: ev.dept, maxScore, results: [] };
+        evalsSubUnsubs[evId] = onSnapshot(query(collection(db, EVAL_RESULTS_COL), where('evalId', '==', ev.id)), rsnap => {
+          evalsResultsMap[evId].results = rsnap.docs.map(r => ({ id: r.id, ...r.data() }));
+          renderEvalsRecus();
+        });
+      });
+      renderEvalsRecus();
+    },
+    () => renderEvalsRecus()
+  );
+}
+
+function renderEvalsRecus(){
+  const el = document.getElementById('evalsRecusList');
+  const badge = document.getElementById('evalsRecusCount');
+  if(!el) return;
+  const items = [];
+  Object.values(evalsResultsMap).forEach(ev => {
+    ev.results.forEach(r => items.push({ title: ev.title, dept: ev.dept, maxScore: ev.maxScore, ...r }));
+  });
+  items.sort((a, b) => (b.submittedAt || 0) - (a.submittedAt || 0));
+  if(badge) badge.textContent = String(items.length);
+  if(!items.length){ el.innerHTML = '<div class="empty-list">Aucune copie d\'évaluation reçue.</div>'; return; }
+  el.innerHTML = items.map(it => {
+    const noteSur20 = it.maxScore ? Math.round((it.score / it.maxScore) * 20 * 100) / 100 : it.score;
+    return `<div class="sub-item">
+      <div class="sub-ico">🧪</div>
+      <div class="sub-mid">
+        <div class="sub-title">${esc(it.studentName)} — ${esc(it.title)}</div>
+        <div class="sub-meta">${esc(it.dept || '')} · ${it.score}/${it.maxScore}${it.submittedAt ? ' · ' + new Date(it.submittedAt).toLocaleString('fr-FR') : ''}</div>
+      </div>
+      <button class="mini-btn" data-matiere="${esc(it.dept || '')}" data-note="${noteSur20}">📝 Noter</button>
+    </div>`;
+  }).join('');
+}
+
+// Délégation de clic : miniatures photo → agrandissement, notation directe des devoirs, bouton "Noter" (évaluations) → pré-remplissage
+['devoirsRecusList', 'evalsRecusList'].forEach(id => {
+  const container = document.getElementById(id);
+  if(!container) return;
+  container.addEventListener('click', e => {
+    const thumb = e.target.closest('.recu-thumb');
+    if(thumb){ openPhotoModal(thumb.src); return; }
+    const saveBtn = e.target.closest('.di-save-btn');
+    if(saveBtn){ saveDevoirReponseNote(saveBtn.dataset.devoir, saveBtn.dataset.rep); return; }
+    const btn = e.target.closest('.mini-btn');
+    if(btn){ prefillNote(btn.dataset.matiere, btn.dataset.note); }
+  });
+});
+
+async function saveDevoirReponseNote(devoirId, repId){
+  const input = document.getElementById(`dv-note-${repId}`);
+  if(!input) return;
+  const val = input.value.trim();
+  const note = val === '' ? null : Number(val);
+  if(val !== '' && (isNaN(note) || note < 0 || note > 20)){ alert('Veuillez saisir une note valide entre 0 et 20.'); return; }
+  const savedEl = document.getElementById(`dv-saved-${repId}`);
+  try{
+    await setDoc(doc(db, DEVOIRS_COL, devoirId, 'reponses', repId), { note, noteDate: Date.now() }, { merge: true });
+    if(savedEl){ savedEl.textContent = '✅ Enregistrée'; setTimeout(() => { if(savedEl) savedEl.textContent = ''; }, 2500); }
+  }catch(e){
+    alert('Erreur lors de l\'enregistrement de la note : ' + (e && e.message ? e.message : e));
+  }
+}
+
+function openPhotoModal(src){
+  document.getElementById('pmImg').src = src;
+  document.getElementById('photoModal').classList.add('show');
+}
+document.getElementById('pmClose').onclick = () => document.getElementById('photoModal').classList.remove('show');
+document.getElementById('photoModal').addEventListener('click', e => {
+  if(e.target.id === 'photoModal') document.getElementById('photoModal').classList.remove('show');
+});
+
+function prefillNote(matiere, noteVal){
+  document.querySelector('.wrap').scrollIntoView({ behavior: 'smooth' });
+  const selMat = document.getElementById('selMatiere');
+  if(matiere && [...selMat.options].some(o => o.value === matiere)) selMat.value = matiere;
+  if(noteVal !== undefined && noteVal !== null && noteVal !== '') document.getElementById('inpNote').value = noteVal;
+  document.getElementById('selClasse').focus();
 }
 
 // ── Auto-login : priorité au code présent dans le lien personnel (?code=...),
