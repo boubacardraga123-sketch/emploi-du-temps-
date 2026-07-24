@@ -173,7 +173,7 @@ body{background:#f0f4f8;font-family:'DM Sans',sans-serif;min-height:100vh}
     <div class="card">
       <h2>📒 Devoirs reçus <span class="card-badge" id="devoirsRecusCount">0</span></h2>
       <div id="devoirsRecusList"><div class="empty-list">Aucune copie de devoir reçue.</div></div>
-      <div class="hint">Saisissez la note directement sous chaque copie, puis « Enregistrer ». Elle sera visible par l'élève.</div>
+      <div class="hint">Saisissez la note sous la copie puis « Noter » : elle préremplit le formulaire ci-dessus. Choisissez la classe et l'élève, puis « Envoyer ». Elle sera visible par l'élève une fois validée par l'administration.</div>
     </div>
 
     <div class="card">
@@ -441,7 +441,7 @@ function renderDevoirsRecus(){
         <label>📝 Note</label>
         <input type="number" min="0" max="20" step="0.25" id="dv-note-${it.id}" value="${noteVal}" placeholder="ex: 14.5">
         <span class="unit">/ 20</span>
-        <button class="mini-btn di-save-btn" data-devoir="${it.dvId}" data-rep="${it.id}">✅ Enregistrer</button>
+        <button class="mini-btn di-save-btn" data-devoir="${it.dvId}" data-rep="${it.id}" data-matiere="${esc(it.matiere || '')}">📝 Noter</button>
         <span class="di-saved" id="dv-saved-${it.id}"></span>
       </div>
     </div>`;
@@ -510,22 +510,28 @@ function renderEvalsRecus(){
     const thumb = e.target.closest('.recu-thumb');
     if(thumb){ openPhotoModal(thumb.src); return; }
     const saveBtn = e.target.closest('.di-save-btn');
-    if(saveBtn){ saveDevoirReponseNote(saveBtn.dataset.devoir, saveBtn.dataset.rep); return; }
+    if(saveBtn){ saveDevoirReponseNote(saveBtn.dataset.devoir, saveBtn.dataset.rep, saveBtn.dataset.matiere); return; }
     const btn = e.target.closest('.mini-btn');
     if(btn){ prefillNote(btn.dataset.matiere, btn.dataset.note); }
   });
 });
 
-async function saveDevoirReponseNote(devoirId, repId){
+// Enregistre la note sur la copie (pour garder une trace de la correction),
+// puis la préremplit dans le formulaire principal : le professeur doit choisir
+// la classe et l'élève et cliquer sur "Envoyer" pour la soumettre à validation.
+// Elle ne devient visible pour l'élève qu'une fois validée par l'administration
+// dans la fiche emploi du temps (comme pour les notes saisies manuellement).
+async function saveDevoirReponseNote(devoirId, repId, matiere){
   const input = document.getElementById(`dv-note-${repId}`);
   if(!input) return;
   const val = input.value.trim();
-  const note = val === '' ? null : Number(val);
-  if(val !== '' && (isNaN(note) || note < 0 || note > 20)){ alert('Veuillez saisir une note valide entre 0 et 20.'); return; }
+  if(val === '' || isNaN(Number(val)) || Number(val) < 0 || Number(val) > 20){ alert('Veuillez saisir une note valide entre 0 et 20.'); return; }
+  const note = Number(val);
   const savedEl = document.getElementById(`dv-saved-${repId}`);
   try{
     await setDoc(doc(db, DEVOIRS_COL, devoirId, 'reponses', repId), { note, noteDate: Date.now() }, { merge: true });
-    if(savedEl){ savedEl.textContent = '✅ Enregistrée'; setTimeout(() => { if(savedEl) savedEl.textContent = ''; }, 2500); }
+    if(savedEl){ savedEl.textContent = '✅ Prête — choisissez classe/élève ↑'; setTimeout(() => { if(savedEl) savedEl.textContent = ''; }, 4000); }
+    prefillNote(matiere, note);
   }catch(e){
     alert('Erreur lors de l\'enregistrement de la note : ' + (e && e.message ? e.message : e));
   }
