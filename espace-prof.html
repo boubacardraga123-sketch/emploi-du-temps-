@@ -214,6 +214,7 @@ const SOUMISSIONS_COL = 'profSoumissions';
 const DEVOIRS_COL = 'edtx_devoirs';
 const EVALS_COL = 'edtx_evals';
 const EVAL_RESULTS_COL = 'edtx_eval_results';
+const ELEVES_COL = 'chatEleves'; // trousseau des élèves du chat (pour lien automatique vers le roster)
 const LS_KEY = 'espaceProf_code';
 
 let profCode = null, profData = null, roster = [], subUnsub = null;
@@ -441,7 +442,7 @@ function renderDevoirsRecus(){
         <label>📝 Note</label>
         <input type="number" min="0" max="20" step="0.25" id="dv-note-${it.id}" value="${noteVal}" placeholder="ex: 14.5">
         <span class="unit">/ 20</span>
-        <button class="mini-btn di-save-btn" data-devoir="${it.dvId}" data-rep="${it.id}" data-matiere="${esc(it.matiere || '')}">📝 Noter</button>
+        <button class="mini-btn di-save-btn" data-devoir="${it.dvId}" data-rep="${it.id}" data-matiere="${esc(it.matiere || '')}" data-token="${esc(it.studentToken || '')}" data-nom="${esc(it.nom || '')}">📝 Noter</button>
         <span class="di-saved" id="dv-saved-${it.id}"></span>
       </div>
     </div>`;
@@ -497,7 +498,8 @@ function renderEvalsRecus(){
         <div class="sub-title">${esc(it.studentName)} — ${esc(it.title)}</div>
         <div class="sub-meta">${esc(it.dept || '')} · ${it.score}/${it.maxScore}${it.submittedAt ? ' · ' + new Date(it.submittedAt).toLocaleString('fr-FR') : ''}</div>
       </div>
-      <button class="mini-btn" data-matiere="${esc(it.dept || '')}" data-note="${noteSur20}">📝 Noter</button>
+      <button class="mini-btn eval-save-btn" data-matiere="${esc(it.dept || '')}" data-note="${noteSur20}" data-result="${esc(it.id)}" data-token="${esc(it.studentToken || '')}" data-nom="${esc(it.studentName || '')}">📝 Noter</button>
+      <span class="di-saved" id="ev-saved-${it.id}"></span>
     </div>`;
   }).join('');
 }
@@ -510,18 +512,60 @@ function renderEvalsRecus(){
     const thumb = e.target.closest('.recu-thumb');
     if(thumb){ openPhotoModal(thumb.src); return; }
     const saveBtn = e.target.closest('.di-save-btn');
-    if(saveBtn){ saveDevoirReponseNote(saveBtn.dataset.devoir, saveBtn.dataset.rep, saveBtn.dataset.matiere); return; }
-    const btn = e.target.closest('.mini-btn');
-    if(btn){ prefillNote(btn.dataset.matiere, btn.dataset.note); }
+    if(saveBtn){ saveDevoirReponseNote(saveBtn.dataset.devoir, saveBtn.dataset.rep, saveBtn.dataset.matiere, saveBtn.dataset.token, saveBtn.dataset.nom); return; }
+    const evalBtn = e.target.closest('.eval-save-btn');
+    if(evalBtn){ noterEvalCopie(evalBtn.dataset.result, evalBtn.dataset.matiere, evalBtn.dataset.note, evalBtn.dataset.token, evalBtn.dataset.nom); return; }
   });
 });
 
-// Enregistre la note sur la copie (pour garder une trace de la correction),
-// puis la préremplit dans le formulaire principal : le professeur doit choisir
-// la classe et l'élève et cliquer sur "Envoyer" pour la soumettre à validation.
-// Elle ne devient visible pour l'élève qu'une fois validée par l'administration
-// dans la fiche emploi du temps (comme pour les notes saisies manuellement).
-async function saveDevoirReponseNote(devoirId, repId, matiere){
+// ── Lien automatique copie corrigée → élève du roster (emploi du temps) ──
+// Chaque élève du chat (chatEleves/{token}) peut être lié par l'administration à un
+// groupe/élève officiel du roster (champs edtGroupId / edtEleveId). Quand ce lien existe,
+// on peut soumettre la note automatiquement à la validation sans ressaisie manuelle.
+const edtLinkCache = {}; // token -> {edtGroupId, edtEleveId} | null (résultat mis en cache)
+async function resolveEdtLink(token){
+  if(!token) return null;
+  if(Object.prototype.hasOwnProperty.call(edtLinkCache, token)) return edtLinkCache[token];
+  try{
+    const snap = await getDoc(doc(db, ELEVES_COL, token));
+    if(!snap.exists()){ edtLinkCache[token] = null; return null; }
+    const d = snap.data();
+    const link = d.edtGroupId ? { edtGroupId: d.edtGroupId, edtEleveId: (d.edtEleveId !== undefined ? d.edtEleveId : null) } : null;
+    edtLinkCache[token] = link;
+    return link;
+  }catch(e){ return null; }
+}
+
+// Crée (ou complète) automatiquement une soumission à valider dans profSoumissions,
+// à partir du lien roster de l'élève. Retourne { ok, groupName, eleveNom } ou { ok:false }.
+async function autoSubmitNote({ groupId, eleveId, matiere, note, fallbackNom }){
+  if(!groupId || eleveId === null || eleveId === undefined) return { ok: false };
+  const grp = roster.find(g => String(g.id) === String(groupId));
+  if(!grp) return { ok: false };
+  const el = (grp.eleves || []).find(e => String(e.id) === String(eleveId));
+  const eleveNom = el ? [el.name, el.prenom].filter(Boolean).join(' ') : (fallbackNom || '');
+  const trim = document.getElementById('selTrim').value;
+  try{
+    const ref = await addDoc(collection(db, SOUMISSIONS_COL), {
+      profCode, profNom: profData.nom || '',
+      groupId: String(groupId), groupName: grp.name || '',
+      eleveId: String(eleveId), eleveNom,
+      matiere, note, trim,
+      statut: 'en_attente',
+      auto: true,
+      createdAt: Date.now()
+    });
+    return { ok: true, subId: ref.id, groupName: grp.name || '', eleveNom };
+  }catch(e){ return { ok: false, error: e }; }
+}
+
+// Enregistre la note sur la copie (pour garder une trace de la correction), puis :
+// - si l'élève est lié à un élève du roster (via le 🗓️ dans le chat), la note est
+//   envoyée AUTOMATIQUEMENT à validation (elle apparaît directement dans Emploi du
+//   temps → "⏳ À valider"), sans ressaisie manuelle ;
+// - sinon, elle est préremplie dans le formulaire principal pour envoi manuel, le
+//   temps que l'administrateur lie cet élève à sa fiche (bouton 🗓️ dans le chat).
+async function saveDevoirReponseNote(devoirId, repId, matiere, studentToken, studentNom){
   const input = document.getElementById(`dv-note-${repId}`);
   if(!input) return;
   const val = input.value.trim();
@@ -529,11 +573,56 @@ async function saveDevoirReponseNote(devoirId, repId, matiere){
   const note = Number(val);
   const savedEl = document.getElementById(`dv-saved-${repId}`);
   try{
+    const already = devoirsAutoSentCache[repId];
     await setDoc(doc(db, DEVOIRS_COL, devoirId, 'reponses', repId), { note, noteDate: Date.now() }, { merge: true });
-    if(savedEl){ savedEl.textContent = '✅ Prête — choisissez classe/élève ↑'; setTimeout(() => { if(savedEl) savedEl.textContent = ''; }, 4000); }
+    if(already && already.note === note){
+      if(savedEl) savedEl.textContent = `✅ Déjà envoyée pour validation (${already.groupName})`;
+      return;
+    }
+    const link = await resolveEdtLink(studentToken);
+    if(link && link.edtGroupId){
+      const res = await autoSubmitNote({ groupId: link.edtGroupId, eleveId: link.edtEleveId, matiere, note, fallbackNom: studentNom });
+      if(res.ok){
+        devoirsAutoSentCache[repId] = { note, groupName: res.groupName };
+        if(savedEl) savedEl.textContent = `✅ Envoyée pour validation (${res.groupName})`;
+        return;
+      }
+    }
+    if(savedEl){ savedEl.textContent = '⚠️ Élève non lié — complétez classe/élève ↑ et Envoyer'; setTimeout(() => { if(savedEl) savedEl.textContent = ''; }, 6000); }
     prefillNote(matiere, note);
   }catch(e){
     alert('Erreur lors de l\'enregistrement de la note : ' + (e && e.message ? e.message : e));
+  }
+}
+const devoirsAutoSentCache = {}; // repId -> {note, groupName} — évite les doublons de soumission au reclique
+const evalsAutoSentCache = {}; // resultId -> {note, groupName}
+
+// Même logique que saveDevoirReponseNote, pour le bouton "Noter" des copies d'évaluation.
+// La note (déjà calculée sur 20 par le barème automatique) est envoyée directement à
+// validation si l'élève est lié au roster ; sinon elle est préremplie pour envoi manuel.
+async function noterEvalCopie(resultId, matiere, noteStr, studentToken, studentNom){
+  const note = Number(noteStr);
+  if(isNaN(note)){ return; }
+  const savedEl = document.getElementById(`ev-saved-${resultId}`);
+  const already = evalsAutoSentCache[resultId];
+  if(already && already.note === note){
+    if(savedEl) savedEl.textContent = `✅ Déjà envoyée pour validation (${already.groupName})`;
+    return;
+  }
+  try{
+    const link = await resolveEdtLink(studentToken);
+    if(link && link.edtGroupId){
+      const res = await autoSubmitNote({ groupId: link.edtGroupId, eleveId: link.edtEleveId, matiere, note, fallbackNom: studentNom });
+      if(res.ok){
+        evalsAutoSentCache[resultId] = { note, groupName: res.groupName };
+        if(savedEl) savedEl.textContent = `✅ Envoyée pour validation (${res.groupName})`;
+        return;
+      }
+    }
+    if(savedEl){ savedEl.textContent = '⚠️ Élève non lié — complétez classe/élève ↑ et Envoyer'; setTimeout(() => { if(savedEl) savedEl.textContent = ''; }, 6000); }
+    prefillNote(matiere, note);
+  }catch(e){
+    alert('Erreur lors de l\'envoi de la note : ' + (e && e.message ? e.message : e));
   }
 }
 
