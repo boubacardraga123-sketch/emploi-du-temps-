@@ -12108,9 +12108,21 @@ function findEleveContact(groupId, eleveId){
   };
 }
 
+// Retourne la mention et un message d'encouragement adapté à la note (sur 20)
+function getMentionEtEncouragement(note){
+  const n = Number(note);
+  if(isNaN(n)) return { mention: '', encouragement: '' };
+  if(n >= 16) return { mention: 'Très Bien 🌟', encouragement: "Excellent travail ! Continue sur cette lancée, tu es un exemple pour la classe." };
+  if(n >= 14) return { mention: 'Bien 👍', encouragement: "Très bon résultat, encore un petit effort pour viser l'excellence !" };
+  if(n >= 12) return { mention: 'Assez Bien', encouragement: "Bon travail, continue à approfondir tes révisions." };
+  if(n >= 10) return { mention: 'Passable', encouragement: "C'est acquis, mais il faut renforcer certains points. Tu peux mieux faire !" };
+  return { mention: 'Insuffisant', encouragement: "Ne te décourage pas. Avec plus de travail et de régularité, tu vas progresser." };
+}
+
 function buildNoteMessage(s){
   const dateStr = s.createdAt ? new Date(s.createdAt).toLocaleDateString('fr-FR') : '';
-  return `📝 Nouvelle note\n\nÉlève : ${s.eleveNom || ''}\nClasse : ${s.groupName || ''}\nMatière : ${s.matiere || ''}\nTrimestre : ${s.trim || ''}\nNote : ${s.note}/20${dateStr ? '\nDate : ' + dateStr : ''}`;
+  const { mention, encouragement } = getMentionEtEncouragement(s.note);
+  return `📝 Nouvelle note\n\nÉlève : ${s.eleveNom || ''}\nClasse : ${s.groupName || ''}\nMatière : ${s.matiere || ''}\nTrimestre : ${s.trim || ''}\nNote : ${s.note}/20${dateStr ? '\nDate : ' + dateStr : ''}${mention ? '\nMention : ' + mention : ''}${encouragement ? '\n\n' + encouragement : ''}`;
 }
 
 window.sendNoteWhatsApp = function(subId){
