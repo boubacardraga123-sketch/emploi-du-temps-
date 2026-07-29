@@ -16493,7 +16493,24 @@ function renderFicheSuivi360(gid, eid){
     html += `<div style="font-size:12px;color:#94a3b8;padding:6px 0">Aucune note disponible pour cette matière.</div>`;
   }
 
+  // ── Bulletin de notes (aperçu + envoi WhatsApp/Email au parent + PDF) ──
+  html += `<div class="fiche-section-title">🧾 Bulletin de notes</div>
+  <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+    <select id="fiche-bulletin-trim" onchange="renderFicheBulletinPreview(${gid},${eid})" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:12px;font-family:'DM Sans',sans-serif">
+      <option value="T1"${dernierTrim==='T1'?' selected':''}>Trimestre 1</option>
+      <option value="T2"${dernierTrim==='T2'?' selected':''}>Trimestre 2</option>
+      <option value="T3"${dernierTrim==='T3'?' selected':''}>Trimestre 3</option>
+    </select>
+  </div>
+  <div id="fiche-bulletin-preview" style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 12px;font-size:12px;white-space:pre-wrap;font-family:'DM Mono',monospace;color:#334155;margin-bottom:10px;min-height:40px"></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
+    <button class="btn btn-green" style="font-size:11px;padding:6px 12px" onclick="sendFicheBulletinWA(${gid},${eid},document.getElementById('fiche-bulletin-trim').value)">📤 WhatsApp parent</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:6px 12px" onclick="sendFicheBulletinEmail(${gid},${eid},document.getElementById('fiche-bulletin-trim').value)">✉️ Email parent</button>
+    <button style="font-size:11px;padding:6px 12px;background:#1a1f2e;color:#fff;border:none;border-radius:9px;cursor:pointer;font-weight:700" onclick="ficheGenererBulletinPDF(${gid},${eid},document.getElementById('fiche-bulletin-trim').value)">📄 PDF</button>
+  </div>`;
+
   content.innerHTML = html;
+  renderFicheBulletinPreview(gid, eid);
 
   if(typeof window.publishProgressionToChat === 'function') window.publishProgressionToChat(gid, eid);
   if(typeof window.publishEleveToGAR === 'function') window.publishEleveToGAR(gid, eid);
@@ -16513,6 +16530,159 @@ function alertParentSuivi(gid, eid){
   const clean = el.wa_parent.replace(/[^\d+]/g,'').replace(/^0/,'224');
   window.open(`https://wa.me/${clean}?text=${encodeURIComponent(msg)}`, '_blank');
 }
+
+/* ══════ BULLETIN DE NOTES — fiche élève (Suivi 360) ══════
+   Génère un bulletin (texte + PDF) à partir des notes déjà saisies dans
+   l'onglet "Comparaison trimestrielle" (mêmes données que le Suivi 360),
+   et permet de l'envoyer au parent par WhatsApp ou Email. */
+
+const FICHE_BULLETIN_TRIM_LABELS = {T1:'1er Trimestre', T2:'2ème Trimestre', T3:'3ème Trimestre'};
+
+function ficheMention(moy){
+  if(moy===null || isNaN(moy)) return {t:'—', c:'#94a3b8'};
+  if(moy>=16) return {t:'Très Bien', c:'#059669'};
+  if(moy>=14) return {t:'Bien', c:'#0d9488'};
+  if(moy>=12) return {t:'Assez Bien', c:'#2563eb'};
+  if(moy>=10) return {t:'Passable', c:'#d97706'};
+  return {t:'Insuffisant', c:'#dc2626'};
+}
+
+function ficheBulletinText(gid, eid, trim){
+  const d = ficheSuivi360Data(gid, eid);
+  if(!d) return null;
+  const { el, parTrim } = d;
+  const data = parTrim[trim];
+  if(!data || !data.matieres.length) return null;
+  const nom = [el.prenom, el.name].filter(Boolean).join(' ');
+  const men = ficheMention(data.avg!==null ? Number(data.avg) : null);
+  let lines = [`📋 BULLETIN DE NOTES — ${FICHE_BULLETIN_TRIM_LABELS[trim]||trim}`];
+  if(el.classe) lines.push(`🏫 Classe : ${el.classe}`);
+  lines.push(`👤 Élève : ${nom}`);
+  lines.push('─────────────────');
+  data.matieres.forEach(m=>{
+    lines.push(`📚 ${m.mat}${m.coeff && m.coeff!==1 ? ' (×'+m.coeff+')' : ''} : ${m.note.toFixed(2)}/20`);
+  });
+  lines.push('─────────────────');
+  lines.push(`📊 Moyenne : ${data.avg!==null ? data.avg+'/20' : '—'}`);
+  lines.push(`🏅 Mention : ${men.t}`);
+  return lines.join('\n');
+}
+
+function renderFicheBulletinPreview(gid, eid){
+  const sel = document.getElementById('fiche-bulletin-trim');
+  const box = document.getElementById('fiche-bulletin-preview');
+  if(!box) return;
+  const trim = sel ? sel.value : 'T3';
+  const msg = ficheBulletinText(gid, eid, trim);
+  box.textContent = msg || 'Aucune note enregistrée pour ce trimestre. Saisissez les notes via l\'onglet 📊 Comparaison trimestrielle.';
+}
+
+window.sendFicheBulletinWA = function(gid, eid, trim){
+  const grp = groupesList.find(g=>g.id===gid);
+  const el  = grp ? grp.eleves.find(e=>e.id===eid) : null;
+  if(!el) return;
+  const msg = ficheBulletinText(gid, eid, trim);
+  if(!msg){ alert('Aucune note enregistrée pour ce trimestre.'); return; }
+  const wa = (el.wa_parent||el.mere_wa||'').replace(/[^\d+]/g,'').replace(/^0/,'224');
+  if(!wa){ alert('Numéro WhatsApp du parent manquant. Ajoutez-le dans l\'onglet Famille.'); return; }
+  window.open(`https://wa.me/${wa}?text=${encodeURIComponent(msg)}`, '_blank');
+};
+
+window.sendFicheBulletinEmail = function(gid, eid, trim){
+  const grp = groupesList.find(g=>g.id===gid);
+  const el  = grp ? grp.eleves.find(e=>e.id===eid) : null;
+  if(!el) return;
+  const msg = ficheBulletinText(gid, eid, trim);
+  if(!msg){ alert('Aucune note enregistrée pour ce trimestre.'); return; }
+  const email = el.email_parent||el.mere_email||'';
+  if(!email){ alert('Email du parent manquant. Ajoutez-le dans l\'onglet Famille.'); return; }
+  const nom = [el.prenom, el.name].filter(Boolean).join(' ');
+  const sub = encodeURIComponent(`Bulletin de notes — ${nom} — ${FICHE_BULLETIN_TRIM_LABELS[trim]||trim}`);
+  window.open(`mailto:${encodeURIComponent(email)}?subject=${sub}&body=${encodeURIComponent(msg)}`, '_blank');
+};
+
+/* ── Bulletin PDF (impression navigateur) — mise en page façon "Calcul des notes" ── */
+function ficheBulletinPageHTML(gid, eid, trim){
+  const d = ficheSuivi360Data(gid, eid);
+  if(!d) return '';
+  const { el, parTrim } = d;
+  const data = parTrim[trim] || {avg:null, matieres:[]};
+  const nom = [el.prenom, el.name].filter(Boolean).join(' ');
+  const men = ficheMention(data.avg!==null ? Number(data.avg) : null);
+  const rows = data.matieres.map(m=>`<tr>
+      <td style="padding:8px 10px;border:1px solid #dfe3ea;font-size:12.5px">${esc(m.mat)}</td>
+      <td style="padding:8px 10px;border:1px solid #dfe3ea;text-align:center;font-size:12.5px">${m.coeff||1}</td>
+      <td style="padding:8px 10px;border:1px solid #dfe3ea;text-align:center;font-weight:700;font-size:12.5px;color:${m.note>=10?'#065f46':'#991b1b'}">${m.note.toFixed(2)}/20</td>
+    </tr>`).join('');
+  return `
+  <div class="fb-page">
+    <div class="fb-flag-bar"></div>
+    <div class="fb-head">
+      <div>
+        <div class="fb-head-title">BULLETIN DE NOTES</div>
+        <div class="fb-head-sub">${esc(FICHE_BULLETIN_TRIM_LABELS[trim]||trim)}${el.classe?' — Classe : '+esc(el.classe):''}</div>
+      </div>
+    </div>
+    <div class="fb-eleve-row">
+      <div><span class="fb-lbl">Élève :</span> <strong>${esc(nom)}</strong></div>
+      <div><span class="fb-lbl">Date d'édition :</span> ${new Date().toLocaleDateString('fr-FR')}</div>
+    </div>
+    <table class="fb-table">
+      <thead><tr>
+        <th style="padding:8px 10px;text-align:left">Matière</th>
+        <th style="padding:8px 10px">Coeff.</th>
+        <th style="padding:8px 10px">Note / 20</th>
+      </tr></thead>
+      <tbody>${rows || '<tr><td colspan="3" style="padding:12px;text-align:center;color:#94a3b8">Aucune note enregistrée</td></tr>'}</tbody>
+    </table>
+    <div class="fb-summary">
+      <div class="fb-sum-item"><div class="fb-sum-val">${data.avg!==null?data.avg+'/20':'—'}</div><div class="fb-sum-lbl">Moyenne</div></div>
+      <div class="fb-sum-item"><div class="fb-sum-val" style="color:${men.c}">${men.t}</div><div class="fb-sum-lbl">Mention</div></div>
+    </div>
+    <div class="fb-sign">
+      <div>Le Professeur Principal<div class="fb-sign-line"></div></div>
+      <div>Le Directeur / La Directrice<div class="fb-sign-line"></div></div>
+    </div>
+  </div>`;
+}
+
+function ficheOuvrirImpressionBulletin(pageHTML, titre){
+  const win = window.open('', '_blank');
+  if(!win){ if(typeof toast==='function') toast('⚠️ Autorisez les popups pour générer le PDF.'); return; }
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>${titre}</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Arial',sans-serif;color:#1a1f2e}
+    .fb-page{max-width:720px;margin:0 auto;padding:26px 30px}
+    .fb-flag-bar{height:6px;border-radius:3px;margin-bottom:16px;background:linear-gradient(90deg,#ce1126 0 33%,#fcd116 33% 66%,#009460 66% 100%)}
+    .fb-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1a1f2e;padding-bottom:10px;margin-bottom:14px}
+    .fb-head-title{font-size:19px;font-weight:800;letter-spacing:.5px}
+    .fb-head-sub{font-size:12px;color:#555;margin-top:2px}
+    .fb-eleve-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:14px;flex-wrap:wrap;gap:6px}
+    .fb-lbl{color:#64748b}
+    .fb-table{width:100%;border-collapse:collapse;margin-bottom:16px}
+    .fb-table thead th{background:#1a1f2e;color:#fff;font-size:11.5px}
+    .fb-summary{display:flex;gap:10px;margin-bottom:26px}
+    .fb-sum-item{flex:1;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px;text-align:center}
+    .fb-sum-val{font-size:16px;font-weight:800}
+    .fb-sum-lbl{font-size:10px;color:#64748b;font-weight:700;margin-top:2px}
+    .fb-sign{display:flex;justify-content:space-between;margin-top:40px;font-size:12px;color:#334155}
+    .fb-sign-line{width:160px;border-bottom:1px solid #94a3b8;margin-top:34px}
+    @media print{ @page{margin:1.2cm} }
+  </style></head><body>
+  ${pageHTML}
+  <script>window.onload=function(){window.print();}<\/script>
+  </body></html>`);
+  win.document.close();
+}
+
+window.ficheGenererBulletinPDF = function(gid, eid, trim){
+  const d = ficheSuivi360Data(gid, eid);
+  if(!d) return;
+  const nom = [d.el.prenom, d.el.name].filter(Boolean).join(' ');
+  const page = ficheBulletinPageHTML(gid, eid, trim);
+  ficheOuvrirImpressionBulletin(page, 'Bulletin — '+nom);
+};
 </script>
 
 <!-- ══════════════════ RÈGLEMENT INTÉRIEUR — logique ══════════════════ -->
