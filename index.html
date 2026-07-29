@@ -14966,9 +14966,19 @@ function cnBulletin(e){
     lines.push(`📚 ${m.nom} (×${m.coeff||1}) : ${noteStr}`);
   });
   lines.push('─────────────────');
+  const cnMatch = (typeof cnFindDossierById==='function') ? (cnFindDossierById(e.id) || cnFindDossierMatch(e.nom)) : null;
+  const cnMens = (cnMatch && typeof ficheMensuelData==='function') ? ficheMensuelData(cnMatch.gid, cnMatch.eid, cnTrimestre) : {m1:'',m2:'',m3:''};
+  if(cnMens.m1!=='' || cnMens.m2!=='' || cnMens.m3!==''){
+    lines.push('📅 Moyennes mensuelles :');
+    if(cnMens.m1!=='') lines.push(`   Mois 1 : ${cnMens.m1}/20`);
+    if(cnMens.m2!=='') lines.push(`   Mois 2 : ${cnMens.m2}/20`);
+    if(cnMens.m3!=='') lines.push(`   Mois 3 : ${cnMens.m3}/20`);
+    lines.push('─────────────────');
+  }
   lines.push(`📊 Moyenne : ${moy!==null?moy.toFixed(2)+'/20':'—'}`);
   lines.push(`🏅 Mention : ${men.t}`);
   lines.push(`🏆 Rang : ${rank}`);
+  if(typeof ficheRemarque==='function') lines.push(`📝 Remarque : ${ficheRemarque(moy)}`);
   return lines.join('\n');
 }
 
@@ -14980,6 +14990,14 @@ function cnBulletinPageHTML(e){
   const moy = cnMoyenneEleve(e.id);
   const men = cnMention(moy);
   const rank = cnRank(e.id);
+  const cnMatch2 = (typeof cnFindDossierById==='function') ? (cnFindDossierById(e.id) || cnFindDossierMatch(e.nom)) : null;
+  const cnMens2 = (cnMatch2 && typeof ficheMensuelData==='function') ? ficheMensuelData(cnMatch2.gid, cnMatch2.eid, cnTrimestre) : {m1:'',m2:'',m3:''};
+  const cnMensuelHTML = (cnMens2.m1!=='' || cnMens2.m2!=='' || cnMens2.m3!=='') ? `
+    <div class="cn-bsummary" style="margin-top:0">
+      <div class="cn-bsum-item"><div class="cn-bsum-val">${cnMens2.m1!==''?cnMens2.m1+'/20':'—'}</div><div class="cn-bsum-lbl">Mois 1</div></div>
+      <div class="cn-bsum-item"><div class="cn-bsum-val">${cnMens2.m2!==''?cnMens2.m2+'/20':'—'}</div><div class="cn-bsum-lbl">Mois 2</div></div>
+      <div class="cn-bsum-item"><div class="cn-bsum-val">${cnMens2.m3!==''?cnMens2.m3+'/20':'—'}</div><div class="cn-bsum-lbl">Mois 3</div></div>
+    </div>` : '';
   const rows = cnMatieres.map(m=>{
     const n = cnNotes[e.id]?.[m.id];
     const val = (n!==undefined && n!=='') ? parseFloat(n) : null;
@@ -15016,6 +15034,10 @@ function cnBulletinPageHTML(e){
       <div class="cn-bsum-item"><div class="cn-bsum-val">${moy!==null?moy.toFixed(2)+'/20':'—'}</div><div class="cn-bsum-lbl">Moyenne générale</div></div>
       <div class="cn-bsum-item"><div class="cn-bsum-val" style="color:${men.c}">${men.t}</div><div class="cn-bsum-lbl">Mention</div></div>
       <div class="cn-bsum-item"><div class="cn-bsum-val">${rank}</div><div class="cn-bsum-lbl">Rang de classe</div></div>
+    </div>
+    ${cnMensuelHTML}
+    <div style="margin-top:12px;padding:10px 12px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;color:#334155">
+      <strong>📝 Remarque :</strong> ${cnEsc(typeof ficheRemarque==='function' ? ficheRemarque(moy) : '')}
     </div>
     <div class="cn-bsign">
       <div>Le Professeur<div class="cn-sign-line"></div></div>
@@ -16496,11 +16518,18 @@ function renderFicheSuivi360(gid, eid){
   // ── Bulletin de notes (aperçu + envoi WhatsApp/Email au parent + PDF) ──
   html += `<div class="fiche-section-title">🧾 Bulletin de notes</div>
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
-    <select id="fiche-bulletin-trim" onchange="renderFicheBulletinPreview(${gid},${eid})" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:12px;font-family:'DM Sans',sans-serif">
+    <select id="fiche-bulletin-trim" onchange="renderFicheBulletinPreview(${gid},${eid});renderFicheMensuelInputs(${gid},${eid})" style="border:1.5px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:12px;font-family:'DM Sans',sans-serif">
       <option value="T1"${dernierTrim==='T1'?' selected':''}>Trimestre 1</option>
       <option value="T2"${dernierTrim==='T2'?' selected':''}>Trimestre 2</option>
       <option value="T3"${dernierTrim==='T3'?' selected':''}>Trimestre 3</option>
     </select>
+  </div>
+  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:10px">
+    <span style="font-size:11px;color:#64748b;font-weight:700">📅 Moyennes mensuelles :</span>
+    <input type="number" min="0" max="20" step="0.01" id="fiche-mensuel-m1" placeholder="Mois 1" style="width:70px;padding:5px 7px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;font-family:'DM Mono',monospace">
+    <input type="number" min="0" max="20" step="0.01" id="fiche-mensuel-m2" placeholder="Mois 2" style="width:70px;padding:5px 7px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;font-family:'DM Mono',monospace">
+    <input type="number" min="0" max="20" step="0.01" id="fiche-mensuel-m3" placeholder="Mois 3" style="width:70px;padding:5px 7px;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;font-family:'DM Mono',monospace">
+    <button class="btn btn-ghost" style="font-size:11px;padding:6px 10px" onclick="ficheMensuelSave(${gid},${eid},document.getElementById('fiche-bulletin-trim').value)">💾 Enregistrer</button>
   </div>
   <div id="fiche-bulletin-preview" style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 12px;font-size:12px;white-space:pre-wrap;font-family:'DM Mono',monospace;color:#334155;margin-bottom:10px;min-height:40px"></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px">
@@ -16511,6 +16540,7 @@ function renderFicheSuivi360(gid, eid){
 
   content.innerHTML = html;
   renderFicheBulletinPreview(gid, eid);
+  renderFicheMensuelInputs(gid, eid);
 
   if(typeof window.publishProgressionToChat === 'function') window.publishProgressionToChat(gid, eid);
   if(typeof window.publishEleveToGAR === 'function') window.publishEleveToGAR(gid, eid);
@@ -16547,6 +16577,48 @@ function ficheMention(moy){
   return {t:'Insuffisant', c:'#dc2626'};
 }
 
+/* ── Moyennes mensuelles (saisie manuelle Mois 1/2/3 par trimestre) + Remarque ── */
+function ficheMensuelKey(gid, eid, trim){ return 'ol_mensuel_'+gid+'_'+eid+'_'+trim; }
+
+function ficheMensuelData(gid, eid, trim){
+  const d = ld(ficheMensuelKey(gid, eid, trim));
+  return { m1: (d && d.m1!==undefined) ? d.m1 : '', m2: (d && d.m2!==undefined) ? d.m2 : '', m3: (d && d.m3!==undefined) ? d.m3 : '' };
+}
+
+window.ficheMensuelSave = function(gid, eid, trim){
+  const m1El = document.getElementById('fiche-mensuel-m1');
+  const m2El = document.getElementById('fiche-mensuel-m2');
+  const m3El = document.getElementById('fiche-mensuel-m3');
+  const m1 = m1El ? m1El.value : '';
+  const m2 = m2El ? m2El.value : '';
+  const m3 = m3El ? m3El.value : '';
+  sv(ficheMensuelKey(gid, eid, trim), {m1, m2, m3});
+  if(typeof toast==='function') toast('✅ Moyennes mensuelles enregistrées');
+  if(typeof renderFicheBulletinPreview==='function') renderFicheBulletinPreview(gid, eid);
+};
+
+function renderFicheMensuelInputs(gid, eid){
+  const sel = document.getElementById('fiche-bulletin-trim');
+  const trim = sel ? sel.value : 'T3';
+  const d = ficheMensuelData(gid, eid, trim);
+  const m1El = document.getElementById('fiche-mensuel-m1');
+  const m2El = document.getElementById('fiche-mensuel-m2');
+  const m3El = document.getElementById('fiche-mensuel-m3');
+  if(m1El) m1El.value = d.m1;
+  if(m2El) m2El.value = d.m2;
+  if(m3El) m3El.value = d.m3;
+}
+
+function ficheRemarque(moy){
+  if(moy===null || isNaN(moy)) return 'Pas assez de notes pour établir une appréciation.';
+  const n = Number(moy);
+  if(n>=16) return 'Excellent trimestre, élève sérieux et régulier. Continuez ainsi !';
+  if(n>=14) return 'Bon trimestre, bons résultats. Poursuivez vos efforts.';
+  if(n>=12) return 'Trimestre satisfaisant, des efforts supplémentaires permettront de progresser.';
+  if(n>=10) return 'Résultats justes, un travail plus soutenu est nécessaire.';
+  return 'Résultats insuffisants, un redoublement d\'efforts est indispensable.';
+}
+
 function ficheBulletinText(gid, eid, trim){
   const d = ficheSuivi360Data(gid, eid);
   if(!d) return null;
@@ -16563,8 +16635,17 @@ function ficheBulletinText(gid, eid, trim){
     lines.push(`📚 ${m.mat}${m.coeff && m.coeff!==1 ? ' (×'+m.coeff+')' : ''} : ${m.note.toFixed(2)}/20`);
   });
   lines.push('─────────────────');
+  const mens = ficheMensuelData(gid, eid, trim);
+  if(mens.m1!=='' || mens.m2!=='' || mens.m3!==''){
+    lines.push('📅 Moyennes mensuelles :');
+    if(mens.m1!=='') lines.push(`   Mois 1 : ${mens.m1}/20`);
+    if(mens.m2!=='') lines.push(`   Mois 2 : ${mens.m2}/20`);
+    if(mens.m3!=='') lines.push(`   Mois 3 : ${mens.m3}/20`);
+    lines.push('─────────────────');
+  }
   lines.push(`📊 Moyenne : ${data.avg!==null ? data.avg+'/20' : '—'}`);
   lines.push(`🏅 Mention : ${men.t}`);
+  lines.push(`📝 Remarque : ${ficheRemarque(data.avg!==null ? Number(data.avg) : null)}`);
   return lines.join('\n');
 }
 
@@ -16609,11 +16690,18 @@ function ficheBulletinPageHTML(gid, eid, trim){
   const data = parTrim[trim] || {avg:null, matieres:[]};
   const nom = [el.prenom, el.name].filter(Boolean).join(' ');
   const men = ficheMention(data.avg!==null ? Number(data.avg) : null);
+  const mens = ficheMensuelData(gid, eid, trim);
   const rows = data.matieres.map(m=>`<tr>
       <td style="padding:8px 10px;border:1px solid #dfe3ea;font-size:12.5px">${esc(m.mat)}</td>
       <td style="padding:8px 10px;border:1px solid #dfe3ea;text-align:center;font-size:12.5px">${m.coeff||1}</td>
       <td style="padding:8px 10px;border:1px solid #dfe3ea;text-align:center;font-weight:700;font-size:12.5px;color:${m.note>=10?'#065f46':'#991b1b'}">${m.note.toFixed(2)}/20</td>
     </tr>`).join('');
+  const mensuelHTML = (mens.m1!=='' || mens.m2!=='' || mens.m3!=='') ? `
+    <div class="fb-summary" style="margin-top:10px">
+      <div class="fb-sum-item"><div class="fb-sum-val">${mens.m1!==''?mens.m1+'/20':'—'}</div><div class="fb-sum-lbl">Mois 1</div></div>
+      <div class="fb-sum-item"><div class="fb-sum-val">${mens.m2!==''?mens.m2+'/20':'—'}</div><div class="fb-sum-lbl">Mois 2</div></div>
+      <div class="fb-sum-item"><div class="fb-sum-val">${mens.m3!==''?mens.m3+'/20':'—'}</div><div class="fb-sum-lbl">Mois 3</div></div>
+    </div>` : '';
   return `
   <div class="fb-page">
     <div class="fb-flag-bar"></div>
@@ -16638,6 +16726,10 @@ function ficheBulletinPageHTML(gid, eid, trim){
     <div class="fb-summary">
       <div class="fb-sum-item"><div class="fb-sum-val">${data.avg!==null?data.avg+'/20':'—'}</div><div class="fb-sum-lbl">Moyenne</div></div>
       <div class="fb-sum-item"><div class="fb-sum-val" style="color:${men.c}">${men.t}</div><div class="fb-sum-lbl">Mention</div></div>
+    </div>
+    ${mensuelHTML}
+    <div style="margin-top:12px;padding:10px 12px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;color:#334155">
+      <strong>📝 Remarque :</strong> ${esc(ficheRemarque(data.avg!==null ? Number(data.avg) : null))}
     </div>
     <div class="fb-sign">
       <div>Le Professeur Principal<div class="fb-sign-line"></div></div>
