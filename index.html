@@ -2757,6 +2757,11 @@ window._saveEvalManualGrade = async function(ri) {
     await setDoc(doc(fbDB, 'edtx_eval_results', `${ev.id}_${r.studentId}`), { score: newScore, manualGrades, published: true }, { merge: true });
     r.score = newScore;
     r.manualGrades = manualGrades;
+    // Intègre automatiquement cette note dans "Calcul des notes" + fiche élève (pour le bulletin)
+    if (typeof window.cnAutoIntegrateEvalNote === 'function') {
+      const noteSur20 = maxScore > 0 ? Math.round((newScore / maxScore) * 20 * 100) / 100 : newScore;
+      window.cnAutoIntegrateEvalNote(r.studentName, ev.dept || ev.title, noteSur20);
+    }
     const pct = maxScore>0?Math.round(newScore/maxScore*100):0;
     const col = pct>=60?'#059669':pct>=40?'#d97706':'#dc2626';
     const scoreEl = document.getElementById('eval-res-score-'+ri);
@@ -15386,6 +15391,70 @@ function cnSyncNoteToDossier(eid, mid, val){
     if(typeof currentTab!=='undefined' && currentTab==='decrocheurs' && typeof renderDecrocheurs==='function') renderDecrocheurs();
   }catch(err){ console.warn('cnSyncNoteToDossier:', err); }
 }
+
+/* ── Intègre automatiquement la note d'une évaluation corrigée (chat-élèves) dans
+   "Calcul des notes" (carnet correspondant à l'élève) ET dans la fiche élève,
+   pour qu'elle soit prise en compte automatiquement dans le bulletin. ── */
+function cnAutoIntegrateEvalNote(studentName, matiereLabel, noteSur20, dateStr){
+  try{
+    if(!studentName || noteSur20===null || noteSur20===undefined || isNaN(noteSur20)) return;
+    const norm = (typeof decroNormName==='function') ? decroNormName(studentName) : String(studentName).toLowerCase().trim();
+    // "dept"/matiereLabel peut contenir "Matière · Niveau" ou "Matière – Niveau" : on isole la matière
+    const matiereNom = String(matiereLabel||'').split(/[·–-]/)[0].trim() || 'Évaluation';
+    const matNorm = matiereNom.toLowerCase();
+    const theDate = dateStr || (typeof getTodayStr==='function' ? getTodayStr() : '');
+
+    // 1) Chercher l'élève dans un des carnets de "Calcul des notes" (tous carnets confondus)
+    let foundBid = null, foundEl = null;
+    for(const bid of Object.keys(cnBooks)){
+      const book = cnBooks[bid];
+      const el = (book.eleves||[]).find(e=>{
+        const n = (typeof decroNormName==='function') ? decroNormName(e.nom) : String(e.nom||'').toLowerCase().trim();
+        return n && (n===norm || n.includes(norm) || norm.includes(n));
+      });
+      if(el){ foundBid = bid; foundEl = el; break; }
+    }
+    if(foundBid && foundEl){
+      const book = cnBooks[foundBid];
+      book.matieres = book.matieres || [];
+      let mat = book.matieres.find(m => m.nom && (m.nom.toLowerCase()===matNorm || m.nom.toLowerCase().includes(matNorm) || matNorm.includes(m.nom.toLowerCase())));
+      if(!mat){ mat = { id: cnId(), nom: matiereNom, coeff: 1 }; book.matieres.push(mat); }
+      book.notes = book.notes || {};
+      book.notes[foundEl.id] = book.notes[foundEl.id] || {};
+      book.notes[foundEl.id][mat.id] = noteSur20;
+      sv('cn_books', cnBooks);
+      // Si c'est le carnet actuellement affiché, rafraîchir les variables globales + l'affichage
+      if(foundBid === cnActiveBook){
+        cnEleves   = cnLoad('eleves', []);
+        cnMatieres = cnLoad('matieres', []);
+        cnNotes    = cnLoad('notes', {});
+        if(typeof cnRender==='function') cnRender();
+      }
+    }
+
+    // 2) Toujours synchroniser aussi vers la fiche élève (dossier), même sans carnet correspondant
+    const match = (typeof cnFindDossierMatch==='function') ? cnFindDossierMatch(studentName) : null;
+    if(match){
+      const el = match.el;
+      if(!el.notes) el.notes = [];
+      const idx = el.notes.findIndex(n=>n.matiere===matiereNom && n.source==='evaluation');
+      const noteObj = { matiere: matiereNom, val: noteSur20, date: theDate, source:'evaluation' };
+      if(idx>-1) el.notes[idx]=noteObj; else el.notes.push(noteObj);
+      if(typeof saveGroupes==='function') saveGroupes();
+      const fgEl = document.getElementById('fiche-gid');
+      const feEl = document.getElementById('fiche-eid');
+      if(fgEl && feEl && String(fgEl.value)===String(match.gid) && String(feEl.value)===String(match.eid)){
+        const listEl = document.getElementById(`fiche-notes-list-${match.gid}-${match.eid}`);
+        if(listEl && typeof renderFicheNotesList==='function') listEl.innerHTML = renderFicheNotesList(el);
+        if(typeof renderFicheSuivi360==='function') renderFicheSuivi360(match.gid, match.eid);
+      }
+      if(typeof window.publishProgressionToChat === 'function') window.publishProgressionToChat(match.gid, match.eid);
+      if(typeof window.publishEleveToGAR === 'function') window.publishEleveToGAR(match.gid, match.eid);
+      if(typeof currentTab!=='undefined' && currentTab==='decrocheurs' && typeof renderDecrocheurs==='function') renderDecrocheurs();
+    }
+  }catch(err){ console.warn('cnAutoIntegrateEvalNote:', err); }
+}
+window.cnAutoIntegrateEvalNote = cnAutoIntegrateEvalNote;
 
 /* ── Saisir une note ── */
 window.cnSetNote = function(eid, mid, val){
