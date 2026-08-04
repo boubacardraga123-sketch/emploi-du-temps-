@@ -2382,6 +2382,7 @@ const getDocs   = window.fbGetDocs;
 const addDoc    = window.fbAddDoc;
 const deleteDoc = window.fbDeleteDoc;
 const updateDoc = window.fbUpdateDoc;
+const onSnapshot= window.fbOnSnapshot;
 
 // =====================================================================
 // ÉVALUATIONS — onglet 📝
@@ -2391,6 +2392,33 @@ let _adminEvalQCounter  = 0;
 let _adminEvalPoints    = [];
 
 function aEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+// Écoute en temps réel de toutes les copies envoyées (edtx_eval_results), pour afficher
+// automatiquement la liste des élèves ayant envoyé sous chaque évaluation, sans clic.
+window._evalResultsByEval = window._evalResultsByEval || {};
+function _evalRepsRenderAll(){
+  document.querySelectorAll('[id^="ev-reps-badge-"]').forEach(el=>{
+    const evalId = el.id.replace('ev-reps-badge-','');
+    const noms = window._evalResultsByEval[evalId] || [];
+    if (!noms.length) { el.innerHTML = `<span style="font-size:.72rem;color:#94a3b8;">Aucun élève n'a encore envoyé sa copie.</span>`; return; }
+    el.innerHTML = `<div style="font-size:.72rem;color:#059669;font-weight:700;margin-bottom:2px;">✅ ${noms.length} élève${noms.length>1?'s':''} a${noms.length>1?'nt':''} envoyé :</div>
+      <div style="font-size:.72rem;color:#334155;">${noms.map(n=>aEsc(n)).join(', ')}</div>`;
+  });
+}
+if (!window._evalResultsListenerAttached) {
+  window._evalResultsListenerAttached = true;
+  onSnapshot(collection(fbDB,'edtx_eval_results'), snap => {
+    const byEval = {};
+    snap.docs.forEach(d => {
+      const r = d.data();
+      const key = String(r.evalId);
+      if (!byEval[key]) byEval[key] = [];
+      if (r.studentName) byEval[key].push(r.studentName);
+    });
+    window._evalResultsByEval = byEval;
+    _evalRepsRenderAll();
+  });
+}
 
 // Charger et afficher les évaluations
 window.loadEvalsAdmin = async function() {
@@ -2449,8 +2477,10 @@ window.loadEvalsAdmin = async function() {
             <button onclick="deleteEvalAdmin('${e.id}')" style="flex:1;background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:8px;font-size:.78rem;font-weight:700;cursor:pointer">🗑</button>
           </div>
         </div>
+        <div id="ev-reps-badge-${e.id}" style="margin-top:8px;padding-top:8px;border-top:1px dashed #e2e8f0;"><span style="font-size:.72rem;color:#94a3b8;">Chargement des réponses…</span></div>
       </div>`;
     }).join('');
+    _evalRepsRenderAll();
   } catch(err){ list.innerHTML='<p style="color:#dc2626;padding:16px;text-align:center;font-size:.82rem;">❌ Erreur de chargement.</p>'; }
 };
 
@@ -3218,6 +3248,7 @@ window.copyDevoirLink = function(code) {
 };
 
 window.deleteDevoirAdmin = async function(id) {
+  if (!id) { toast('❌ Erreur : identifiant de devoir introuvable.'); return; }
   if (!confirm('Supprimer ce devoir et toutes les réponses reçues ?')) return;
   try {
     const repSnap = await getDocs(collection(fbDB,'edtx_devoirs',id,'reponses'));
@@ -3225,16 +3256,42 @@ window.deleteDevoirAdmin = async function(id) {
     await deleteDoc(doc(fbDB,'edtx_devoirs',id));
     toast('🗑️ Devoir supprimé.');
     loadDevoirsAdmin();
-  } catch(e) { toast('❌ Erreur : ' + e.message); }
+  } catch(e) {
+    console.error('deleteDevoirAdmin error:', e);
+    toast('❌ Erreur : ' + e.message);
+  }
 };
+
+// Écoute en temps réel des réponses reçues, pour afficher automatiquement
+// la liste des élèves ayant envoyé (sans avoir à cliquer sur "Voir les réponses").
+window._dvRepsUnsubs = window._dvRepsUnsubs || [];
+function _dvRepsWatch(devoirId){
+  const unsub = onSnapshot(collection(fbDB,'edtx_devoirs',devoirId,'reponses'), snap => {
+    const badge = document.getElementById(`dv-reps-badge-${devoirId}`);
+    if (!badge) return;
+    if (snap.empty) { badge.innerHTML = `<span style="font-size:.72rem;color:#94a3b8;">Aucun élève n'a encore envoyé sa réponse.</span>`; return; }
+    const noms = snap.docs.map(d=>d.data().nom).filter(Boolean);
+    badge.innerHTML = `<div style="font-size:.72rem;color:#059669;font-weight:700;margin-bottom:2px;">✅ ${noms.length} élève${noms.length>1?'s':''} a${noms.length>1?'nt':''} envoyé :</div>
+      <div style="font-size:.72rem;color:#334155;">${noms.map(n=>aEsc(n)).join(', ')}</div>`;
+  });
+  window._dvRepsUnsubs.push(unsub);
+}
 
 window.loadDevoirsAdmin = async function() {
   const list = document.getElementById('devoirs-admin-list');
   if (!list) return;
   list.innerHTML = '<div class="loading"><div class="spinner"></div>Chargement…</div>';
+  // Détache les écouteurs précédents avant de recharger la liste, pour éviter
+  // d'accumuler des abonnements onSnapshot à chaque rafraîchissement.
+  window._dvRepsUnsubs.forEach(u=>{ try{u();}catch(e){} });
+  window._dvRepsUnsubs = [];
   try {
     const snap = await getDocs(collection(fbDB,'edtx_devoirs'));
-    const devoirs = snap.docs.map(d=>d.data()).sort((a,b)=>b.createdAt-a.createdAt);
+    // On utilise l'ID réel du document Firestore (d.id) plutôt que le champ interne
+    // 'id' stocké dans les données, qui peut manquer ou être décalé et faisait
+    // échouer silencieusement la suppression (deleteDoc ne lève pas d'erreur
+    // si l'ID ciblé n'existe pas).
+    const devoirs = snap.docs.map(d=>({...d.data(), id: d.id})).sort((a,b)=>b.createdAt-a.createdAt);
     if (!devoirs.length) { list.innerHTML = '<p style="text-align:center;color:#aaa;padding:24px;font-size:.85rem;">Aucun devoir envoyé pour le moment.</p>'; return; }
 
     list.innerHTML = devoirs.map(d => {
@@ -3259,8 +3316,10 @@ window.loadDevoirsAdmin = async function() {
           <button onclick="showDevoirReponses('${d.id}','${aEsc(d.titre)}')" style="flex:1;background:#ede9fe;color:#6d28d9;border:none;border-radius:8px;padding:8px;font-size:.76rem;font-weight:700;cursor:pointer">📸 Voir les réponses</button>
           <button onclick="deleteDevoirAdmin('${d.id}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:8px 12px;font-size:.76rem;font-weight:700;cursor:pointer">🗑</button>
         </div>
+        <div id="dv-reps-badge-${d.id}" style="margin-top:8px;padding-top:8px;border-top:1px dashed #e2e8f0;"><span style="font-size:.72rem;color:#94a3b8;">Chargement des réponses…</span></div>
       </div>`;
     }).join('');
+    devoirs.forEach(d => _dvRepsWatch(d.id));
   } catch(err) { list.innerHTML = '<p style="color:#dc2626;padding:16px;text-align:center;font-size:.82rem;">❌ Erreur de chargement.</p>'; }
 };
 
