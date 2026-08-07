@@ -2417,6 +2417,11 @@ if (!window._evalResultsListenerAttached) {
     });
     window._evalResultsByEval = byEval;
     _evalRepsRenderAll();
+  }, err => {
+    console.error('edtx_eval_results listener error:', err);
+    document.querySelectorAll('[id^="ev-reps-badge-"]').forEach(el=>{
+      el.innerHTML = `<span style="font-size:.72rem;color:#dc2626;">❌ Erreur de chargement : ${aEsc(err.message||err.code||'inconnue')}</span>`;
+    });
   });
 }
 
@@ -3273,6 +3278,10 @@ function _dvRepsWatch(devoirId){
     const noms = snap.docs.map(d=>d.data().nom).filter(Boolean);
     badge.innerHTML = `<div style="font-size:.72rem;color:#059669;font-weight:700;margin-bottom:2px;">✅ ${noms.length} élève${noms.length>1?'s':''} a${noms.length>1?'nt':''} envoyé :</div>
       <div style="font-size:.72rem;color:#334155;">${noms.map(n=>aEsc(n)).join(', ')}</div>`;
+  }, err => {
+    console.error('_dvRepsWatch error for', devoirId, err);
+    const badge = document.getElementById(`dv-reps-badge-${devoirId}`);
+    if (badge) badge.innerHTML = `<span style="font-size:.72rem;color:#dc2626;">❌ Erreur de chargement : ${aEsc(err.message||err.code||'inconnue')}</span>`;
   });
   window._dvRepsUnsubs.push(unsub);
 }
@@ -9612,6 +9621,7 @@ function renderGroupes(){
             <span class="grp-eleve-name">${esc(e.name)}${e.prenom?' '+esc(e.prenom):''}${e.matricule?` <span style="font-size:10px;color:#94a3b8;font-family:'DM Mono',monospace">#${esc(e.matricule)}</span>`:''}${e.tel?` <span style="font-size:10px;color:#25d366;font-weight:700">📱${esc(e.tel)}</span>`:''}${e.classe?` <span style="font-size:10px;background:#eef2ff;color:#4338ca;border-radius:4px;padding:0 5px;font-weight:700">${esc(e.classe)}</span>`:''}</span>
             <button class="grp-fiche-btn" onclick="chargerEdtGroupe(${grp.id},${e.id})" title="Voir l'EDT de cet élève">📅</button>
             <button class="grp-fiche-btn" onclick="openFiche(${grp.id},${e.id})" title="Fiche élève">📋</button>
+            <button class="grp-fiche-btn" style="color:#1a1f2e;position:relative" onclick="printEleveBadge(${grp.id},${e.id})" title="${e.badgePrinted?'Badge imprimé le '+new Date(e.badgePrintedAt).toLocaleDateString('fr-FR'):'Badge non imprimé'} — cliquer pour imprimer">🪪${e.badgePrinted?'<span style="position:absolute;top:-2px;right:-2px;width:7px;height:7px;border-radius:50%;background:#10b981;border:1px solid #fff"></span>':''}</button>
             <button class="grp-fiche-btn" style="color:#16a34a" onclick="sendBienvenueGroupeWA(${grp.id},${e.id})" title="Souhaiter la bienvenue via WhatsApp">🎉</button>
             <button class="grp-fiche-btn" style="color:#f59e0b" onclick="sendBienvenueGroupeSMS(${grp.id},${e.id})" title="Souhaiter la bienvenue par SMS">💬</button>
             <button class="grp-fiche-btn" style="color:#2563eb" onclick="sendBienvenueGroupeEmail(${grp.id},${e.id})" title="Souhaiter la bienvenue via Email">✉️</button>
@@ -9652,6 +9662,7 @@ function renderGroupes(){
         <button class="grp-action-btn" style="background:#eef2ff;color:#4338ca" onclick="importElevesCSV(${grp.id})" title="Importer depuis fichier txt/csv">📂 Importer</button>
         <button class="grp-action-btn" style="background:#d1fae5;color:#065f46" onclick="shareGroupeWA(${grp.id})">📤 WhatsApp</button>
         <button class="grp-action-btn" style="background:#0f172a;color:#fff" onclick="downloadListeGroupe(${grp.id})">⬇ PDF</button>
+        <button class="grp-action-btn" style="background:#1a1f2e;color:#fbbf24" onclick="printGroupeBadges(${grp.id})">🪪 Badges classe</button>
         <button class="grp-action-btn" style="background:#fee2e2;color:#ef4444" onclick="deleteGroupe(${grp.id})">🗑 Supprimer</button>
       </div>
     </div>`;
@@ -9790,6 +9801,201 @@ tr:nth-child(even) td{background:#fafbfc}@media print{body{background:#fff;paddi
   a.click();
 }
 
+// ═══════════════════════════════════════════════════════
+// BADGES ÉLÈVES — Club Réussir Ensemble (impression / PDF, 8 par page A4)
+// ═══════════════════════════════════════════════════════
+function buildBadgesHTML(students, sheetTitle){
+  const today    = new Date().toLocaleDateString('fr-FR');
+  const logo     = manager.logo || '';
+  const logoImg  = logo ? `<img src="${logo}" class="badge-logo-img" alt="Logo">` : `<div class="badge-logo-fallback">🎓</div>`;
+  const school   = manager.school || 'Club Réussir Ensemble';
+  const annee    = (typeof syData!=='undefined' && syData.label) ? syData.label : '';
+
+  const pages = [];
+  for(let i=0;i<students.length;i+=8) pages.push(students.slice(i,i+8));
+
+  const pagesHtml = pages.map(pageStudents=>{
+    const cards = pageStudents.map(e=>{
+      const fullName  = [esc(e.prenom||''), esc(e.name||'')].filter(Boolean).join(' ') || '—';
+      const photoHtml = e.photo
+        ? `<img src="${e.photo}" class="badge-photo">`
+        : `<div class="badge-photo badge-photo-fallback">👤</div>`;
+      const qrLines = [
+        `Élève: ${fullName}`,
+        e.classe    ? `Classe: ${e.classe}`       : '',
+        e.matricule ? `Matricule: ${e.matricule}` : '',
+        `Établissement: ${school}`,
+        annee       ? `Année: ${annee}`           : ''
+      ].filter(Boolean).join('\n');
+      const qrUrl  = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=0&data=${encodeURIComponent(qrLines)}`;
+      const qrHtml = `<img src="${qrUrl}" class="badge-qr" alt="QR">`;
+      return `<div class="badge-card">
+        <div class="badge-top">
+          ${logoImg}
+          <div class="badge-club">
+            <div class="badge-club-name">CLUB RÉUSSIR ENSEMBLE</div>
+            <div class="badge-club-tag">RIGUEUR • DISCIPLINE • TRAVAIL</div>
+          </div>
+        </div>
+        <div class="badge-mid">
+          ${photoHtml}
+          <div class="badge-info">
+            <div class="badge-name">${fullName}</div>
+            ${e.classe?`<div class="badge-classe">${esc(e.classe)}</div>`:''}
+            ${annee?`<div class="badge-annee">Année ${esc(annee)}</div>`:''}
+          </div>
+          ${qrHtml}
+        </div>
+        <div class="badge-bottom">Carte d'identification scolaire${e.badgeSerial?` · N° ${esc(e.badgeSerial)}`:''}</div>
+      </div>`;
+    }).join('');
+    return `<div class="badge-page">${cards}</div>`;
+  }).join('');
+
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<title>Badges — ${esc(sheetTitle||'Élèves')}</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#f0f4f8;padding:16px}
+.no-print{display:flex;gap:8px;margin-bottom:14px}
+.no-print button{padding:9px 18px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
+.badge-page{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(4,1fr);gap:4mm;width:190mm;height:271mm;margin:0 auto 10px;background:#fff;padding:2mm}
+.badge-card{border:1.4px dashed #cbd5e1;border-radius:10px;padding:3mm 4mm;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:#fff}
+.badge-top{display:flex;align-items:center;gap:6px;border-bottom:1.5px solid #1a1f2e;padding-bottom:3px}
+.badge-logo-img{width:28px;height:28px;object-fit:contain;border-radius:6px;flex-shrink:0}
+.badge-logo-fallback{width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,#1a1f2e,#3730a3);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.badge-club-name{font-family:'Syne',sans-serif;font-size:10.5px;font-weight:800;color:#1a1f2e;line-height:1.1}
+.badge-club-tag{font-size:6.5px;font-weight:700;color:#f59e0b;letter-spacing:.4px;margin-top:1px}
+.badge-mid{display:flex;align-items:center;gap:8px;flex:1;padding-top:4px}
+.badge-photo{width:22mm;height:22mm;object-fit:cover;border-radius:8px;border:1.5px solid #e2e8f0;flex-shrink:0}
+.badge-photo-fallback{display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff}
+.badge-info{flex:1;min-width:0}
+.badge-name{font-size:12px;font-weight:800;color:#1a1f2e;line-height:1.2;word-break:break-word}
+.badge-classe{margin-top:4px;display:inline-block;font-size:9.5px;font-weight:700;color:#4338ca;background:#eef2ff;border-radius:5px;padding:2px 7px}
+.badge-annee{margin-top:3px;font-size:7.5px;font-weight:700;color:#94a3b8}
+.badge-qr{width:14mm;height:14mm;flex-shrink:0;object-fit:contain}
+.badge-bottom{font-size:6.5px;color:#94a3b8;text-align:center;border-top:1px solid #f1f5f9;padding-top:2px;margin-top:3px}
+@media print{
+  body{background:#fff;padding:0}
+  .no-print{display:none}
+  .badge-page{width:auto;height:auto;margin:0;page-break-after:always;box-shadow:none}
+  @page{size:A4 portrait;margin:8mm}
+}
+</style></head>
+<body>
+<div class="no-print">
+  <button onclick="window.print()" style="background:#6366f1;color:#fff">🖨️ Imprimer / Enregistrer en PDF</button>
+  <button onclick="window.close()" style="background:#f1f5f9;color:#475569">✕ Fermer</button>
+</div>
+${pagesHtml}
+<div class="no-print" style="font-size:10px;color:#94a3b8">Généré le ${today} · ${students.length} badge${students.length>1?'s':''} · Club Réussir Ensemble</div>
+</body></html>`;
+}
+
+function openBadgeWindow(html, filename){
+  const blob = new Blob([html],{type:'text/html;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const win  = window.open(url,'_blank');
+  if(win){
+    win.onload = ()=>{ win.focus(); win.print(); setTimeout(()=>URL.revokeObjectURL(url),8000); };
+  } else {
+    const a=document.createElement('a'); a.href=url; a.download=`${filename}.html`; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),3000);
+  }
+}
+
+function genBadgeSerial(){
+  return 'RE-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2,5).toUpperCase();
+}
+
+function ensureBadgeSerial(e){
+  if(!e.badgeSerial) e.badgeSerial = genBadgeSerial();
+  return e.badgeSerial;
+}
+
+function regenerateBadgeSerial(gid,eid){
+  const grp = groupesList.find(g=>g.id===gid);
+  const e   = grp ? grp.eleves.find(x=>x.id===eid) : null;
+  if(!e){ alert('Élève introuvable.'); return; }
+  if(!confirm(`Régénérer le numéro de série du badge de ${[e.prenom,e.name].filter(Boolean).join(' ')} ?\n\nL'ancien numéro (${e.badgeSerial||'—'}) ne sera plus reconnu comme valide. À utiliser en cas de badge perdu.`)) return;
+  e.badgeSerial     = genBadgeSerial();
+  e.badgePrinted    = false;
+  e.badgePrintedAt  = null;
+  saveGroupes();
+  renderFicheBadgeStatus(gid,eid);
+  renderGroupes();
+  alert('✅ Nouveau numéro de série généré : ' + e.badgeSerial + '\nPensez à réimprimer le badge.');
+}
+
+function toggleBadgePrinted(gid,eid){
+  const grp = groupesList.find(g=>g.id===gid);
+  const e   = grp ? grp.eleves.find(x=>x.id===eid) : null;
+  if(!e) return;
+  e.badgePrinted   = !e.badgePrinted;
+  e.badgePrintedAt = e.badgePrinted ? Date.now() : null;
+  saveGroupes();
+  renderFicheBadgeStatus(gid,eid);
+  renderGroupes();
+}
+
+function renderFicheBadgeStatus(gid,eid){
+  const box = document.getElementById('fiche-badge-status');
+  if(!box) return;
+  const grp = groupesList.find(g=>g.id===gid);
+  const e   = grp ? grp.eleves.find(x=>x.id===eid) : null;
+  if(!e){ box.innerHTML=''; return; }
+  const serial = e.badgeSerial || '— (généré à la première impression)';
+  const printed = !!e.badgePrinted;
+  const printedDate = e.badgePrintedAt ? new Date(e.badgePrintedAt).toLocaleDateString('fr-FR') : '';
+  box.innerHTML = `
+    <div style="flex:1;min-width:160px">
+      <div style="font-size:10px;font-weight:800;color:#94a3b8;text-transform:uppercase">🪪 N° de série du badge</div>
+      <div style="font-size:12px;font-weight:700;color:#1a1f2e;font-family:'DM Mono',monospace;margin-top:2px">${esc(serial)}</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:${printed?'#065f46':'#94a3b8'}">
+      <span style="width:8px;height:8px;border-radius:50%;background:${printed?'#10b981':'#cbd5e1'};display:inline-block"></span>
+      ${printed?`Imprimé le ${printedDate}`:'Non imprimé'}
+    </div>
+    <button class="btn btn-ghost" style="font-size:11px;padding:5px 9px" onclick="toggleBadgePrinted(${gid},${eid})">${printed?'↺ Marquer non imprimé':'✅ Marquer imprimé'}</button>
+    <button class="btn btn-ghost" style="font-size:11px;padding:5px 9px;color:#ef4444" onclick="regenerateBadgeSerial(${gid},${eid})">🔄 Régénérer (badge perdu)</button>
+  `;
+}
+
+function confirmMissingPhotos(students){
+  const missing = students.filter(e=>!e.photo).length;
+  if(!missing) return true;
+  return confirm(`⚠️ ${missing} élève(s) n'ont pas de photo enregistrée.\nIls apparaîtront avec un avatar par défaut sur le badge.\n\nContinuer quand même ?`);
+}
+
+function printGroupeBadges(id){
+  const grp = groupesList.find(g=>g.id===id);
+  if(!grp){ alert('Groupe introuvable.'); return; }
+  if(!grp.eleves.length){ alert('Aucun élève dans ce groupe.'); return; }
+  if(!confirmMissingPhotos(grp.eleves)) return;
+  const students = grp.eleves.map(e=>({ name:e.name, prenom:e.prenom, classe:e.classe||grp.name, photo:e.photo, matricule:e.matricule, badgeSerial:ensureBadgeSerial(e) }));
+  grp.eleves.forEach(e=>{ e.badgePrinted=true; e.badgePrintedAt=Date.now(); });
+  saveGroupes();
+  renderGroupes();
+  openBadgeWindow(buildBadgesHTML(students, grp.name), `Badges_${grp.name.replace(/\s+/g,'_')}`);
+}
+
+function printEleveBadge(gid,eid){
+  const grp = groupesList.find(g=>g.id===gid);
+  const e   = grp ? grp.eleves.find(x=>x.id===eid) : null;
+  if(!e){ alert('Élève introuvable.'); return; }
+  if(!confirmMissingPhotos([e])) return;
+  const one = { name:e.name, prenom:e.prenom, classe:e.classe||grp.name, photo:e.photo, matricule:e.matricule, badgeSerial:ensureBadgeSerial(e) };
+  const students = Array.from({length:8},()=>one);
+  const fullName = [e.prenom,e.name].filter(Boolean).join(' ')||'Élève';
+  e.badgePrinted   = true;
+  e.badgePrintedAt = Date.now();
+  saveGroupes();
+  renderGroupes();
+  renderFicheBadgeStatus(gid,eid);
+  openBadgeWindow(buildBadgesHTML(students, fullName), `Badge_${fullName.replace(/\s+/g,'_')}`);
+}
+
 function downloadListeGenerale(){
   const groupesAvecEleves = groupesList.filter(g=>g.eleves.length>0);
   if(!groupesAvecEleves.length){ alert('Aucun élève à exporter.'); return; }
@@ -9906,6 +10112,8 @@ function openFiche(gid,eid){
   }).join('');
   // Historique présences + notes
   renderFicheHistorique(gid, eid);
+  // Statut badge (série + impression)
+  renderFicheBadgeStatus(gid, eid);
   // Activer premier onglet
   switchFicheTab('infos');
   document.getElementById('fiche-overlay').classList.add('open');
@@ -12538,9 +12746,12 @@ buildSlotSelect();
         </div>
       </div>
 
+      <div id="fiche-badge-status" style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 12px;margin-top:4px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"></div>
+
       <div class="fiche-acts">
         <button class="btn btn-ghost" onclick="closeFiche()">Annuler</button>
         <button class="btn btn-pdf" onclick="downloadFicheComplete()" style="font-size:12px">⬇ PDF</button>
+        <button class="btn btn-pdf" style="font-size:12px;background:#1a1f2e" onclick="const d=getFicheData();printEleveBadge(d.gid,d.eid)">🪪 Badge</button>
         <button class="btn btn-primary" onclick="saveFiche()">💾 Enregistrer</button>
       </div>
     </div>
