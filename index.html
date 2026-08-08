@@ -813,6 +813,9 @@ td.time-col.current-slot{background:#eef2ff;color:#6366f1;border-left:3px solid 
 .print-header p{font-size:12px;color:#64748b;margin-top:2px}
 </style>
 
+<!-- Bibliothèque de décodage QR (pour le pointage par scan de badge) -->
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+
 <!-- ══ PROXY FUNCTIONS (plain script — disponible immédiatement) ══ -->
 <script>
 // Ces fonctions sont appelées depuis les onclick HTML.
@@ -4818,6 +4821,7 @@ function edtxInit() {
         <button class="btn" style="background:#0ea5e9;color:#fff" onclick="shareEleveAttendanceSMS()">💬 SMS</button>
         <button class="btn btn-pdf" onclick="downloadEleveAttendancePDF()">📄 PDF</button>
         <button class="btn btn-ghost" onclick="markAllPresentClasse('all')">✅ Tous présents</button>
+        <button class="btn" style="background:#1a1f2e;color:#fbbf24" onclick="openQRScanner()">📷 Pointage scan QR</button>
       </div>
       <!-- Stats globales -->
       <div class="ea-summary-bar" id="ea-summary-bar"></div>
@@ -9821,6 +9825,7 @@ function buildBadgesHTML(students, sheetTitle){
         ? `<img src="${e.photo}" class="badge-photo">`
         : `<div class="badge-photo badge-photo-fallback">👤</div>`;
       const qrLines = [
+        (e.gid!=null && e.eid!=null) ? `ID:${e.gid}:${e.eid}` : '',
         `Élève: ${fullName}`,
         e.classe    ? `Classe: ${e.classe}`       : '',
         e.matricule ? `Matricule: ${e.matricule}` : '',
@@ -9860,22 +9865,22 @@ function buildBadgesHTML(students, sheetTitle){
 body{font-family:'DM Sans',sans-serif;background:#f0f4f8;padding:16px}
 .no-print{display:flex;gap:8px;margin-bottom:14px}
 .no-print button{padding:9px 18px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
-.badge-page{display:grid;grid-template-columns:repeat(2,1fr);grid-template-rows:repeat(4,1fr);gap:4mm;width:190mm;height:271mm;margin:0 auto 10px;background:#fff;padding:2mm}
-.badge-card{border:1.4px dashed #cbd5e1;border-radius:10px;padding:3mm 4mm;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:#fff}
-.badge-top{display:flex;align-items:center;gap:6px;border-bottom:1.5px solid #1a1f2e;padding-bottom:3px}
-.badge-logo-img{width:28px;height:28px;object-fit:contain;border-radius:6px;flex-shrink:0}
-.badge-logo-fallback{width:28px;height:28px;border-radius:6px;background:linear-gradient(135deg,#1a1f2e,#3730a3);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
-.badge-club-name{font-family:'Syne',sans-serif;font-size:10.5px;font-weight:800;color:#1a1f2e;line-height:1.1}
-.badge-club-tag{font-size:6.5px;font-weight:700;color:#f59e0b;letter-spacing:.4px;margin-top:1px}
-.badge-mid{display:flex;align-items:center;gap:8px;flex:1;padding-top:4px}
-.badge-photo{width:22mm;height:22mm;object-fit:cover;border-radius:8px;border:1.5px solid #e2e8f0;flex-shrink:0}
-.badge-photo-fallback{display:flex;align-items:center;justify-content:center;font-size:22px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff}
+.badge-page{display:flex;flex-wrap:wrap;align-content:center;justify-content:center;gap:4mm;width:190mm;height:271mm;margin:0 auto 10px;background:#fff;padding:2mm}
+.badge-card{width:85.6mm;height:54mm;border:1.4px dashed #cbd5e1;border-radius:9px;padding:2.4mm 3.2mm;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:#fff;flex-shrink:0}
+.badge-top{display:flex;align-items:center;gap:5px;border-bottom:1.4px solid #1a1f2e;padding-bottom:2px}
+.badge-logo-img{width:22px;height:22px;object-fit:contain;border-radius:5px;flex-shrink:0}
+.badge-logo-fallback{width:22px;height:22px;border-radius:5px;background:linear-gradient(135deg,#1a1f2e,#3730a3);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.badge-club-name{font-family:'Syne',sans-serif;font-size:8.8px;font-weight:800;color:#1a1f2e;line-height:1.1}
+.badge-club-tag{font-size:5.6px;font-weight:700;color:#f59e0b;letter-spacing:.3px;margin-top:1px}
+.badge-mid{display:flex;align-items:center;gap:6px;flex:1;padding-top:3px;min-height:0}
+.badge-photo{width:16mm;height:16mm;object-fit:cover;border-radius:6px;border:1.3px solid #e2e8f0;flex-shrink:0}
+.badge-photo-fallback{display:flex;align-items:center;justify-content:center;font-size:16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff}
 .badge-info{flex:1;min-width:0}
-.badge-name{font-size:12px;font-weight:800;color:#1a1f2e;line-height:1.2;word-break:break-word}
-.badge-classe{margin-top:4px;display:inline-block;font-size:9.5px;font-weight:700;color:#4338ca;background:#eef2ff;border-radius:5px;padding:2px 7px}
-.badge-annee{margin-top:3px;font-size:7.5px;font-weight:700;color:#94a3b8}
-.badge-qr{width:14mm;height:14mm;flex-shrink:0;object-fit:contain}
-.badge-bottom{font-size:6.5px;color:#94a3b8;text-align:center;border-top:1px solid #f1f5f9;padding-top:2px;margin-top:3px}
+.badge-name{font-size:9.8px;font-weight:800;color:#1a1f2e;line-height:1.15;word-break:break-word}
+.badge-classe{margin-top:3px;display:inline-block;font-size:7.8px;font-weight:700;color:#4338ca;background:#eef2ff;border-radius:4px;padding:1.5px 5px}
+.badge-annee{margin-top:2px;font-size:6.2px;font-weight:700;color:#94a3b8}
+.badge-qr{width:11mm;height:11mm;flex-shrink:0;object-fit:contain}
+.badge-bottom{font-size:5.4px;color:#94a3b8;text-align:center;border-top:1px solid #f1f5f9;padding-top:1.5px;margin-top:2px}
 @media print{
   body{background:#fff;padding:0}
   .no-print{display:none}
@@ -9894,12 +9899,20 @@ ${pagesHtml}
 }
 
 function openBadgeWindow(html, filename){
-  const blob = new Blob([html],{type:'text/html;charset=utf-8'});
-  const url  = URL.createObjectURL(blob);
-  const win  = window.open(url,'_blank');
+  // Ouverture directe (document.write) : évite tout problème de fenêtre/onglet
+  // réutilisé(e) avec un ancien contenu en cache (bug "même élève" sur mobile).
+  const win = window.open('', '_blank');
   if(win){
-    win.onload = ()=>{ win.focus(); win.print(); setTimeout(()=>URL.revokeObjectURL(url),8000); };
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+    let printed = false;
+    const doPrint = ()=>{ if(printed) return; printed = true; try{ win.focus(); win.print(); }catch(err){} };
+    win.onload = doPrint;
+    setTimeout(doPrint, 900); // filet de sécurité si l'évènement load ne se déclenche pas
   } else {
+    const blob = new Blob([html],{type:'text/html;charset=utf-8'});
+    const url  = URL.createObjectURL(blob);
     const a=document.createElement('a'); a.href=url; a.download=`${filename}.html`; a.click();
     setTimeout(()=>URL.revokeObjectURL(url),3000);
   }
@@ -9973,7 +9986,7 @@ function printGroupeBadges(id){
   if(!grp){ alert('Groupe introuvable.'); return; }
   if(!grp.eleves.length){ alert('Aucun élève dans ce groupe.'); return; }
   if(!confirmMissingPhotos(grp.eleves)) return;
-  const students = grp.eleves.map(e=>({ name:e.name, prenom:e.prenom, classe:e.classe||grp.name, photo:e.photo, matricule:e.matricule, badgeSerial:ensureBadgeSerial(e) }));
+  const students = grp.eleves.map(e=>({ gid:grp.id, eid:e.id, name:e.name, prenom:e.prenom, classe:e.classe||grp.name, photo:e.photo, matricule:e.matricule, badgeSerial:ensureBadgeSerial(e) }));
   grp.eleves.forEach(e=>{ e.badgePrinted=true; e.badgePrintedAt=Date.now(); });
   saveGroupes();
   renderGroupes();
@@ -9985,16 +9998,138 @@ function printEleveBadge(gid,eid){
   const e   = grp ? grp.eleves.find(x=>x.id===eid) : null;
   if(!e){ alert('Élève introuvable.'); return; }
   if(!confirmMissingPhotos([e])) return;
-  const one = { name:e.name, prenom:e.prenom, classe:e.classe||grp.name, photo:e.photo, matricule:e.matricule, badgeSerial:ensureBadgeSerial(e) };
-  const students = Array.from({length:8},()=>one);
+  const one = { gid:gid, eid:eid, name:e.name, prenom:e.prenom, classe:e.classe||grp.name, photo:e.photo, matricule:e.matricule, badgeSerial:ensureBadgeSerial(e) };
   const fullName = [e.prenom,e.name].filter(Boolean).join(' ')||'Élève';
   e.badgePrinted   = true;
   e.badgePrintedAt = Date.now();
   saveGroupes();
   renderGroupes();
   renderFicheBadgeStatus(gid,eid);
-  openBadgeWindow(buildBadgesHTML(students, fullName), `Badge_${fullName.replace(/\s+/g,'_')}`);
+  openBadgeWindow(buildBadgesHTML([one], fullName), `Badge_${fullName.replace(/\s+/g,'_')}`);
 }
+
+// ═══════════════════════════════════════════════════════
+// POINTAGE PAR SCAN QR — présence en temps réel via le badge élève
+// ═══════════════════════════════════════════════════════
+let qrscanStream   = null;
+let qrscanRAF      = null;
+let qrscanLog      = [];
+let qrscanCooldown = {};
+
+function beepQRScan(){
+  try{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.15);
+    osc.start(); osc.stop(ctx.currentTime+0.15);
+  }catch(err){}
+}
+
+function openQRScanner(){
+  const dateEl = document.getElementById('qrscan-date');
+  if(dateEl && !dateEl.value) dateEl.value = getTodayStr();
+  qrscanLog = [];
+  qrscanCooldown = {};
+  document.getElementById('qrscan-log').innerHTML = '';
+  document.getElementById('qrscan-count').textContent = '0';
+  document.getElementById('qrscan-last').innerHTML = '';
+  document.getElementById('qrscan-status').textContent = 'Initialisation de la caméra…';
+  document.getElementById('qrscan-overlay').style.display = 'flex';
+
+  if(typeof jsQR === 'undefined'){
+    document.getElementById('qrscan-status').textContent = '⚠️ Bibliothèque de scan indisponible (connexion internet requise).';
+    return;
+  }
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    document.getElementById('qrscan-status').textContent = '⚠️ Caméra non disponible sur cet appareil/navigateur.';
+    return;
+  }
+
+  navigator.mediaDevices.getUserMedia({ video:{ facingMode:{ ideal:'environment' } }, audio:false })
+    .then(stream=>{
+      qrscanStream = stream;
+      const video = document.getElementById('qrscan-video');
+      video.srcObject = stream;
+      video.play();
+      document.getElementById('qrscan-status').textContent = '🔎 Présentez le badge de l\'élève devant la caméra…';
+      qrscanRAF = requestAnimationFrame(qrscanLoop);
+    })
+    .catch(err=>{
+      document.getElementById('qrscan-status').textContent = '⚠️ Accès caméra refusé ou indisponible.';
+    });
+}
+
+function closeQRScanner(){
+  if(qrscanRAF) cancelAnimationFrame(qrscanRAF);
+  qrscanRAF = null;
+  if(qrscanStream){ qrscanStream.getTracks().forEach(t=>t.stop()); qrscanStream = null; }
+  document.getElementById('qrscan-overlay').style.display = 'none';
+}
+
+function qrscanLoop(){
+  const video  = document.getElementById('qrscan-video');
+  const canvas = document.getElementById('qrscan-canvas');
+  if(video && video.readyState === video.HAVE_ENOUGH_DATA){
+    canvas.width  = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    try{
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      if(code && code.data) handleQRScanResult(code.data);
+    }catch(err){}
+  }
+  qrscanRAF = requestAnimationFrame(qrscanLoop);
+}
+
+function handleQRScanResult(text){
+  const idLine = text.split('\n').find(l=>l.startsWith('ID:'));
+  if(!idLine) return;
+  const parts = idLine.split(':');
+  const gid = Number(parts[1]), eid = Number(parts[2]);
+  const grp = groupesList.find(g=>g.id===gid);
+  const e   = grp ? grp.eleves.find(x=>x.id===eid) : null;
+  if(!e){
+    document.getElementById('qrscan-status').textContent = '❌ Badge non reconnu.';
+    return;
+  }
+  const key = gid+'_'+eid;
+  const now = Date.now();
+  if(qrscanCooldown[key] && (now - qrscanCooldown[key]) < 6000) return; // anti-doublon
+  qrscanCooldown[key] = now;
+
+  const dateStr  = document.getElementById('qrscan-date').value || getTodayStr();
+  const fullName = [e.prenom,e.name].filter(Boolean).join(' ')||'Élève';
+
+  setEleveAttendance(gid, eid, dateStr, 'present');
+  beepQRScan();
+
+  const heure = new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  qrscanLog.unshift({ name:fullName, classe:e.classe||grp.name, photo:e.photo, heure });
+  qrscanLog = qrscanLog.slice(0,30);
+
+  document.getElementById('qrscan-status').textContent = `✅ ${fullName} pointé(e) présent(e) à ${heure}`;
+  document.getElementById('qrscan-count').textContent  = qrscanLog.length;
+  document.getElementById('qrscan-log').innerHTML = qrscanLog.map(l=>{
+    const photoHtml = l.photo
+      ? `<img src="${l.photo}" style="width:26px;height:26px;object-fit:cover;border-radius:6px">`
+      : `<div style="width:26px;height:26px;border-radius:6px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:13px">👤</div>`;
+    return `<div style="display:flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:5px 8px;font-size:11.5px">
+      ${photoHtml}
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;color:#065f46">${esc(l.name)}</div>
+        <div style="color:#94a3b8;font-size:10px">${esc(l.classe||'')}</div>
+      </div>
+      <div style="font-weight:700;color:#10b981">${l.heure}</div>
+    </div>`;
+  }).join('');
+}
+
 
 function downloadListeGenerale(){
   const groupesAvecEleves = groupesList.filter(g=>g.eleves.length>0);
@@ -12637,6 +12772,30 @@ buildSlotSelect();
 </div>
 
 <!-- ══ FICHE ÉLÈVE MODAL ══ -->
+<!-- ══════════════════ OVERLAY : POINTAGE PAR SCAN QR ══════════════════ -->
+<div id="qrscan-overlay" onclick="if(event.target===this)closeQRScanner()" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,.85);z-index:9999;align-items:center;justify-content:center;padding:16px">
+  <div style="background:#fff;border-radius:16px;max-width:480px;width:100%;max-height:92vh;overflow:auto;padding:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-family:'Syne',sans-serif;font-weight:800;color:#1a1f2e;font-size:16px">📷 Pointage par scan QR</div>
+      <button class="btn btn-ghost" style="padding:6px 10px" onclick="closeQRScanner()">✕</button>
+    </div>
+    <div style="font-size:12px;color:#64748b;margin-bottom:10px">
+      Date du pointage : <input type="date" id="qrscan-date" style="border:1.5px solid #e2e8f0;border-radius:6px;padding:4px 8px;font-size:12px">
+    </div>
+    <div style="position:relative;background:#000;border-radius:12px;overflow:hidden;aspect-ratio:4/3">
+      <video id="qrscan-video" playsinline muted style="width:100%;height:100%;object-fit:cover;display:block"></video>
+      <div style="position:absolute;inset:0;border:3px solid rgba(16,185,129,.6);border-radius:12px;pointer-events:none;margin:14%"></div>
+    </div>
+    <canvas id="qrscan-canvas" style="display:none"></canvas>
+    <div id="qrscan-status" style="text-align:center;font-size:12px;font-weight:700;color:#64748b;margin-top:10px">Initialisation de la caméra…</div>
+    <div id="qrscan-last" style="margin-top:8px"></div>
+    <div style="margin-top:10px">
+      <div style="font-size:11px;font-weight:800;color:#94a3b8;text-transform:uppercase;margin-bottom:6px">Pointés à l'instant (<span id="qrscan-count">0</span>)</div>
+      <div id="qrscan-log" style="display:flex;flex-direction:column;gap:5px;max-height:180px;overflow:auto"></div>
+    </div>
+  </div>
+</div>
+
 <div id="fiche-overlay" onclick="if(event.target===this)closeFiche()">
   <div id="fiche-modal">
     <div class="fiche-hdr">
