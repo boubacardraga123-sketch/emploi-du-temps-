@@ -1613,9 +1613,10 @@ async function showPublicDevoirView(code){
     const btn = document.getElementById('edtx-dv-submit-btn');
     btn.disabled = true; btn.textContent = 'Envoi…';
     try {
-      await addDoc(collection(fbDB,'edtx_devoirs', String(dv.id), 'reponses'), {
+      const sid = edtxStudentDeviceId();
+      await setDoc(doc(fbDB,'edtx_devoirs', String(dv.id), 'reponses', sid), {
         nom, contact, date: Date.now(), photoData
-      });
+      }, { merge: true });
       document.getElementById('edtx-devoir-public-box').innerHTML = `<div style="text-align:center;padding:20px">
         <div style="font-size:38px;margin-bottom:10px">✅</div>
         <div style="font-weight:800;font-family:'Syne',sans-serif;font-size:16px;color:#1a1f2e">Réponse envoyée !</div>
@@ -2339,7 +2340,7 @@ async function showPublicFraisInscriptionView(code){
         <div class="fg"><label>Consigne (optionnelle)</label><textarea id="doc-desc" placeholder="Ex : Lisez ce document avant le cours de mardi…" style="border:1.5px solid #e5e7eb;background:#f9fafb;font-family:inherit;font-size:.85rem;padding:.6rem .8rem;border-radius:8px;outline:none;resize:vertical;min-height:55px;"></textarea></div>
 
         <div class="fg">
-          <label>Questions de vérification <span style="font-weight:400;color:#aaa">(optionnel — sans elles, une simple confirmation de lecture suffit)</span></label>
+          <label>Questions de vérification <span style="font-weight:400;color:#dc2626">(obligatoire — au moins 1 question, pour vérifier que l'élève a bien lu)</span></label>
           <div id="doc-questions" style="display:flex;flex-direction:column;gap:8px;margin-bottom:6px"></div>
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             <button type="button" onclick="addDocQ('radio')" style="flex:1;background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;border-radius:8px;padding:7px;font-family:'Inter',sans-serif;font-size:.76rem;font-weight:700;cursor:pointer">◉ Choix unique</button>
@@ -4114,6 +4115,7 @@ window.saveDocument = async function() {
   const driveUrl = document.getElementById('doc-url').value.trim();
   const desc = document.getElementById('doc-desc').value.trim();
   if (!titre || !driveUrl) { toast('⚠️ Titre et lien Google Drive obligatoires.'); return; }
+  if (!_docQuestions.length) { toast('⚠️ Ajoutez au moins une question de vérification (le quiz est obligatoire).'); return; }
 
   // Synchroniser les titres de questions depuis le DOM
   const qTitleInputs = document.querySelectorAll('#doc-questions input[placeholder^="Question "]');
@@ -4205,6 +4207,9 @@ window.loadDocumentsAdmin = async function() {
           <button onclick="shareDocumentEmail('${d.accessCode}','${aEsc(d.titre)}')" style="flex:1;background:#1a73e8;color:#fff;border:none;border-radius:8px;padding:8px;font-size:.76rem;font-weight:700;cursor:pointer">📧 Email</button>
           <button onclick="copyDocumentLink('${d.accessCode}')" style="flex:1;background:#f1f5f9;color:#334155;border:none;border-radius:8px;padding:8px;font-size:.76rem;font-weight:700;cursor:pointer">🔗 Lien</button>
         </div>
+        <div style="margin-bottom:6px;">
+          <button onclick="openSendDocToEspace('${d.accessCode}','${aEsc(d.titre)}')" style="width:100%;background:#312e81;color:#fbbf24;border:none;border-radius:8px;padding:8px;font-size:.76rem;font-weight:700;cursor:pointer">📲 Envoyer dans l'espace élève</button>
+        </div>
         <div style="display:flex;gap:6px;">
           <button onclick="showDocumentLectures('${d.id}','${aEsc(d.titre)}')" style="flex:1;background:#ede9fe;color:#6d28d9;border:none;border-radius:8px;padding:8px;font-size:.76rem;font-weight:700;cursor:pointer">👁️ Voir le suivi</button>
           <button onclick="deleteDocumentAdmin('${d.id}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:8px 12px;font-size:.76rem;font-weight:700;cursor:pointer">🗑</button>
@@ -4249,6 +4254,52 @@ window.showDocumentLectures = async function(docId, titre) {
     }).join('');
   } catch(e) {
     document.getElementById('edtx-modal-body').innerHTML = '<p style="color:#dc2626;text-align:center;padding:16px;">❌ Erreur de chargement.</p>';
+  }
+};
+
+// Envoie le lien d'un document (avec quiz obligatoire) directement dans la messagerie
+// personnelle (espace numérique) des élèves choisis, via la collection "chatEleves".
+window.openSendDocToEspace = async function(accessCode, titre) {
+  document.getElementById('edtx-modal-title').textContent = '📲 Envoyer — ' + titre;
+  document.getElementById('edtx-modal-body').innerHTML = '<div class="loading"><div class="spinner"></div>Chargement des élèves…</div>';
+  document.getElementById('edtx-modal-bg').style.display = 'block';
+  try {
+    const snap = await getDocs(collection(fbDB,'chatEleves'));
+    const eleves = snap.docs.map(d=>({ token:d.id, nom:d.data().nom||'Élève' })).sort((a,b)=>a.nom.localeCompare(b.nom));
+    if (!eleves.length) {
+      document.getElementById('edtx-modal-body').innerHTML = '<p style="text-align:center;color:#94a3b8;padding:20px;font-size:.85rem;">Aucun élève avec un espace numérique (messagerie) pour l\'instant.</p>';
+      return;
+    }
+    const checks = eleves.map(e => `
+      <label style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid #f1f5f9;font-size:.85rem;cursor:pointer">
+        <input type="checkbox" class="send-espace-chk" value="${aEsc(e.token)}" style="accent-color:#312e81;flex-shrink:0">
+        ${aEsc(e.nom)}
+      </label>`).join('');
+    document.getElementById('edtx-modal-body').innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <button onclick="document.querySelectorAll('.send-espace-chk').forEach(c=>c.checked=true)" style="background:#eef2ff;color:#3730a3;border:none;border-radius:6px;padding:5px 10px;font-size:.72rem;font-weight:700;cursor:pointer">Tout cocher</button>
+        <button onclick="document.querySelectorAll('.send-espace-chk').forEach(c=>c.checked=false)" style="background:#f1f5f9;color:#334155;border:none;border-radius:6px;padding:5px 10px;font-size:.72rem;font-weight:700;cursor:pointer">Tout décocher</button>
+      </div>
+      <div style="max-height:280px;overflow-y:auto">${checks}</div>
+      <button id="send-espace-confirm" style="width:100%;margin-top:12px;background:#312e81;color:#fbbf24;border:none;border-radius:10px;padding:11px;font-size:.88rem;font-weight:700;cursor:pointer">✅ Envoyer aux élèves cochés</button>
+      <div id="send-espace-status" style="font-size:.78rem;color:#64748b;text-align:center;margin-top:8px"></div>
+    `;
+    document.getElementById('send-espace-confirm').onclick = async () => {
+      const tokens = Array.from(document.querySelectorAll('.send-espace-chk:checked')).map(c=>c.value);
+      const statusEl = document.getElementById('send-espace-status');
+      if (!tokens.length) { statusEl.textContent = '⚠️ Choisissez au moins un élève.'; return; }
+      statusEl.textContent = 'Envoi en cours…';
+      const url = `${window.location.origin}${window.location.pathname}?doc=${accessCode}`;
+      const text = `📄 Nouveau document à lire : « ${titre} »\n\nOuvrez-le puis répondez au quiz de vérification :\n${url}`;
+      let ok = 0, ko = 0;
+      for (const token of tokens) {
+        const sent = await edtxNotifyStudent(token, text);
+        if (sent) ok++; else ko++;
+      }
+      statusEl.textContent = ko ? `✅ ${ok} envoyé(s), ❌ ${ko} échec(s).` : `✅ Document envoyé à ${ok} élève${ok>1?'s':''}.`;
+    };
+  } catch(e) {
+    document.getElementById('edtx-modal-body').innerHTML = '<p style="color:#dc2626;text-align:center;padding:16px;">❌ Erreur de chargement des élèves.</p>';
   }
 };
 
