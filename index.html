@@ -815,6 +815,7 @@ td.time-col.current-slot{background:#eef2ff;color:#6366f1;border-left:3px solid 
 
 <!-- Bibliothèque de décodage QR (pour le pointage par scan de badge) -->
 <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
 <!-- ══ PROXY FUNCTIONS (plain script — disponible immédiatement) ══ -->
 <script>
@@ -4617,6 +4618,15 @@ function edtxInit() {
     </div>
   </div>
 
+  <!-- Synchronisation Mepua -->
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#1a1f2e;margin-bottom:6px">☁️ Synchronisation Mepua</div>
+    <div style="font-size:10px;color:#94a3b8;margin-bottom:10px">Envoie tous les élèves (Groupes/Classes) et toutes les notes de tous les carnets vers Mepua. Se fait aussi automatiquement à chaque nouvelle note saisie.</div>
+    <button id="mepua-sync-btn" onclick="syncAllToMepua()"
+      style="background:#0d2137;color:#FCD116;border:none;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🔄 Tout synchroniser vers Mepua</button>
+    <div id="mepua-sync-status" style="font-size:11px;color:#059669;font-weight:700;margin-top:8px"></div>
+  </div>
+
   <!-- Deux colonnes : Élèves + Matières -->
   <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px">
 
@@ -6334,6 +6344,73 @@ function renderDaySummary(){
 }
 
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') }
+
+/* ══════════════════════════════════════════════════════════
+   PARTAGE DE PDF (Bulletins, Dossier Élève, etc.) VIA WHATSAPP / EMAIL
+   1) Convertit le HTML fourni en un vrai fichier PDF (html2pdf.js).
+   2) Tente le partage natif (Web Share API avec fichier) — ouvre le sélecteur
+      Android/iOS où l'utilisateur choisit WhatsApp ou son appli Email, avec
+      le PDF déjà en pièce jointe.
+   3) Repli si le partage de fichier n'est pas supporté (ex: PC/desktop) :
+      télécharge le PDF puis ouvre WhatsApp/Email avec le texte pré-rempli,
+      à charge pour l'utilisateur de joindre le fichier téléchargé.
+   ══════════════════════════════════════════════════════════ */
+window.sharePdfFromHtml = async function(html, filename, opts){
+  opts = opts || {};
+  const via = opts.via || 'wa';
+  if (typeof html2pdf === 'undefined') {
+    alert('❌ Le générateur de PDF ne s\'est pas chargé (vérifiez la connexion internet).');
+    return;
+  }
+  let blob;
+  try {
+    const container = document.createElement('div');
+    container.style.position='fixed'; container.style.left='-99999px'; container.style.top='0';
+    container.innerHTML = html;
+    document.body.appendChild(container);
+    blob = await html2pdf().from(container).set({
+      margin: 0,
+      filename: filename+'.pdf',
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    }).outputPdf('blob');
+    document.body.removeChild(container);
+  } catch(err){
+    console.warn('sharePdfFromHtml: échec génération PDF', err);
+    alert('❌ Erreur lors de la génération du PDF.');
+    return;
+  }
+
+  const file = new File([blob], filename+'.pdf', { type: 'application/pdf' });
+
+  // Méthode 1 : partage natif avec fichier (idéal — WhatsApp/Email reçoivent le PDF directement)
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ title: opts.subject || filename, text: opts.text || '', files: [file] });
+      if(typeof toast==='function') toast('✅ Partage lancé — choisissez WhatsApp ou Email.');
+      return;
+    } catch(err){
+      if (err.name === 'AbortError') return; // utilisateur a annulé le partage
+      console.warn('sharePdfFromHtml: partage natif échoué, repli.', err);
+    }
+  }
+
+  // Méthode 2 : repli — téléchargement du PDF + ouverture de WhatsApp/Email avec texte pré-rempli
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename+'.pdf'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 15000);
+
+  const msg = (opts.text||'') + '\n\n📎 (Le PDF vient d\'être téléchargé — joignez-le manuellement à ce message.)';
+  if (via === 'wa') {
+    const phoneDigits = String(opts.phone||'').replace(/\D/g,'');
+    window.open(`https://wa.me/${phoneDigits}?text=${encodeURIComponent(msg)}`, '_blank');
+  } else {
+    const subj = encodeURIComponent(opts.subject || filename);
+    window.open(`mailto:${encodeURIComponent(opts.email||'')}?subject=${subj}&body=${encodeURIComponent(msg)}`, '_blank');
+  }
+  if(typeof toast==='function') toast('📂 PDF téléchargé — joignez-le au message ouvert.');
+};
 
 // ═══════════════════════════════════════════════════════
 // MODAL — STUDENT
@@ -10758,7 +10835,7 @@ function downloadFiche(){
   a.click();
 }
 
-function downloadFicheComplete(){
+function _buildFicheCompleteHtml(){
   const d=getFicheData();
   const gid=d.gid, eid=d.eid;
   const grp=groupesList.find(g=>g.id===gid);
@@ -10832,11 +10909,27 @@ ${d.adresse?`<div class="field" style="grid-column:span 2"><label>Adresse</label
 ${d.observations?`<div class="sec">📝 Observations</div><p style="font-size:12px;color:#475569;background:#fef3c7;border-radius:8px;padding:8px 10px;border:1.5px solid #f59e0b">${esc(d.observations)}</p>`:''}
 <div class="foot">Dossier élève — Gestion Scolaire · ${grpName} · ${today}</div>
 </div></div></body></html>`;
+  const phone = (el&&(el.wa_parent||el.tel))||d.tel||'';
+  const email = (el&&el.email_parent)||'';
+  return { html, fullName, phone, email, filename: `Dossier_${fullName.replace(/\s+/g,'_')}_${today.replace(/\//g,'-')}` };
+}
+
+function downloadFicheComplete(){
+  const { html, fullName, filename } = _buildFicheCompleteHtml();
   const a=document.createElement('a');
   a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));
-  a.download=`Dossier_${fullName.replace(/\s+/g,'_')}_${today.replace(/\//g,'-')}.html`;
+  a.download=`${filename}.html`;
   a.click();
 }
+
+// Génère un vrai PDF du Dossier Élève et le partage via WhatsApp ou Email
+window.shareFicheCompletePdf = async function(via){
+  const { html, fullName, phone, email, filename } = _buildFicheCompleteHtml();
+  if(via==='wa' && !phone){ alert('⚠️ Aucun numéro WhatsApp enregistré pour cet élève (père/tuteur).'); return; }
+  if(via==='email' && !email){ alert('⚠️ Aucun email enregistré pour cet élève (parent).'); return; }
+  const texte = `📋 Dossier élève — ${fullName}\nGestion Scolaire — veuillez trouver le dossier en pièce jointe.`;
+  await window.sharePdfFromHtml(html, filename, { via, phone, email, text: texte, subject: `Dossier élève — ${fullName}` });
+};
 
 
 let docsList = [];
@@ -12613,9 +12706,12 @@ function renderProfListe(list){
 }
 
 // Écoute en temps réel des comptes professeurs
-(function(){
+// NOTE : les <script type="module"> (qui exposent window.fbDB / window.fbCollection / window.fbOnSnapshot)
+// s'exécutent APRÈS tous les <script> classiques, même s'ils sont placés avant dans le fichier.
+// On attend donc que ces globales soient prêtes avant d'attacher l'écouteur, au lieu d'abandonner.
+(function attachProfsListener(){
   const fbDB = window.fbDB, collection = window.fbCollection, onSnapshot = window.fbOnSnapshot;
-  if(!fbDB || !collection || !onSnapshot) return;
+  if(!fbDB || !collection || !onSnapshot) { setTimeout(attachProfsListener, 100); return; }
   onSnapshot(collection(fbDB,'profs'), snap=>{
     const list = snap.docs.map(d=>({ code:d.id, ...d.data() })).sort((a,b)=>(a.nom||'').localeCompare(b.nom||''));
     renderProfListe(list);
@@ -12803,9 +12899,10 @@ function renderProfNotesListe(){
   }).join('');
 }
 
-(function(){
+// Même remarque que ci-dessus : on attend que Firebase (module) soit prêt plutôt que d'abandonner.
+(function attachProfSoumissionsListener(){
   const fbDB = window.fbDB, collection = window.fbCollection, onSnapshot = window.fbOnSnapshot;
-  if(!fbDB || !collection || !onSnapshot) return;
+  if(!fbDB || !collection || !onSnapshot) { setTimeout(attachProfSoumissionsListener, 100); return; }
   onSnapshot(collection(fbDB,'profSoumissions'), snap=>{
     const list = snap.docs.map(d=>({ id:d.id, ...d.data() })).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
     window._profNotesList = list;
@@ -13089,6 +13186,8 @@ buildSlotSelect();
       <div class="fiche-acts">
         <button class="btn btn-ghost" onclick="closeFiche()">Annuler</button>
         <button class="btn btn-pdf" onclick="downloadFicheComplete()" style="font-size:12px">⬇ PDF</button>
+        <button class="btn btn-pdf" style="font-size:12px;background:#25d366" onclick="shareFicheCompletePdf('wa')">📲 Envoyer PDF (WA)</button>
+        <button class="btn btn-pdf" style="font-size:12px;background:#6366f1" onclick="shareFicheCompletePdf('email')">✉️ Envoyer PDF (Email)</button>
         <button class="btn btn-pdf" style="font-size:12px;background:#1a1f2e" onclick="const d=getFicheData();printEleveBadge(d.gid,d.eid)">🪪 Badge</button>
         <button class="btn btn-primary" onclick="saveFiche()">💾 Enregistrer</button>
       </div>
@@ -15654,11 +15753,8 @@ function cnBulletinPageHTML(e){
   </div>`;
 }
 
-function cnOuvrirImpressionBulletins(pagesHTML){
-  const win = window.open('', '_blank');
-  if(!win){ if(typeof toast==='function') toast('⚠️ Autorisez les popups pour générer le PDF.'); return; }
-  win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Bulletins — ${cnEsc(cnClasse||'Classe')}</title>
-  <style>
+function cnBulletinStyleBlock(){
+  return `<style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:'Arial',sans-serif;color:#1a1f2e}
     .cn-bulletin-page{max-width:720px;margin:0 auto;padding:26px 30px;page-break-after:always}
@@ -15679,17 +15775,40 @@ function cnOuvrirImpressionBulletins(pagesHTML){
     .cn-bsign{display:flex;justify-content:space-between;margin-top:40px;font-size:12px;color:#334155}
     .cn-sign-line{width:160px;border-bottom:1px solid #94a3b8;margin-top:34px}
     @media print{ @page{margin:1.2cm} }
-  </style></head><body>
+  </style>`;
+}
+
+function cnOuvrirImpressionBulletins(pagesHTML){
+  const win = window.open('', '_blank');
+  if(!win){ if(typeof toast==='function') toast('⚠️ Autorisez les popups pour générer le PDF.'); return; }
+  win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Bulletins — ${cnEsc(cnClasse||'Classe')}</title>
+  ${cnBulletinStyleBlock()}</head><body>
   ${pagesHTML}
   <script>window.onload=function(){window.print();}<\/script>
   </body></html>`);
   win.document.close();
 }
 
+function cnBulletinFullHtml(e){
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>Bulletin — ${cnEsc(e.nom)}</title>
+  ${cnBulletinStyleBlock()}</head><body>${cnBulletinPageHTML(e)}</body></html>`;
+}
+
 window.cnGenererBulletinPDF = function(eid){
   const e = cnEleves.find(x=>x.id===eid);
   if(!e) return;
   cnOuvrirImpressionBulletins(cnBulletinPageHTML(e));
+};
+
+// Génère un vrai PDF du bulletin et le partage via WhatsApp ou Email
+window.cnShareBulletinPdf = async function(eid, via){
+  const e = cnEleves.find(x=>x.id===eid);
+  if(!e) return;
+  if(via==='wa' && !e.wa){ alert('⚠️ Aucun numéro WhatsApp pour cet élève.'); return; }
+  if(via==='email' && !e.email){ alert('⚠️ Aucun email pour cet élève.'); return; }
+  const moy = cnMoyenneEleve(e.id);
+  const texte = `📋 Bulletin de notes — ${e.nom} — ${cnClasse||'Classe'} — ${cnTrimLabel()}\nMoyenne : ${moy!==null?moy.toFixed(2)+'/20':'—'}\nVeuillez trouver le bulletin complet en pièce jointe.`;
+  await window.sharePdfFromHtml(cnBulletinFullHtml(e), `Bulletin_${e.nom.replace(/\s+/g,'_')}_${cnTrimestre}`, { via, phone: e.wa, email: e.email, text: texte, subject: `Bulletin de notes — ${e.nom} — ${cnTrimLabel()}` });
 };
 
 window.cnGenererBulletinsPDF = function(){
@@ -15949,6 +16068,8 @@ window.cnRender = function(){
           ${e.wa?`<button onclick="cnSendWA('${e.id}')" style="background:#25d366;color:#fff;border:none;border-radius:7px;padding:4px 8px;font-size:11px;cursor:pointer;font-weight:700">📲 WA</button>`:''}
           ${e.email?`<button onclick="cnSendEmail('${e.id}')" style="background:#6366f1;color:#fff;border:none;border-radius:7px;padding:4px 8px;font-size:11px;cursor:pointer;font-weight:700">✉️ Email</button>`:''}
           <button onclick="cnGenererBulletinPDF('${e.id}')" title="Télécharger le bulletin PDF" style="background:#1a1f2e;color:#fff;border:none;border-radius:7px;padding:4px 8px;font-size:11px;cursor:pointer;font-weight:700">📄</button>
+          ${e.wa?`<button onclick="cnShareBulletinPdf('${e.id}','wa')" title="Envoyer le bulletin PDF par WhatsApp" style="background:#0d7a41;color:#fff;border:none;border-radius:7px;padding:4px 8px;font-size:11px;cursor:pointer;font-weight:700">📲 PDF</button>`:''}
+          ${e.email?`<button onclick="cnShareBulletinPdf('${e.id}','email')" title="Envoyer le bulletin PDF par Email" style="background:#4338ca;color:#fff;border:none;border-radius:7px;padding:4px 8px;font-size:11px;cursor:pointer;font-weight:700">✉️ PDF</button>`:''}
           ${!e.wa&&!e.email?`<span style="font-size:10px;color:#94a3b8">Aucun contact</span>`:''}
         </div>
       </td>
@@ -16082,6 +16203,7 @@ function cnAutoIntegrateEvalNote(studentName, matiereLabel, noteSur20, dateStr){
       if(typeof window.publishEleveToGAR === 'function') window.publishEleveToGAR(match.gid, match.eid);
       if(typeof currentTab!=='undefined' && currentTab==='decrocheurs' && typeof renderDecrocheurs==='function') renderDecrocheurs();
     }
+    if(typeof _mepuaScheduleNotesSync==='function') _mepuaScheduleNotesSync();
   }catch(err){ console.warn('cnAutoIntegrateEvalNote:', err); }
 }
 window.cnAutoIntegrateEvalNote = cnAutoIntegrateEvalNote;
@@ -16093,6 +16215,7 @@ window.cnSetNote = function(eid, mid, val){
   cnSave('notes', cnNotes);
   cnSyncNoteToDossier(eid, mid, val);
   cnRender();
+  if(typeof _mepuaScheduleNotesSync==='function') _mepuaScheduleNotesSync();
 };
 
 /* ── Fusionne les élèves en double (même nom) déjà présents dans Calcul des notes.
@@ -16753,6 +16876,151 @@ window.cnPdfListe = function(){
 </div></body></html>`;
   cnOpenPdf(html, `Liste_Eleves_${classe}`);
 };
+
+/* ══════════════════════════════════════════════════════════
+   SYNCHRONISATION VERS MEPUA (élèves + notes)
+   - Élèves : lus depuis groupesList (Groupes/Classes), comme syncEleveToMepua.
+   - Notes : lues depuis TOUS les carnets "Calcul des notes" (cnBooks). Les notes
+     d'évaluations en ligne y sont déjà intégrées automatiquement (voir
+     cnAutoIntegrateEvalNote), donc synchroniser les carnets couvre les deux sources.
+   - Le trimestre du carnet (book.trim) détermine le semestre Mepua : T1/S1→s1,
+     T2/S2→s2, T3→s3 (Annuel → s1 par défaut).
+   ══════════════════════════════════════════════════════════ */
+function _mepuaTrimToSem(trim){
+  if(trim==='T2' || trim==='S2') return 's2';
+  if(trim==='T3') return 's3';
+  return 's1'; // T1, S1, Annuel, ou valeur inconnue
+}
+function _mepuaNormNom(s){ return String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,''); }
+function _mepuaSlugMat(nom){ return String(nom||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') || 'matiere'; }
+
+window.syncAllToMepua = async function(){
+  if (typeof fbDB === 'undefined' || !fbDB) { alert('❌ Connexion cloud indisponible.'); return; }
+  const btn = document.getElementById('mepua-sync-btn');
+  const statusEl = document.getElementById('mepua-sync-status');
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ Synchronisation…'; }
+  if(statusEl) statusEl.textContent = '';
+  try{
+    const grpes = (typeof groupesList !== 'undefined' && Array.isArray(groupesList)) ? groupesList : [];
+
+    // ── 1) Construire la liste complète des élèves (format Mepua) à partir des Groupes/Classes ──
+    const refEtud = doc(fbDB, 'mepua_data', 'ge_etudiants');
+    const snapEtud = await getDoc(refEtud);
+    let listEtud = [];
+    if (snapEtud.exists() && snapEtud.data().value) {
+      try { listEtud = JSON.parse(snapEtud.data().value); } catch(e) { listEtud = []; }
+    }
+    if (!Array.isArray(listEtud)) listEtud = [];
+
+    // Index matricule <-> élève réel, pour le rattachement des notes plus bas
+    const matriculeByEdtId = new Map(); // eleve.id (EDT) -> matricule
+    let nbEleves = 0;
+    grpes.forEach(grp=>{
+      (grp.eleves||[]).forEach(eleve=>{
+        if(!eleve || !eleve.name) return;
+        if(!eleve.matricule) eleve.matricule = 'EDT-' + Math.round(eleve.id || Date.now());
+        matriculeByEdtId.set(eleve.id, eleve.matricule);
+        let idx = listEtud.findIndex(e => e._edtId === eleve.id);
+        if (idx < 0) idx = listEtud.findIndex(e => e.matricule === eleve.matricule);
+        const prev = idx >= 0 ? listEtud[idx] : {};
+        const etud = {
+          matricule: eleve.matricule,
+          nom: eleve.name || '',
+          prenom: eleve.prenom || '',
+          sexe: prev.sexe || '',
+          dob: prev.dob || '',
+          lieu: prev.lieu || '',
+          option: prev.option || '',
+          classe: grp.name || eleve.classe || '',
+          statut: prev.statut || 'Actif',
+          tuteur: prev.tuteur || '',
+          telTuteur: eleve.wa_parent || eleve.tel || prev.telTuteur || '',
+          photo: prev.photo || '',
+          _edtId: eleve.id,
+          source: 'emploi-temps'
+        };
+        if (idx >= 0) listEtud[idx] = etud; else listEtud.push(etud);
+        nbEleves++;
+      });
+    });
+    await setDoc(refEtud, { value: JSON.stringify(listEtud), _majLe: serverTimestamp() }, { merge: true });
+    if(typeof saveGroupes==='function') saveGroupes(); // conserve les matricules générés
+
+    // ── 2) Construire les notes fusionnées (tous les carnets) + la liste des matières ──
+    const refNotes = doc(fbDB, 'mepua_data', 'ge_notes');
+    const snapNotes = await getDoc(refNotes);
+    let geNotesData = {};
+    if (snapNotes.exists() && snapNotes.data().value) {
+      try { geNotesData = JSON.parse(snapNotes.data().value); } catch(e) { geNotesData = {}; }
+    }
+    const refMat = doc(fbDB, 'mepua_data', 'ge_matieres');
+    const snapMat = await getDoc(refMat);
+    let geMatieresData = [];
+    if (snapMat.exists() && snapMat.data().value) {
+      try { geMatieresData = JSON.parse(snapMat.data().value); } catch(e) { geMatieresData = []; }
+    }
+    if (!Array.isArray(geMatieresData)) geMatieresData = [];
+
+    let nbNotes = 0, nbIgnores = 0;
+    Object.keys(cnBooks).forEach(bid=>{
+      const book = cnBooks[bid];
+      if(!book) return;
+      const sem = _mepuaTrimToSem(book.trim);
+      const linkedGrp = book.linkedGid ? grpes.find(g=>String(g.id)===String(book.linkedGid)) : null;
+
+      (book.eleves||[]).forEach(ce=>{
+        // Rattachement au matricule réel : d'abord par id (carnet lié), sinon par nom (best-effort)
+        let matricule = null;
+        if(linkedGrp){
+          matricule = matriculeByEdtId.get(ce.id) || null;
+        }
+        if(!matricule){
+          const norm = _mepuaNormNom(ce.nom);
+          for(const g of grpes){
+            const found = (g.eleves||[]).find(e=>_mepuaNormNom(e.name)===norm);
+            if(found){ matricule = matriculeByEdtId.get(found.id); break; }
+          }
+        }
+        if(!matricule){ nbIgnores++; return; } // élève du carnet introuvable dans Groupes/Classes : on ignore
+
+        const notesEleve = (book.notes && book.notes[ce.id]) || {};
+        Object.keys(notesEleve).forEach(matId=>{
+          const val = notesEleve[matId];
+          if(val===undefined || val==='' || isNaN(parseFloat(val))) return;
+          const matiereObj = (book.matieres||[]).find(m=>m.id===matId);
+          const matiereSlug = _mepuaSlugMat(matiereObj ? matiereObj.nom : matId);
+          if(!geMatieresData.includes(matiereSlug)) geMatieresData.push(matiereSlug);
+          if(!geNotesData[matricule]) geNotesData[matricule] = {};
+          if(!geNotesData[matricule][sem]) geNotesData[matricule][sem] = {};
+          geNotesData[matricule][sem][matiereSlug] = parseFloat(val);
+          nbNotes++;
+        });
+      });
+    });
+
+    await setDoc(refNotes, { value: JSON.stringify(geNotesData), _majLe: serverTimestamp() }, { merge: true });
+    await setDoc(refMat, { value: JSON.stringify(geMatieresData), _majLe: serverTimestamp() }, { merge: true });
+
+    const msg = `✅ ${nbEleves} élève(s) et ${nbNotes} note(s) envoyés vers Mepua` + (nbIgnores ? ` (${nbIgnores} note(s) ignorée(s), élève introuvable dans Groupes/Classes)` : '');
+    if(statusEl) statusEl.textContent = msg;
+    if(typeof toast==='function') toast(msg); else alert(msg);
+  } catch(e){
+    console.warn('syncAllToMepua error', e);
+    if(statusEl) statusEl.textContent = '❌ Erreur lors de la synchronisation.';
+    alert('❌ Erreur lors de la synchronisation vers Mepua.');
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = '🔄 Tout synchroniser vers Mepua'; }
+  }
+};
+
+/* ── Synchro auto (débouncée) déclenchée après chaque saisie/màj de note ──
+   Pousse l'ensemble (léger pour Firestore vu la fréquence de saisie manuelle) ── */
+let _mepuaNotesDebounce = null;
+function _mepuaScheduleNotesSync(){
+  clearTimeout(_mepuaNotesDebounce);
+  _mepuaNotesDebounce = setTimeout(()=>{ if(typeof window.syncAllToMepua==='function') window.syncAllToMepua(); }, 2500);
+}
+window._mepuaScheduleNotesSync = _mepuaScheduleNotesSync;
 
 })(); // fin IIFE calcul-notes
 // ══════════════════ FIN CALCUL DES NOTES ══════════════════
