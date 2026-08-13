@@ -918,6 +918,64 @@ window.deleteEleveFromEtudierGN = async function(etdToken) {
   catch(e) { console.warn('deleteEleveFromEtudierGN error', e); }
 };
 
+// ── Synchronisation élèves EDT → MEPUA (index.html, MÊME projet Firebase "emploi-temps") ──
+// MEPUA stocke sa liste d'étudiants dans le document mepua_data/ge_etudiants
+// (champ "value" = tableau JSON, tel que sauvegardé par son propre système de synchro cloud).
+// On lit ce document, on ajoute/actualise l'élève concerné (identifié par _edtId = id interne EDT,
+// ou à défaut par matricule), puis on réécrit le tableau complet. MEPUA écoute ce document en
+// temps réel et met à jour son onglet "Étudiants" automatiquement, sans recharger la page.
+window.syncEleveToMepua = async function(eleve, classe) {
+  if (!eleve || !eleve.name) return;
+  try {
+    const ref = doc(fbDB, 'mepua_data', 'ge_etudiants');
+    const snap = await getDoc(ref);
+    let list = [];
+    if (snap.exists() && snap.data().value) {
+      try { list = JSON.parse(snap.data().value); } catch(e) { list = []; }
+    }
+    if (!Array.isArray(list)) list = [];
+    if (!eleve.matricule) eleve.matricule = 'EDT-' + Math.round(eleve.id || Date.now());
+    let idx = list.findIndex(e => e._edtId === eleve.id);
+    if (idx < 0) idx = list.findIndex(e => e.matricule === eleve.matricule);
+    const prev = idx >= 0 ? list[idx] : {};
+    const etud = {
+      matricule: eleve.matricule,
+      nom: eleve.name || '',
+      prenom: eleve.prenom || '',
+      sexe: prev.sexe || '',
+      dob: prev.dob || '',
+      lieu: prev.lieu || '',
+      option: prev.option || '',
+      classe: classe || eleve.classe || '',
+      statut: prev.statut || 'Actif',
+      tuteur: prev.tuteur || '',
+      telTuteur: eleve.wa_parent || eleve.tel || prev.telTuteur || '',
+      photo: prev.photo || '',
+      _edtId: eleve.id,
+      source: 'emploi-temps'
+    };
+    if (idx >= 0) list[idx] = etud; else list.push(etud);
+    await setDoc(ref, { value: JSON.stringify(list), _majLe: serverTimestamp() }, { merge: true });
+  } catch(e) { console.warn('syncEleveToMepua error', e); }
+};
+
+// Supprime l'élève correspondant côté MEPUA
+window.deleteEleveFromMepua = async function(eleveId) {
+  if (eleveId === undefined || eleveId === null) return;
+  try {
+    const ref = doc(fbDB, 'mepua_data', 'ge_etudiants');
+    const snap = await getDoc(ref);
+    if (!snap.exists() || !snap.data().value) return;
+    let list = [];
+    try { list = JSON.parse(snap.data().value); } catch(e) { return; }
+    if (!Array.isArray(list)) return;
+    const newList = list.filter(e => e._edtId !== eleveId);
+    if (newList.length !== list.length) {
+      await setDoc(ref, { value: JSON.stringify(newList), _majLe: serverTimestamp() }, { merge: true });
+    }
+  } catch(e) { console.warn('deleteEleveFromMepua error', e); }
+};
+
 // Publie l'emploi du temps d'un groupe dans la collection partagée "chatEdt"
 // afin que la messagerie élèves (index.html, même projet Firebase) puisse
 // l'afficher en temps réel côté élève, sans authentification requise.
@@ -9485,6 +9543,7 @@ function addEleveToGroupe(id){
   grp.eleves.push(newEleve);
   saveGroupes();
   if (typeof window.syncEleveToEtudierGN === 'function') window.syncEleveToEtudierGN(newEleve, grp.name).then(()=>saveGroupes());
+  if (typeof window.syncEleveToMepua === 'function') window.syncEleveToMepua(newEleve, grp.name);
   // ── Synchronisation automatique avec l'onglet Élèves ──
   const fullName = [name, prenom.trim()].filter(Boolean).join(' ');
   const sn = document.getElementById('student-name');
@@ -9589,6 +9648,9 @@ function deleteEleveFromGroupe(gid, eid){
   renderGrpStats();
   if (removed && removed.etdToken && typeof window.deleteEleveFromEtudierGN === 'function') {
     window.deleteEleveFromEtudierGN(removed.etdToken);
+  }
+  if (removed && typeof window.deleteEleveFromMepua === 'function') {
+    window.deleteEleveFromMepua(removed.id);
   }
 }
 
