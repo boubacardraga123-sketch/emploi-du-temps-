@@ -3591,11 +3591,27 @@ window.showDevoirsRetard = async function() {
   document.getElementById('edtx-modal-body').innerHTML = '<div class="loading"><div class="spinner"></div>Analyse en cours…</div>';
   document.getElementById('edtx-modal-bg').style.display = 'block';
   try {
+    // Utilise les références Firebase "live" (window.fbDB / window.fbCollection / window.fbGetDocs)
+    // plutôt que les constantes capturées au chargement du module : si Firebase n'était pas
+    // encore prêt à ce moment-là (connexion lente), ces constantes restent "undefined" pour
+    // toujours, ce qui provoquait "Erreur lors de l'analyse." même une fois Firebase chargé.
+    // On patiente ici jusqu'à 5s que Firebase soit disponible avant d'abandonner.
+    let _fbDB = window.fbDB, _collection = window.fbCollection, _getDocs = window.fbGetDocs;
+    let waited = 0;
+    while ((!_fbDB || !_collection || !_getDocs) && waited < 5000) {
+      await new Promise(r => setTimeout(r, 200));
+      waited += 200;
+      _fbDB = window.fbDB; _collection = window.fbCollection; _getDocs = window.fbGetDocs;
+    }
+    if (!_fbDB || !_collection || !_getDocs) {
+      document.getElementById('edtx-modal-body').innerHTML = '<p style="color:#dc2626;text-align:center;padding:16px;">❌ Connexion à la base de données indisponible. Vérifiez votre connexion internet et réessayez.</p>';
+      return;
+    }
     if (typeof groupesList === 'undefined' || !groupesList.length) {
       document.getElementById('edtx-modal-body').innerHTML = '<p style="text-align:center;color:#94a3b8;padding:20px;font-size:.85rem;">Aucune classe créée dans l\'onglet Groupes.</p>';
       return;
     }
-    const devSnap = await getDocs(collection(fbDB,'edtx_devoirs'));
+    const devSnap = await _getDocs(_collection(_fbDB,'edtx_devoirs'));
     const devoirs = devSnap.docs.map(d=>({...d.data(), id:d.id}));
     if (!devoirs.length) {
       document.getElementById('edtx-modal-body').innerHTML = '<p style="text-align:center;color:#94a3b8;padding:20px;font-size:.85rem;">Aucun devoir envoyé pour le moment.</p>';
@@ -3603,7 +3619,7 @@ window.showDevoirsRetard = async function() {
     }
     // Récupère les noms des élèves ayant répondu, pour chaque devoir
     for (const d of devoirs) {
-      const repSnap = await getDocs(collection(fbDB,'edtx_devoirs',d.id,'reponses'));
+      const repSnap = await _getDocs(_collection(_fbDB,'edtx_devoirs',d.id,'reponses'));
       d._noms = repSnap.docs.map(r => _mepuaNormNom(r.data().nom));
     }
     const normGrp = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
@@ -3635,7 +3651,7 @@ window.showDevoirsRetard = async function() {
     document.getElementById('edtx-modal-body').innerHTML = html || '<p style="text-align:center;color:#059669;padding:20px;font-size:.85rem;">✅ Aucun élève n\'a manqué au moins 2 devoirs.</p>';
   } catch(e) {
     console.error('showDevoirsRetard error:', e);
-    document.getElementById('edtx-modal-body').innerHTML = '<p style="color:#dc2626;text-align:center;padding:16px;">❌ Erreur lors de l\'analyse.</p>';
+    document.getElementById('edtx-modal-body').innerHTML = '<p style="color:#dc2626;text-align:center;padding:16px;">❌ Erreur lors de l\'analyse.<br><span style="font-size:.72rem;color:#94a3b8;">' + aEsc(e.message || e.code || String(e)) + '</span></p>';
   }
 };
 
