@@ -151,6 +151,25 @@ td.time-col.current-slot{background:#eef2ff;color:#6366f1;border-left:3px solid 
 .pdf-opt label:hover{border-color:#6366f1;background:#fafafe}
 .pdf-opt input[type=radio]{accent-color:#6366f1;width:15px;height:15px}
 
+/* ── INVITATION PROFESSEUR MODAL ── */
+#profinv-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center;padding:16px}
+#profinv-overlay.open{display:flex}
+#profinv-modal{background:#fff;border-radius:20px;width:420px;max-width:95vw;padding:22px;max-height:88vh;overflow-y:auto;animation:fadeIn .2s ease}
+.profinv-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:#1a1f2e;margin-bottom:4px}
+.profinv-sub{font-size:12px;color:#64748b;margin-bottom:14px;line-height:1.5}
+.profinv-field{margin-bottom:12px}
+.profinv-field label{font-size:11.5px;font-weight:700;color:#475569;display:block;margin-bottom:5px}
+.profinv-field input[type=text]{width:100%;padding:9px 11px;border:1.5px solid #e2e8f0;border-radius:9px;font-size:13px;outline:none;font-family:'DM Sans',sans-serif}
+.profinv-field input[type=text]:focus{border-color:#6366f1}
+.profinv-classes{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.profinv-class-chip{padding:6px 11px;border-radius:20px;border:1.5px solid #e2e8f0;font-size:11.5px;font-weight:700;color:#475569;cursor:pointer}
+.profinv-class-chip.sel{background:#6366f1;border-color:#6366f1;color:#fff}
+.profinv-link-box{background:#f8fafc;border:1.5px dashed #cbd5e1;border-radius:10px;padding:10px;font-size:11.5px;font-family:'DM Mono',monospace;color:#334155;word-break:break-all;margin-top:6px}
+.profinv-item{background:#f8fafc;border-radius:10px;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.profinv-item-info{flex:1;min-width:120px}
+.profinv-item-name{font-weight:700;font-size:12.5px;color:#1a1f2e}
+.profinv-item-meta{font-size:10.5px;color:#94a3b8}
+
 /* ── DAY SUMMARY BAR ── */
 .day-summary-bar{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
 .day-summary-chip{background:#fff;border-radius:10px;padding:8px 12px;box-shadow:0 1px 4px rgba(0,0,0,.07);font-size:12px;font-weight:700;color:#1a1f2e;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:80px;border-top:3px solid #6366f1}
@@ -1079,6 +1098,8 @@ window.fbGetDoc  = getDoc;
 window.fbCollection = collection;
 window.fbGetDocs = getDocs;
 window.fbUpdateDoc = updateDoc;
+window.fbQuery = query;
+window.fbWhere = where;
 window.currentUser = null;
 window.isAdmin   = false;
 window.viewingUid = null; // uid du compte que l'admin consulte
@@ -4957,6 +4978,7 @@ function edtxInit() {
         <button class="btn btn-ghost" onclick="markAllPresentClasse('all')">✅ Tous présents</button>
         <button class="btn" style="background:#1a1f2e;color:#fbbf24" onclick="openQRScanner()">📷 Pointage scan QR</button>
         <button class="btn btn-danger" onclick="renderAbsentsParJour()">📅 Absents par jour</button>
+        <button class="btn" style="background:#8b5cf6;color:#fff" onclick="openProfInvModal()">🔗 Inviter un professeur</button>
       </div>
       <!-- Stats globales -->
       <div class="ea-summary-bar" id="ea-summary-bar"></div>
@@ -5789,6 +5811,38 @@ function edtxInit() {
   </div>
 </div>
 
+<!-- ══ INVITATION PROFESSEUR MODAL ══ -->
+<div id="profinv-overlay" onclick="closeProfInvOverlay(event)">
+  <div id="profinv-modal">
+    <div class="profinv-title">🔗 Inviter un professeur</div>
+    <div class="profinv-sub">Générez un lien d'accès à l'<b>Espace Professeur</b> (gestion des présences), synchronisé automatiquement avec cet Emploi du Temps. Le professeur ouvre simplement le lien — aucun mot de passe à partager.</div>
+
+    <div class="profinv-field">
+      <label>Adresse où l'app « Espace Professeur » est hébergée</label>
+      <input type="text" id="profinv-app-url" placeholder="https://votredomaine.com/espace-professeur/index.html">
+    </div>
+    <div class="profinv-field">
+      <label>Nom du professeur (optionnel)</label>
+      <input type="text" id="profinv-name" placeholder="Ex : Mme Traoré">
+    </div>
+    <div class="profinv-field">
+      <label>Classes autorisées (aucune sélection = toutes les classes)</label>
+      <div class="profinv-classes" id="profinv-classes"></div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;justify-content:center;padding:11px;margin-bottom:6px" onclick="generateProfInvite()">✨ Générer le lien</button>
+    <div id="profinv-generated" style="display:none">
+      <div class="profinv-link-box" id="profinv-link-text"></div>
+      <div style="display:flex;gap:8px;margin-top:8px">
+        <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="copyProfInviteLink()">📋 Copier</button>
+        <button class="btn btn-green" style="flex:1;justify-content:center" onclick="shareProfInviteWA()">📲 WhatsApp</button>
+      </div>
+    </div>
+    <div style="font-family:'Syne',sans-serif;font-size:12.5px;font-weight:800;color:#1a1f2e;margin:16px 0 8px">Liens déjà envoyés</div>
+    <div id="profinv-list"><div style="text-align:center;color:#94a3b8;font-size:12px;padding:10px 0">Aucun lien généré pour le moment.</div></div>
+    <button class="btn" style="background:#f1f5f9;color:#64748b;width:100%;justify-content:center;padding:11px;margin-top:12px" onclick="closeProfInvModal()">Fermer</button>
+  </div>
+</div>
+
 <script>
 // ═══════════════════════════════════════════════════════
 // sv / ld — localStorage + Firebase sync
@@ -5819,6 +5873,147 @@ function svDyn(k,v){
 async function loadFromFirebase(k){
   if(!window.fbLd) return null;
   try{ return await window.fbLd(k); }catch{ return null; }
+}
+
+// ═══════════════════════════════════════════════════════
+// INVITATION PROFESSEUR — génère un lien d'accès à l'Espace Professeur
+// (fichier séparé Espace_Professeur.html) sans partager le mot de passe.
+// Le lien contient un code unique qui pointe vers ce compte (profInvites/{code}
+// → { ownerUid }), et un « badge » profGrants/{uid} autorise, côté règles
+// Firestore, la lecture/écriture des seules clés edt_groupes / edt_ea_data /
+// edt_manager pour quiconque détient un lien actif. Voir les règles Firestore
+// à configurer dans la console Firebase (fournies séparément).
+// ═══════════════════════════════════════════════════════
+let profInvSelectedClasses = [];
+
+function openProfInvModal(){
+  if(!window.currentUser){ alert('Vous devez être connecté pour générer un lien.'); return; }
+  loadGroupes();
+  profInvSelectedClasses = [];
+  const urlInp = document.getElementById('profinv-app-url');
+  urlInp.value = ld('edt_prof_app_url') || urlInp.value || '';
+  document.getElementById('profinv-name').value = '';
+  document.getElementById('profinv-generated').style.display = 'none';
+  renderProfInvClasses();
+  renderProfInvList();
+  document.getElementById('profinv-overlay').classList.add('open');
+}
+function closeProfInvModal(){ document.getElementById('profinv-overlay').classList.remove('open'); }
+function closeProfInvOverlay(ev){ if(ev.target && ev.target.id === 'profinv-overlay') closeProfInvModal(); }
+
+function renderProfInvClasses(){
+  const wrap = document.getElementById('profinv-classes');
+  if(!groupesList.length){ wrap.innerHTML = '<span style="font-size:11.5px;color:#94a3b8">Aucune classe créée pour le moment.</span>'; return; }
+  wrap.innerHTML = groupesList.map(g=>`<span class="profinv-class-chip ${profInvSelectedClasses.includes(g.id)?'sel':''}" onclick="toggleProfInvClass(${g.id})">${esc(g.name)}</span>`).join('');
+}
+function toggleProfInvClass(id){
+  const i = profInvSelectedClasses.indexOf(id);
+  if(i>=0) profInvSelectedClasses.splice(i,1); else profInvSelectedClasses.push(id);
+  renderProfInvClasses();
+}
+
+function genInviteCode(){
+  const chars='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let s=''; for(let i=0;i<7;i++) s+=chars[Math.floor(Math.random()*chars.length)];
+  return s;
+}
+
+async function generateProfInvite(){
+  if(!window.currentUser){ alert('Vous devez être connecté.'); return; }
+  const appUrl = document.getElementById('profinv-app-url').value.trim();
+  if(!appUrl){ alert("Veuillez indiquer l'adresse où l'app « Espace Professeur » est hébergée."); return; }
+  sv('edt_prof_app_url', appUrl);
+  const name = document.getElementById('profinv-name').value.trim();
+  const code = genInviteCode();
+  const uid = window.activeUid ? window.activeUid() : window.currentUser.uid;
+  const data = {
+    ownerUid: uid,
+    school: (typeof manager!=='undefined' && manager.school) ? manager.school : '',
+    profName: name || '',
+    classIds: profInvSelectedClasses.slice(),
+    active: true,
+    createdAt: Date.now()
+  };
+  try{
+    await window.fbSetDoc(window.fbDoc(window.fbDB,'profInvites',code), data);
+    await window.fbSetDoc(window.fbDoc(window.fbDB,'profGrants',uid), { active:true }, { merge:true });
+  }catch(e){ console.warn('generateProfInvite error', e); alert("Erreur lors de la création du lien. Vérifiez votre connexion."); return; }
+  const sep = appUrl.includes('?') ? '&' : '?';
+  const link = appUrl + sep + 'code=' + code;
+  document.getElementById('profinv-link-text').textContent = link;
+  document.getElementById('profinv-generated').style.display = 'block';
+  document.getElementById('profinv-generated').dataset.link = link;
+  document.getElementById('profinv-name').value = '';
+  profInvSelectedClasses = [];
+  renderProfInvClasses();
+  renderProfInvList();
+}
+
+function copyProfInviteLink(){
+  const link = document.getElementById('profinv-generated').dataset.link || '';
+  if(!link) return;
+  copyTextFallback(link);
+}
+function copyExistingProfLink(code){
+  const appUrl = document.getElementById('profinv-app-url').value.trim() || ld('edt_prof_app_url') || '';
+  if(!appUrl){ alert("Adresse de l'app non renseignée."); return; }
+  const sep = appUrl.includes('?') ? '&' : '?';
+  copyTextFallback(appUrl + sep + 'code=' + code);
+}
+function copyTextFallback(text){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(()=>alert('✅ Lien copié !')).catch(()=>copyTextFallback2(text));
+  } else copyTextFallback2(text);
+}
+function copyTextFallback2(text){
+  const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select();
+  try{ document.execCommand('copy'); alert('✅ Lien copié !'); }catch(e){ alert('Copie impossible, sélectionnez le lien manuellement.'); }
+  document.body.removeChild(ta);
+}
+function shareProfInviteWA(){
+  const link = document.getElementById('profinv-generated').dataset.link || '';
+  if(!link) return;
+  const school = (typeof manager!=='undefined' && manager.school) ? manager.school : '';
+  const txt = `🔗 Accès à votre Espace Professeur — Gestion des présences\n${school?'🏫 '+school+'\n':''}\nCliquez sur ce lien pour ouvrir votre espace (installable comme une app) :\n${link}`;
+  window.open('https://wa.me/?text='+encodeURIComponent(txt), '_blank');
+}
+
+async function renderProfInvList(){
+  const listEl = document.getElementById('profinv-list');
+  if(!window.currentUser || !window.fbGetDocs || !window.fbCollection || !window.fbQuery || !window.fbWhere){
+    listEl.innerHTML = '<div style="text-align:center;color:#94a3b8;font-size:12px;padding:10px 0">Indisponible hors ligne.</div>';
+    return;
+  }
+  try{
+    const uid = window.activeUid ? window.activeUid() : window.currentUser.uid;
+    const q = window.fbQuery(window.fbCollection(window.fbDB,'profInvites'), window.fbWhere('ownerUid','==',uid));
+    const snap = await window.fbGetDocs(q);
+    if(snap.empty){ listEl.innerHTML = '<div style="text-align:center;color:#94a3b8;font-size:12px;padding:10px 0">Aucun lien généré pour le moment.</div>'; return; }
+    let items = [];
+    snap.forEach(d=> items.push({ code: d.id, ...d.data() }));
+    items.sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    listEl.innerHTML = items.map(it=>{
+      const classesLbl = (it.classIds && it.classIds.length) ? it.classIds.map(id=>{ const g=groupesList.find(x=>x.id===id); return g?g.name:''; }).filter(Boolean).join(', ') : 'Toutes les classes';
+      return `<div class="profinv-item">
+        <div class="profinv-item-info">
+          <div class="profinv-item-name">${esc(it.profName||'Professeur')} ${it.active===false?'<span style="color:#ef4444">(désactivé)</span>':''}</div>
+          <div class="profinv-item-meta">${esc(classesLbl)} · code ${esc(it.code)}</div>
+        </div>
+        <button class="btn" style="background:#eef2ff;color:#4338ca;font-size:11px;padding:6px 9px" onclick="copyExistingProfLink('${it.code}')">📋</button>
+        <button class="btn ${it.active===false?'btn-green':'btn-danger'}" style="font-size:11px;padding:6px 9px" onclick="toggleProfInvite('${it.code}', ${it.active===false})">${it.active===false?'▶ Activer':'⏸ Désactiver'}</button>
+      </div>`;
+    }).join('');
+  }catch(e){
+    console.warn('renderProfInvList error', e);
+    listEl.innerHTML = '<div style="text-align:center;color:#94a3b8;font-size:12px;padding:10px 0">Impossible de charger les liens.</div>';
+  }
+}
+
+async function toggleProfInvite(code, active){
+  try{
+    await window.fbSetDoc(window.fbDoc(window.fbDB,'profInvites',code), { active }, { merge:true });
+    renderProfInvList();
+  }catch(e){ alert("Impossible de modifier ce lien."); }
 }
 
 // ═══════════════════════════════════════════════════════
