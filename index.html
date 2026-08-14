@@ -4689,6 +4689,14 @@ function edtxInit() {
     </div>
   </div>
 
+  <!-- AJOUT : Suivi des devoirs (élèves n'ayant pas fait au moins 2 devoirs) -->
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#1a1f2e;margin-bottom:10px">🔍 Suivi des devoirs</div>
+    <div style="font-size:10px;color:#94a3b8;margin-bottom:10px">💡 Un « devoir fait » = une note enregistrée dans une matière du carnet actif. Repère les élèves qui n'ont jamais atteint au moins 2 devoirs faits.</div>
+    <button onclick="cnEleves2Devoirs()" style="background:#ef4444;color:#fff;border:none;border-radius:10px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;display:flex;align-items:center;gap:6px;margin-bottom:10px">📉 Élèves n'ayant pas fait 2 devoirs</button>
+    <div id="cn-devoirs2-result"></div>
+  </div>
+
   <!-- Tableau des notes -->
   <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
     <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#1a1f2e;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
@@ -4948,9 +4956,12 @@ function edtxInit() {
         <button class="btn btn-pdf" onclick="downloadEleveAttendancePDF()">📄 PDF</button>
         <button class="btn btn-ghost" onclick="markAllPresentClasse('all')">✅ Tous présents</button>
         <button class="btn" style="background:#1a1f2e;color:#fbbf24" onclick="openQRScanner()">📷 Pointage scan QR</button>
+        <button class="btn btn-danger" onclick="renderAbsentsParJour()">📅 Absents par jour</button>
       </div>
       <!-- Stats globales -->
       <div class="ea-summary-bar" id="ea-summary-bar"></div>
+      <!-- AJOUT : Liste des absents par jour -->
+      <div id="ea-absents-parjour"></div>
       <!-- Liste des classes -->
       <div id="ea-classes-list">
         <div style="text-align:center;padding:30px;color:#94a3b8">
@@ -7291,6 +7302,51 @@ function switchAttendSub(sub){
 }
 
 function eaKey(grpId, eleveId){ return grpId+'_'+eleveId; }
+
+// ── AJOUT : Liste des absents, regroupée jour par jour ──
+function renderAbsentsParJour(){
+  const wrap = document.getElementById('ea-absents-parjour');
+  if(!wrap) return;
+  const grpes = (typeof groupesList!=='undefined') ? groupesList : [];
+  const dates = Object.keys(eaData||{}).sort((a,b)=> b.localeCompare(a)); // plus récent d'abord
+
+  if(!dates.length){
+    wrap.innerHTML = '<div style="text-align:center;padding:16px;color:#94a3b8;font-size:13px;background:#fff;border-radius:12px;margin-bottom:12px">Aucune donnée de présence enregistrée pour l\'instant.</div>';
+    return;
+  }
+
+  let html = '<div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07)">';
+  html += '<div style="font-family:\'Syne\',sans-serif;font-size:13px;font-weight:800;color:#1a1f2e;margin-bottom:10px">📅 Liste des absents par jour</div>';
+
+  let totalJoursAvecAbsents = 0;
+  dates.forEach(dateStr=>{
+    const dayData = eaData[dateStr] || {};
+    const absents = [];
+    grpes.forEach(g=>{
+      (g.eleves||[]).forEach(e=>{
+        if(dayData[eaKey(g.id, e.id)] === 'absent'){
+          const nom = [e.name, e.prenom].filter(Boolean).join(' ') || e.name || 'Élève';
+          absents.push({ nom, classe: g.name });
+        }
+      });
+    });
+    if(!absents.length) return;
+    totalJoursAvecAbsents++;
+    const dObj = new Date(dateStr+'T00:00:00');
+    const dateLbl = isNaN(dObj) ? dateStr : dObj.toLocaleDateString('fr-FR', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+    html += `
+      <div style="border-left:4px solid #ef4444;background:#fff5f5;border-radius:10px;padding:10px 12px;margin-bottom:8px">
+        <div style="font-weight:800;font-size:12.5px;color:#1a1f2e;margin-bottom:6px;text-transform:capitalize">🗓 ${esc(dateLbl)} — ❌ ${absents.length} absent${absents.length>1?'s':''}</div>
+        ${absents.map(a=>`<div style="font-size:12px;color:#475569;padding:2px 0">• ${esc(a.nom)} <span style="color:#94a3b8">(${esc(a.classe)})</span></div>`).join('')}
+      </div>`;
+  });
+
+  if(!totalJoursAvecAbsents){
+    html += '<div style="text-align:center;padding:16px;color:#10b981;font-size:13px">✅ Aucune absence enregistrée.</div>';
+  }
+  html += '</div>';
+  wrap.innerHTML = html;
+}
 
 function setEleveAttendance(grpId, eleveId, dateStr, status){
   if(!eaData[dateStr]) eaData[dateStr] = {};
@@ -15631,6 +15687,36 @@ let cnExcluded  = cnLoad('excluded', []); // ids d'élèves exclus du Carnet de 
 /* ── Helpers ── */
 function cnId(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
 function cnEsc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+// ── AJOUT : Élèves n'ayant jamais fait au moins 2 devoirs (carnet actif) ──
+function cnEleves2Devoirs(){
+  const wrap = document.getElementById('cn-devoirs2-result');
+  if(!wrap) return;
+  const seuilDevoirs = 2;
+  const rows = (cnEleves||[]).map(e=>{
+    const notes = cnNotes[e.id] || {};
+    const nb = Object.values(notes).filter(v=>v!==undefined && v!==null && v!=='').length;
+    return { nom: e.nom, nb };
+  }).filter(r=>r.nb < seuilDevoirs);
+  rows.sort((a,b)=> a.nb - b.nb || String(a.nom).localeCompare(String(b.nom)));
+
+  if(!cnEleves.length){
+    wrap.innerHTML = '<div style="text-align:center;padding:16px;color:#94a3b8;font-size:13px">Aucun élève dans ce carnet.</div>';
+    return;
+  }
+  if(!rows.length){
+    wrap.innerHTML = '<div style="text-align:center;padding:16px;color:#10b981;font-size:13px">✅ Tous les élèves ont fait au moins '+seuilDevoirs+' devoirs.</div>';
+    return;
+  }
+  wrap.innerHTML = `
+    <div style="font-size:11px;color:#991b1b;font-weight:700;margin-bottom:8px">🚨 ${rows.length} élève${rows.length>1?'s':''} concerné${rows.length>1?'s':''}</div>
+    ${rows.map(r=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;background:#fff5f5;border-left:4px solid #ef4444;border-radius:10px;padding:9px 12px;margin-bottom:6px">
+        <span style="font-weight:700;font-size:13px;color:#1a1f2e">${cnEsc(r.nom)}</span>
+        <span style="font-size:11px;font-weight:800;color:#991b1b;background:#fee2e2;padding:2px 9px;border-radius:20px">${r.nb} devoir${r.nb>1?'s':''} fait${r.nb>1?'s':''}</span>
+      </div>`).join('')}
+  `;
+}
 
 function cnMoyenneEleve(eid){
   let sum=0, totalCoeff=0;
