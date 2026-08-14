@@ -3607,6 +3607,10 @@ window.showDevoirsRetard = async function() {
       document.getElementById('edtx-modal-body').innerHTML = '<p style="color:#dc2626;text-align:center;padding:16px;">❌ Connexion à la base de données indisponible. Vérifiez votre connexion internet et réessayez.</p>';
       return;
     }
+    // Copie locale de la normalisation de nom : la fonction globale _mepuaNormNom() est
+    // déclarée dans un <script> classique et n'est pas visible depuis ce <script type="module">
+    // (portée séparée), ce qui provoquait "_mepuaNormNom is not defined".
+    const _normNom = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]/g,'');
     if (typeof groupesList === 'undefined' || !groupesList.length) {
       document.getElementById('edtx-modal-body').innerHTML = '<p style="text-align:center;color:#94a3b8;padding:20px;font-size:.85rem;">Aucune classe créée dans l\'onglet Groupes.</p>';
       return;
@@ -3620,7 +3624,7 @@ window.showDevoirsRetard = async function() {
     // Récupère les noms des élèves ayant répondu, pour chaque devoir
     for (const d of devoirs) {
       const repSnap = await _getDocs(_collection(_fbDB,'edtx_devoirs',d.id,'reponses'));
-      d._noms = repSnap.docs.map(r => _mepuaNormNom(r.data().nom));
+      d._noms = repSnap.docs.map(r => _normNom(r.data().nom));
     }
     const normGrp = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
     let html = '';
@@ -3633,8 +3637,8 @@ window.showDevoirsRetard = async function() {
       });
       if (!devClasse.length || !(grp.eleves||[]).length) return;
       const enRetard = grp.eleves.map(e => {
-        const fullName = _mepuaNormNom([e.name, e.prenom].filter(Boolean).join(' '));
-        const nomSeul = _mepuaNormNom(e.name);
+        const fullName = _normNom([e.name, e.prenom].filter(Boolean).join(' '));
+        const nomSeul = _normNom(e.name);
         const fait = devClasse.filter(d => d._noms.some(n => n && (n===fullName || n.includes(nomSeul) || (nomSeul && nomSeul.includes(n))))).length;
         return { e, total: devClasse.length, fait, manque: devClasse.length - fait };
       }).filter(x => x.manque >= 2);
