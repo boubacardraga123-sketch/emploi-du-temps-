@@ -2243,6 +2243,7 @@ async function showPublicFraisInscriptionView(code){
     <button class="sujet-subtab" id="edtx-nav-devoirs" onclick="showEdtxSection('devoirs')">📒 Devoirs</button>
     <button class="sujet-subtab" id="edtx-nav-parcours" onclick="showEdtxSection('parcours')">🎓 Modules & Progression</button>
     <button class="sujet-subtab" id="edtx-nav-documents" onclick="showEdtxSection('documents')">📄 Documents</button>
+    <button class="sujet-subtab" id="edtx-nav-remediation" onclick="showEdtxSection('remediation')">🧩 Remédiation</button>
   </div>
 
     <!-- ÉVALUATIONS -->
@@ -2286,6 +2287,8 @@ async function showPublicFraisInscriptionView(code){
           </div>
           <button class="btn-pub" onclick="createDevoir()">✅ Créer & obtenir le lien</button>
         </div>
+
+        <button onclick="showDevoirsRetard()" style="width:100%;background:#fff7ed;color:#c2410c;border:1.5px solid #fed7aa;border-radius:8px;padding:9px;font-family:'Inter',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;margin-bottom:12px">⚠️ Élèves n'ayant pas fait au moins 2 devoirs</button>
 
         <div class="list-head">Devoirs envoyés</div>
         <div id="devoirs-admin-list"><div class="loading"><div class="spinner"></div>Chargement…</div></div>
@@ -2433,6 +2436,27 @@ async function showPublicFraisInscriptionView(code){
       </div>
       <div class="list-head">Documents envoyés</div>
       <div id="documents-admin-list"><div class="loading"><div class="spinner"></div>Chargement…</div></div>
+    </div>
+
+    <!-- RÉMÉDIATION : banque d'exercices ciblés par notion -->
+    <div id="edtx-sec-remediation" style="display:none">
+      <div style="padding:0 0 6px">
+        <p style="font-size:12px;opacity:.65;margin-bottom:8px">Créez des exercices classés par notion. Depuis les résultats d'une évaluation (ou en corrigeant un devoir), vous pourrez proposer automatiquement les exercices liés aux notions ratées par chaque élève.</p>
+      </div>
+      <div class="form-card">
+        <h3>🧩 Nouvel exercice de remédiation</h3>
+        <input type="hidden" id="rem-editid" value="">
+        <div class="fg"><label>Titre *</label><input type="text" id="rem-titre" placeholder="Ex : Exercices sur les fractions"></div>
+        <div class="frow">
+          <div class="fg"><label>Notion *</label><input type="text" id="rem-notion" placeholder="Ex : Fractions"></div>
+          <div class="fg"><label>Niveau (optionnel)</label><input type="text" id="rem-niveau" placeholder="Ex : Terminale"></div>
+        </div>
+        <div class="fg"><label>Contenu / Lien (image, PDF, Drive…)</label><input type="text" id="rem-lien" placeholder="https://…"></div>
+        <div class="fg"><label>Description (optionnel)</label><textarea id="rem-desc" placeholder="Consigne ou résumé de l'exercice…" style="border:1.5px solid #e5e7eb;background:#f9fafb;font-family:inherit;font-size:.85rem;padding:.6rem .8rem;border-radius:8px;outline:none;resize:vertical;min-height:55px;box-sizing:border-box;width:100%"></textarea></div>
+        <button class="btn-pub" onclick="saveRemediationExo()">✅ Enregistrer l'exercice</button>
+      </div>
+      <div class="list-head">Banque d'exercices</div>
+      <div id="remediation-admin-list"><div class="loading"><div class="spinner"></div>Chargement…</div></div>
     </div>
 
 </div>
@@ -2756,6 +2780,8 @@ window.showEvalAdminResults = async function(evalId) {
           sendBtn += `<button onclick="window._sendEvalNoteToInterface(${ri})" style="display:inline-block;margin-top:6px;margin-left:6px;background:#004d2e;color:#FCD116;border:none;border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:700;cursor:pointer;">💬 Envoyer sur l'interface</button>`;
         }
         const hasManual = ev.questions.some(q => _aebIsManualQ(q));
+        const notionsRatees = [...new Set(ev.questions.filter(q => (q.notion||'').trim() && _remIsQCorrect(q,r)===false).map(q=>q.notion.trim()))];
+        const remCtrId = 'remctr-ev-' + ri;
         html += `<div style="padding:10px;background:#f8fafc;border-radius:10px;margin-bottom:8px">
           <div style="display:flex;align-items:center;gap:10px">
             <div style="flex:1;font-weight:600;font-size:.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${aEsc(nomAff)}</div>
@@ -2764,7 +2790,9 @@ window.showEvalAdminResults = async function(evalId) {
           </div>
           ${(r.tabSwitchCount||0) > 0 ? `<div style="margin-top:5px;font-size:.72rem;font-weight:700;color:#dc2626;background:#fee2e2;border-radius:6px;padding:3px 8px;display:inline-block;">⚠️ ${r.tabSwitchCount} sortie${r.tabSwitchCount>1?'s':''} d'onglet détectée${r.tabSwitchCount>1?'s':''}</div>` : '<div style="margin-top:5px;font-size:.72rem;color:#059669;background:#dcfce7;border-radius:6px;padding:3px 8px;display:inline-block;">✅ Aucune sortie d\'onglet</div>'}
           ${hasManual ? `<button onclick="window._toggleEvalResDetail(${ri})" style="margin-top:6px;background:#fffbeb;color:#92400e;border:1.5px solid #fbbf24;border-radius:8px;padding:5px 10px;font-size:.72rem;font-weight:700;cursor:pointer;">📝 Voir / Corriger les réponses</button>` : ''}
+          ${notionsRatees.length ? `<button onclick="window._proposerExercices('${aEsc(notionsRatees.join('|'))}','${aEsc(r.studentToken||'')}','${aEsc(contact)}','${aEsc(nomAff)}','${remCtrId}')" style="margin-top:6px;margin-left:6px;background:#f5f3ff;color:#6d28d9;border:1.5px solid #ddd6fe;border-radius:8px;padding:5px 10px;font-size:.72rem;font-weight:700;cursor:pointer;">🧩 Exercices de remédiation (${notionsRatees.length})</button>` : ''}
           <div id="eval-res-detail-${ri}" style="display:none;margin-top:8px"></div>
+          <div id="${remCtrId}"></div>
           <div id="eval-res-send-${ri}">${sendBtn}</div>
         </div>`;
       });
@@ -2815,6 +2843,25 @@ function _aebAutoScore(ev, r) {
     }
   });
   return s;
+}
+
+// Détermine si une réponse à une question (taguée avec une notion) est correcte.
+// Renvoie true/false, ou null si la correction manuelle n'a pas encore été faite (indéterminé).
+function _remIsQCorrect(q, r) {
+  const ans = (r.answers||{})[q.id];
+  if (_aebIsManualQ(q)) {
+    const mg = (r.manualGrades||{})[q.id];
+    if (mg===undefined || mg===null) return null;
+    return mg >= q.points;
+  }
+  if (q.type==='radio'||q.type==='yesno') return q.correctAnswers.includes(parseInt(ans));
+  if (q.type==='checkbox') {
+    const arr = Array.isArray(ans)?ans:[];
+    return q.correctAnswers.slice().sort().join(',')===arr.slice().sort().join(',');
+  }
+  const variants = (q.expectedAnswer||'').split('|').map(v=>window._edtxNormAnswer(v)).filter(Boolean);
+  const given = window._edtxNormAnswer(ans);
+  return variants.includes(given);
 }
 
 // Affiche/masque le détail des réponses d'un élève avec champs de correction manuelle
@@ -3086,7 +3133,7 @@ function buildAdminEvalHTML() {
 
 window.addAdminEvalQ = function(type) {
   const id = ++_adminEvalQCounter;
-  const q = { id, type, title:'', contenu:'', options:[], required:true, correctAnswers:[], points:2 };
+  const q = { id, type, title:'', contenu:'', options:[], required:true, correctAnswers:[], points:2, notion:'' };
   if (type==='radio'||type==='checkbox') q.options=['Option A','Option B'];
   if (type==='yesno') q.options=['Oui','Non'];
   _adminEvalQuestions.push(q);
@@ -3127,6 +3174,8 @@ function renderAdminEvalQuestions() {
           oninput="_adminEvalQuestions[${i}].points=parseInt(this.value)||1" title="Points">
         <button onclick="window._adminEvalRemoveQ(${i})" style="background:#fee2e2;border:none;border-radius:6px;padding:5px 8px;color:#dc2626;cursor:pointer;font-size:.8rem">✕</button>
       </div>
+      <input placeholder="🏷️ Notion associée (optionnel — ex: Fractions)" value="${aEsc(q.notion||'')}" style="width:100%;border:1px solid #ddd6fe;background:#f5f3ff;color:#5b21b6;border-radius:8px;padding:6px 10px;font-family:'Inter',sans-serif;font-size:.78rem;outline:none;box-sizing:border-box;margin-bottom:6px"
+        oninput="_adminEvalQuestions[${i}].notion=this.value">
       <textarea placeholder="Énoncé complet (optionnel)…" style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:7px 10px;font-family:'Inter',sans-serif;font-size:.82rem;outline:none;resize:vertical;min-height:40px;box-sizing:border-box"
         oninput="_adminEvalQuestions[${i}].contenu=this.value">${aEsc(q.contenu)}</textarea>
       <!-- Bouton image -->
@@ -3455,6 +3504,7 @@ window.showDevoirReponses = async function(devoirId, titre) {
       if (r.note!==undefined && r.note!==null && r.studentToken) {
         sendBtn += `<button onclick="window._sendDevoirNoteToInterface('${devoirId}','${r.id}','${titre.replace(/'/g,"\\'")}')" style="display:inline-block;margin-top:6px;margin-left:6px;background:#1d3557;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:700;cursor:pointer;">💬 Envoyer sur l'interface</button>`;
       }
+      const remCtrId = 'remctr-dv-' + String(r.id).replace(/[^a-zA-Z0-9_-]/g,'');
       return `
       <div style="border:1.5px solid #e2e8f0;border-radius:12px;padding:10px;margin-bottom:10px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
@@ -3470,6 +3520,13 @@ window.showDevoirReponses = async function(devoirId, titre) {
           <button onclick="saveDevoirNote('${devoirId}','${r.id}')" style="background:#004d2e;color:#FCD116;border:none;border-radius:8px;padding:5px 12px;font-size:.75rem;font-weight:700;cursor:pointer;">Enregistrer</button>
           <span id="dv-note-saved-${r.id}" style="font-size:.72rem;color:#059669;font-weight:700;"></span>
         </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+          <label style="font-size:.78rem;color:#5b21b6;font-weight:600;">🏷️ Notion :</label>
+          <input type="text" id="dv-notion-${r.id}" value="${aEsc(r.notion||'')}" placeholder="ex: Fractions" style="flex:1;border:1.5px solid #ddd6fe;background:#f5f3ff;border-radius:8px;padding:5px 8px;font-size:.82rem;">
+          <button onclick="saveDevoirNotion('${devoirId}','${r.id}')" style="background:#6d28d9;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:.75rem;font-weight:700;cursor:pointer;">💾</button>
+        </div>
+        <button onclick="window._proposerExercices('${aEsc(r.notion||'')}','${aEsc(r.studentToken||'')}','${aEsc(contact)}','${aEsc(r.nom||'')}','${remCtrId}')" style="margin-top:8px;width:100%;background:#f5f3ff;color:#6d28d9;border:1.5px solid #ddd6fe;border-radius:8px;padding:6px;font-size:.74rem;font-weight:700;cursor:pointer;">🧩 Proposer des exercices de remédiation</button>
+        <div id="${remCtrId}"></div>
         ${sendBtn}
       </div>`;
     }).join('');
@@ -3489,6 +3546,18 @@ window.saveDevoirNote = async function(devoirId, repId) {
     const titre = titreEl ? titreEl.textContent.replace('📸 Réponses — ','') : '';
     showDevoirReponses(devoirId, titre);
   } catch(e) { toast('❌ Erreur lors de l\'enregistrement de la note.'); }
+};
+
+window.saveDevoirNotion = async function(devoirId, repId) {
+  const input = document.getElementById(`dv-notion-${repId}`);
+  const notion = (input.value||'').trim();
+  try {
+    await setDoc(doc(fbDB,'edtx_devoirs',devoirId,'reponses',repId), { notion }, { merge: true });
+    toast('✅ Notion enregistrée.');
+    const titreEl = document.getElementById('edtx-modal-title');
+    const titre = titreEl ? titreEl.textContent.replace('📸 Réponses — ','') : '';
+    showDevoirReponses(devoirId, titre);
+  } catch(e) { toast('❌ Erreur lors de l\'enregistrement de la notion.'); }
 };
 
 // Envoie la note d'un devoir dans la messagerie de l'élève (bouton individuel)
@@ -3512,6 +3581,62 @@ window.deleteDevoirReponse = async function(devoirId, repId, titre) {
     toast('🗑️ Réponse supprimée.');
     showDevoirReponses(devoirId, titre);
   } catch(e) { toast('❌ Erreur.'); }
+};
+
+// Repère les élèves (à partir des classes de l'onglet Groupes) qui n'ont pas
+// rendu au moins 2 des devoirs envoyés à leur classe (comparaison par niveau,
+// mise en correspondance avec les réponses reçues via edtx_devoirs/reponses).
+window.showDevoirsRetard = async function() {
+  document.getElementById('edtx-modal-title').textContent = "⚠️ Élèves n'ayant pas fait au moins 2 devoirs";
+  document.getElementById('edtx-modal-body').innerHTML = '<div class="loading"><div class="spinner"></div>Analyse en cours…</div>';
+  document.getElementById('edtx-modal-bg').style.display = 'block';
+  try {
+    if (typeof groupesList === 'undefined' || !groupesList.length) {
+      document.getElementById('edtx-modal-body').innerHTML = '<p style="text-align:center;color:#94a3b8;padding:20px;font-size:.85rem;">Aucune classe créée dans l\'onglet Groupes.</p>';
+      return;
+    }
+    const devSnap = await getDocs(collection(fbDB,'edtx_devoirs'));
+    const devoirs = devSnap.docs.map(d=>({...d.data(), id:d.id}));
+    if (!devoirs.length) {
+      document.getElementById('edtx-modal-body').innerHTML = '<p style="text-align:center;color:#94a3b8;padding:20px;font-size:.85rem;">Aucun devoir envoyé pour le moment.</p>';
+      return;
+    }
+    // Récupère les noms des élèves ayant répondu, pour chaque devoir
+    for (const d of devoirs) {
+      const repSnap = await getDocs(collection(fbDB,'edtx_devoirs',d.id,'reponses'));
+      d._noms = repSnap.docs.map(r => _mepuaNormNom(r.data().nom));
+    }
+    const normGrp = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+    let html = '';
+    groupesList.forEach(grp => {
+      const grpNorm = normGrp(grp.name);
+      if (!grpNorm) return;
+      const devClasse = devoirs.filter(d => {
+        const n = normGrp(d.niveau);
+        return n && (n === grpNorm || n.includes(grpNorm) || grpNorm.includes(n));
+      });
+      if (!devClasse.length || !(grp.eleves||[]).length) return;
+      const enRetard = grp.eleves.map(e => {
+        const fullName = _mepuaNormNom([e.name, e.prenom].filter(Boolean).join(' '));
+        const nomSeul = _mepuaNormNom(e.name);
+        const fait = devClasse.filter(d => d._noms.some(n => n && (n===fullName || n.includes(nomSeul) || (nomSeul && nomSeul.includes(n))))).length;
+        return { e, total: devClasse.length, fait, manque: devClasse.length - fait };
+      }).filter(x => x.manque >= 2);
+      if (!enRetard.length) return;
+      html += `<div style="margin-bottom:16px">
+        <div style="font-weight:700;font-size:.9rem;color:#1d3557;margin-bottom:6px">🏫 ${aEsc(grp.name)} <span style="font-weight:400;color:#94a3b8;font-size:.75rem">(${devClasse.length} devoir(s) envoyé(s) à cette classe)</span></div>
+        ${enRetard.map(x => `
+          <div style="display:flex;justify-content:space-between;align-items:center;border:1.5px solid #fed7aa;background:#fff7ed;border-radius:10px;padding:8px 12px;margin-bottom:6px">
+            <span style="font-size:.85rem;font-weight:600;color:#1d3557">👤 ${aEsc([x.e.name, x.e.prenom].filter(Boolean).join(' '))}</span>
+            <span style="font-size:.75rem;font-weight:700;color:#c2410c">${x.manque} devoir(s) non rendu(s) sur ${x.total}</span>
+          </div>`).join('')}
+      </div>`;
+    });
+    document.getElementById('edtx-modal-body').innerHTML = html || '<p style="text-align:center;color:#059669;padding:20px;font-size:.85rem;">✅ Aucun élève n\'a manqué au moins 2 devoirs.</p>';
+  } catch(e) {
+    console.error('showDevoirsRetard error:', e);
+    document.getElementById('edtx-modal-body').innerHTML = '<p style="color:#dc2626;text-align:center;padding:16px;">❌ Erreur lors de l\'analyse.</p>';
+  }
 };
 
 // =====================================================================
@@ -4126,7 +4251,7 @@ function dlPDF(htmlContenu, nomFichier) {
 
 // ===== NAVIGATION SECTIONS ÉDTX =====
 window.showEdtxSection = function(sec) {
-  ['evals','devoirs','parcours','documents'].forEach(s => {
+  ['evals','devoirs','parcours','documents','remediation'].forEach(s => {
     const el = document.getElementById('edtx-sec-'+s);
     if (el) el.style.display = s === sec ? 'block' : 'none';
     const btn = document.getElementById('edtx-nav-'+s);
@@ -4136,6 +4261,7 @@ window.showEdtxSection = function(sec) {
   if (sec === 'devoirs') { loadDevoirsAdmin(); _devoirImgs = ['']; renderDevoirImgs(); showDevoirSubTab('devoir'); }
   if (sec === 'parcours') { loadPcModules(); loadPcEleves(); _pcCours = [{titre:'',url:''}]; renderPcCoursList(); showParcoursSubTab('modules'); }
   if (sec === 'documents') { loadDocumentsAdmin(); _docQuestions = []; renderDocQuestions(); }
+  if (sec === 'remediation') { loadRemediationAdmin(); resetRemForm(); }
 };
 
 // =====================================================================
@@ -4388,6 +4514,131 @@ window.openSendDocToEspace = async function(accessCode, titre) {
   } catch(e) {
     document.getElementById('edtx-modal-body').innerHTML = '<p style="color:#dc2626;text-align:center;padding:16px;">❌ Erreur de chargement des élèves.</p>';
   }
+};
+
+// =====================================================================
+// RÉMÉDIATION — banque d'exercices ciblés par notion (edtx_remediation)
+// =====================================================================
+window.resetRemForm = function() {
+  const ids = ['rem-editid','rem-titre','rem-notion','rem-niveau','rem-lien','rem-desc'];
+  ids.forEach(id => { const el = document.getElementById(id); if (el) el.value=''; });
+};
+
+window.saveRemediationExo = async function() {
+  const titre  = (document.getElementById('rem-titre').value||'').trim();
+  const notion = (document.getElementById('rem-notion').value||'').trim();
+  const niveau = (document.getElementById('rem-niveau').value||'').trim();
+  const lien   = (document.getElementById('rem-lien').value||'').trim();
+  const desc   = (document.getElementById('rem-desc').value||'').trim();
+  if (!titre || !notion) { alert('Le titre et la notion sont obligatoires.'); return; }
+  const editId = document.getElementById('rem-editid').value;
+  const id = editId || String(Date.now());
+  try {
+    await setDoc(doc(fbDB,'edtx_remediation', id), { id, titre, notion, niveau, lien, desc, createdAt: Date.now() }, { merge: true });
+    toast('✅ Exercice enregistré.');
+    resetRemForm();
+    loadRemediationAdmin();
+  } catch(e) { toast('❌ Erreur lors de l\'enregistrement.'); }
+};
+
+window.editRemediationExo = function(id) {
+  const x = (window._remBanque||[]).find(r=>String(r.id)===String(id));
+  if (!x) return;
+  document.getElementById('rem-editid').value = x.id;
+  document.getElementById('rem-titre').value  = x.titre||'';
+  document.getElementById('rem-notion').value = x.notion||'';
+  document.getElementById('rem-niveau').value = x.niveau||'';
+  document.getElementById('rem-lien').value   = x.lien||'';
+  document.getElementById('rem-desc').value   = x.desc||'';
+  document.getElementById('rem-titre').scrollIntoView({behavior:'smooth', block:'center'});
+};
+
+window.deleteRemediationExo = async function(id) {
+  if (!confirm('Supprimer cet exercice ?')) return;
+  try {
+    await deleteDoc(doc(fbDB,'edtx_remediation', String(id)));
+    toast('🗑️ Exercice supprimé.');
+    loadRemediationAdmin();
+  } catch(e) { toast('❌ Erreur.'); }
+};
+
+window.loadRemediationAdmin = async function() {
+  const list = document.getElementById('remediation-admin-list');
+  if (!list) return;
+  list.innerHTML = '<div class="loading"><div class="spinner"></div>Chargement…</div>';
+  try {
+    const snap = await getDocs(collection(fbDB,'edtx_remediation'));
+    window._remBanque = snap.docs.map(d=>({...d.data(), id:d.id})).sort((a,b)=>(b.createdAt||0)-(a.createdAt||0));
+    if (!window._remBanque.length) { list.innerHTML = '<p style="text-align:center;color:#aaa;padding:24px;font-size:.85rem;">Aucun exercice dans la banque pour le moment.</p>'; return; }
+    list.innerHTML = window._remBanque.map(x => `
+      <div style="background:#fff;border-radius:12px;padding:12px;margin-bottom:10px;border-left:4px solid #6d28d9;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+        <div style="font-weight:700;font-size:.9rem">${aEsc(x.titre)}</div>
+        <div style="font-size:.72rem;color:#6d28d9;font-weight:700;margin-top:2px;">🏷️ ${aEsc(x.notion)}${x.niveau?' · '+aEsc(x.niveau):''}</div>
+        ${x.desc?`<div style="font-size:.78rem;color:#64748b;margin-top:6px;">${aEsc(x.desc)}</div>`:''}
+        ${x.lien?`<a href="${aEsc(x.lien)}" target="_blank" style="display:block;font-size:.76rem;color:#1a73e8;margin-top:6px;word-break:break-all;">🔗 ${aEsc(x.lien)}</a>`:''}
+        <div style="display:flex;gap:6px;margin-top:8px;">
+          <button onclick="editRemediationExo('${x.id}')" style="flex:1;background:#eef2ff;color:#3730a3;border:none;border-radius:8px;padding:7px;font-size:.75rem;font-weight:700;cursor:pointer">✏️ Modifier</button>
+          <button onclick="deleteRemediationExo('${x.id}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:7px 12px;font-size:.75rem;font-weight:700;cursor:pointer">🗑</button>
+        </div>
+      </div>`).join('');
+  } catch(err) { list.innerHTML = '<p style="color:#dc2626;padding:16px;text-align:center;font-size:.82rem;">❌ Erreur de chargement.</p>'; }
+};
+
+// Affiche, dans un conteneur donné, les exercices de la banque correspondant aux
+// notions passées (séparées par "|"), avec des cases à cocher et un bouton d'envoi
+// ciblé sur un élève (interface de messagerie si disponible, sinon WhatsApp/e-mail).
+window._proposerExercices = async function(notionsCsv, targetToken, targetContact, targetNom, containerId) {
+  const box = document.getElementById(containerId);
+  if (!box) return;
+  box.innerHTML = '<div style="font-size:.75rem;color:#94a3b8;padding:6px 0;">Recherche des exercices…</div>';
+  if (!window._remBanque) {
+    try {
+      const snap = await getDocs(collection(fbDB,'edtx_remediation'));
+      window._remBanque = snap.docs.map(d=>({...d.data(), id:d.id}));
+    } catch(e) { window._remBanque = []; }
+  }
+  const notions = notionsCsv.split('|').filter(Boolean);
+  const normN = s => String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim();
+  const notionsNorm = notions.map(normN);
+  const matches = window._remBanque.filter(x => notionsNorm.includes(normN(x.notion)));
+  window._remTargets = window._remTargets || {};
+  window._remTargets[containerId] = { token: targetToken||'', contact: targetContact||'', nom: targetNom||'' };
+  if (!matches.length) {
+    box.innerHTML = `<div style="font-size:.75rem;color:#94a3b8;padding:6px 0;">🏷️ Notions concernées : ${notions.map(aEsc).join(', ')}<br>Aucun exercice dans la banque pour l'instant — ajoutez-en dans l'onglet 🧩 Remédiation.</div>`;
+    return;
+  }
+  box.innerHTML = `<div style="font-size:.72rem;font-weight:700;color:#6d28d9;margin:8px 0 4px;">🏷️ Notions concernées : ${notions.map(aEsc).join(', ')}</div>` +
+    matches.map(x => `
+      <label style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:.78rem;cursor:pointer">
+        <input type="checkbox" class="rem-pick-${containerId}" value="${x.id}" checked style="accent-color:#6d28d9;flex-shrink:0">
+        ${aEsc(x.titre)} <span style="color:#94a3b8">(${aEsc(x.notion)})</span>
+      </label>`).join('') +
+    `<button onclick="window._envoyerExercicesChoisis('${containerId}')" style="width:100%;margin-top:6px;background:#6d28d9;color:#fff;border:none;border-radius:8px;padding:7px;font-size:.76rem;font-weight:700;cursor:pointer">📤 Envoyer les exercices cochés</button>
+     <div id="${containerId}-status" style="font-size:.72rem;color:#059669;margin-top:4px;"></div>`;
+};
+
+window._envoyerExercicesChoisis = async function(containerId) {
+  const target = (window._remTargets||{})[containerId] || {};
+  const statusEl = document.getElementById(containerId+'-status');
+  const checked = Array.from(document.querySelectorAll('.rem-pick-'+containerId+':checked')).map(c=>c.value);
+  if (!checked.length) { if(statusEl) statusEl.textContent = '⚠️ Cochez au moins un exercice.'; return; }
+  const exos = (window._remBanque||[]).filter(x=>checked.includes(String(x.id)));
+  const text = `🧩 Exercices de remédiation pour toi :\n\n` + exos.map(x=>`• ${x.titre}${x.lien?` : ${x.lien}`:''}`).join('\n') + `\n\nBon courage ! 💪`;
+  if (target.token) {
+    const ok = await edtxNotifyStudent(target.token, text);
+    if (ok) { if(statusEl) statusEl.textContent = "✅ Exercices envoyés sur l'interface de l'élève."; return; }
+  }
+  const contact = (target.contact||'').trim();
+  if (contact) {
+    if (contact.includes('@')) {
+      window.open(`mailto:${encodeURIComponent(contact)}?subject=${encodeURIComponent('Exercices de remédiation')}&body=${encodeURIComponent(text)}`, '_blank');
+    } else {
+      window.open(`https://wa.me/${contact.replace(/\D/g,'')}?text=${encodeURIComponent(text)}`, '_blank');
+    }
+    if(statusEl) statusEl.textContent = '✅ Message préparé (WhatsApp/e-mail).';
+    return;
+  }
+  if(statusEl) statusEl.textContent = "⚠️ Pas de contact ni d'accès à l'interface pour cet élève.";
 };
 
 function edtxInit() {
