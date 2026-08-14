@@ -2468,9 +2468,16 @@ function _evalRepsRenderAll(){
       <div style="font-size:.72rem;color:#334155;">${noms.map(n=>aEsc(n)).join(', ')}</div>`;
   });
 }
-if (!window._evalResultsListenerAttached) {
+// NOTE : Firebase (fbDB/collection/onSnapshot) peut ne pas être encore prêt ici
+// (SDK chargé depuis gstatic.com, sensible à une connexion lente/instable).
+// On attend donc que ces globales soient disponibles avant d'attacher l'écouteur,
+// au lieu de planter avec "collection is not a function".
+(function attachEvalResultsListener(){
+  if (window._evalResultsListenerAttached) return;
+  const _fbDB = window.fbDB, _collection = window.fbCollection, _onSnapshot = window.fbOnSnapshot;
+  if (!_fbDB || !_collection || !_onSnapshot) { setTimeout(attachEvalResultsListener, 100); return; }
   window._evalResultsListenerAttached = true;
-  onSnapshot(collection(fbDB,'edtx_eval_results'), snap => {
+  _onSnapshot(_collection(_fbDB,'edtx_eval_results'), snap => {
     const byEval = {};
     snap.docs.forEach(d => {
       const r = d.data();
@@ -2486,7 +2493,7 @@ if (!window._evalResultsListenerAttached) {
       el.innerHTML = `<span style="font-size:.72rem;color:#dc2626;">❌ Erreur de chargement : ${aEsc(err.message||err.code||'inconnue')}</span>`;
     });
   });
-}
+})();
 
 // Charger et afficher les évaluations
 window.loadEvalsAdmin = async function() {
@@ -16895,7 +16902,8 @@ function _mepuaNormNom(s){ return String(s||'').toLowerCase().normalize('NFD').r
 function _mepuaSlugMat(nom){ return String(nom||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'') || 'matiere'; }
 
 window.syncAllToMepua = async function(){
-  if (typeof fbDB === 'undefined' || !fbDB) { alert('❌ Connexion cloud indisponible.'); return; }
+  const fbDB = window.fbDB, doc = window.fbDoc, getDoc = window.fbGetDoc, setDoc = window.fbSetDoc;
+  if (!fbDB || !doc || !getDoc || !setDoc) { alert('❌ Connexion cloud indisponible.'); return; }
   const btn = document.getElementById('mepua-sync-btn');
   const statusEl = document.getElementById('mepua-sync-status');
   if(btn){ btn.disabled = true; btn.textContent = '⏳ Synchronisation…'; }
@@ -16943,7 +16951,7 @@ window.syncAllToMepua = async function(){
         nbEleves++;
       });
     });
-    await setDoc(refEtud, { value: JSON.stringify(listEtud), _majLe: serverTimestamp() }, { merge: true });
+    await setDoc(refEtud, { value: JSON.stringify(listEtud), _majLe: Date.now() }, { merge: true });
     if(typeof saveGroupes==='function') saveGroupes(); // conserve les matricules générés
 
     // ── 2) Construire les notes fusionnées (tous les carnets) + la liste des matières ──
@@ -16998,8 +17006,8 @@ window.syncAllToMepua = async function(){
       });
     });
 
-    await setDoc(refNotes, { value: JSON.stringify(geNotesData), _majLe: serverTimestamp() }, { merge: true });
-    await setDoc(refMat, { value: JSON.stringify(geMatieresData), _majLe: serverTimestamp() }, { merge: true });
+    await setDoc(refNotes, { value: JSON.stringify(geNotesData), _majLe: Date.now() }, { merge: true });
+    await setDoc(refMat, { value: JSON.stringify(geMatieresData), _majLe: Date.now() }, { merge: true });
 
     const msg = `✅ ${nbEleves} élève(s) et ${nbNotes} note(s) envoyés vers Mepua` + (nbIgnores ? ` (${nbIgnores} note(s) ignorée(s), élève introuvable dans Groupes/Classes)` : '');
     if(statusEl) statusEl.textContent = msg;
@@ -17007,7 +17015,7 @@ window.syncAllToMepua = async function(){
   } catch(e){
     console.warn('syncAllToMepua error', e);
     if(statusEl) statusEl.textContent = '❌ Erreur lors de la synchronisation.';
-    alert('❌ Erreur lors de la synchronisation vers Mepua.');
+    alert('❌ Erreur lors de la synchronisation vers Mepua : ' + (e && e.message ? e.message : e));
   } finally {
     if(btn){ btn.disabled = false; btn.textContent = '🔄 Tout synchroniser vers Mepua'; }
   }
