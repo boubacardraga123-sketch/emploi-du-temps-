@@ -4601,7 +4601,7 @@ window.loadRemediationAdmin = async function() {
           <button onclick="deleteRemediationExo('${x.id}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:7px 12px;font-size:.75rem;font-weight:700;cursor:pointer">🗑</button>
         </div>
       </div>`).join('');
-  } catch(err) { list.innerHTML = '<p style="color:#dc2626;padding:16px;text-align:center;font-size:.82rem;">❌ Erreur de chargement.</p>'; }
+  } catch(err) { console.error('loadRemediationAdmin error:', err); list.innerHTML = '<p style="color:#dc2626;padding:16px;text-align:center;font-size:.82rem;">❌ Erreur de chargement.<br><span style="font-size:.7rem;color:#94a3b8;">' + aEsc(err.message||err.code||String(err)) + '</span></p>'; }
 };
 
 // Affiche, dans un conteneur donné, les exercices de la banque correspondant aux
