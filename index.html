@@ -2291,9 +2291,12 @@ async function showPublicFraisInscriptionView(code){
 
         <button onclick="showDevoirsRetard()" style="width:100%;background:#fff7ed;color:#c2410c;border:1.5px solid #fed7aa;border-radius:8px;padding:9px;font-family:'Inter',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;margin-bottom:12px">⚠️ Élèves n'ayant pas fait au moins 2 devoirs</button>
 
-        <div class="list-head" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <div class="list-head" style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
           <span>Devoirs envoyés</span>
-          <button onclick="deleteAllDevoirsAdmin()" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:6px 10px;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap">🗑️ Tout supprimer</button>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button onclick="deletePendingDevoirsReponsesAdmin()" style="background:#fef3c7;color:#92400e;border:none;border-radius:8px;padding:6px 10px;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap">🗑️ Suppr. réponses non corrigées</button>
+            <button onclick="deleteAllDevoirsAdmin()" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:6px 10px;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap">🗑️ Tout supprimer</button>
+          </div>
         </div>
         <div id="devoirs-admin-list"><div class="loading"><div class="spinner"></div>Chargement…</div></div>
       </div>
@@ -3465,6 +3468,34 @@ window.deleteDevoirAdmin = async function(id) {
   } catch(e) {
     console.error('deleteDevoirAdmin error:', e);
     toast('❌ Erreur : ' + e.message);
+  }
+};
+
+// Supprime uniquement les réponses en attente de correction (sans note enregistrée),
+// tous devoirs confondus. Les devoirs eux-mêmes et les réponses déjà notées sont conservés.
+window.deletePendingDevoirsReponsesAdmin = async function() {
+  if (!confirm('⚠️ Supprimer toutes les réponses non corrigées (sans note) de tous les devoirs ?\n\nLes réponses déjà notées et les devoirs eux-mêmes seront conservés.\n\nCette action est irréversible.')) return;
+  const list = document.getElementById('devoirs-admin-list');
+  if (list) list.innerHTML = '<div class="loading"><div class="spinner"></div>Suppression en cours…</div>';
+  try {
+    const devSnap = await getDocs(collection(fbDB,'edtx_devoirs'));
+    let nbSupprimees = 0;
+    for (const d of devSnap.docs) {
+      const repSnap = await getDocs(collection(fbDB,'edtx_devoirs',d.id,'reponses'));
+      for (const r of repSnap.docs) {
+        const data = r.data();
+        if (data.note === undefined || data.note === null) {
+          await deleteDoc(doc(fbDB,'edtx_devoirs',d.id,'reponses',r.id));
+          nbSupprimees++;
+        }
+      }
+    }
+    toast(nbSupprimees ? `🗑️ ${nbSupprimees} réponse(s) non corrigée(s) supprimée(s).` : 'ℹ️ Aucune réponse en attente à supprimer.');
+  } catch(e) {
+    console.error('deletePendingDevoirsReponsesAdmin error:', e);
+    toast('❌ Erreur lors de la suppression.');
+  } finally {
+    loadDevoirsAdmin();
   }
 };
 
