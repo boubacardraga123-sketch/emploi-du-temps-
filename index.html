@@ -2290,7 +2290,10 @@ async function showPublicFraisInscriptionView(code){
 
         <button onclick="showDevoirsRetard()" style="width:100%;background:#fff7ed;color:#c2410c;border:1.5px solid #fed7aa;border-radius:8px;padding:9px;font-family:'Inter',sans-serif;font-size:.82rem;font-weight:700;cursor:pointer;margin-bottom:12px">⚠️ Élèves n'ayant pas fait au moins 2 devoirs</button>
 
-        <div class="list-head">Devoirs envoyés</div>
+        <div class="list-head" style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <span>Devoirs envoyés</span>
+          <button onclick="deleteAllDevoirsAdmin()" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:6px 10px;font-size:.72rem;font-weight:700;cursor:pointer;white-space:nowrap">🗑️ Tout supprimer</button>
+        </div>
         <div id="devoirs-admin-list"><div class="loading"><div class="spinner"></div>Chargement…</div></div>
       </div>
 
@@ -3448,6 +3451,46 @@ window.deleteDevoirAdmin = async function(id) {
   } catch(e) {
     console.error('deleteDevoirAdmin error:', e);
     toast('❌ Erreur : ' + e.message);
+  }
+};
+
+window.deleteAllDevoirsAdmin = async function() {
+  if (!confirm('⚠️ Supprimer TOUS les devoirs et toutes les réponses reçues ?\n\nCette action est irréversible.')) return;
+  if (!confirm('Dernière confirmation : voulez-vous vraiment TOUT supprimer ?')) return;
+
+  const list = document.getElementById('devoirs-admin-list');
+  toast('⏳ Suppression en cours…');
+
+  try {
+    const snap = await getDocs(collection(fbDB,'edtx_devoirs'));
+    const ids = snap.docs.map(d => d.id);
+    if (!ids.length) { toast('Aucun devoir à supprimer.'); return; }
+
+    let ok = 0, echecs = [];
+    for (const id of ids) {
+      try {
+        const repSnap = await getDocs(collection(fbDB,'edtx_devoirs',id,'reponses'));
+        for (const r of repSnap.docs) { await deleteDoc(doc(fbDB,'edtx_devoirs',id,'reponses',r.id)); }
+        await deleteDoc(doc(fbDB,'edtx_devoirs',id));
+        // Vérification réelle côté serveur
+        const verifSnap = await getDoc(doc(fbDB,'edtx_devoirs',id));
+        if (verifSnap.exists()) { echecs.push(id); } else { ok++; }
+      } catch(e) {
+        console.error('Échec suppression devoir', id, e);
+        echecs.push(id);
+      }
+    }
+
+    if (echecs.length) {
+      toast(`⚠️ ${ok} supprimé(s), ${echecs.length} échec(s). Vérifiez votre connexion et réessayez.`);
+    } else {
+      toast(`🗑️ ${ok} devoir(s) supprimé(s) avec succès.`);
+    }
+    loadDevoirsAdmin();
+  } catch(e) {
+    console.error('deleteAllDevoirsAdmin error:', e);
+    toast('❌ Erreur : ' + e.message);
+    if (list) list.innerHTML = '<p style="color:#dc2626;padding:16px;text-align:center;font-size:.82rem;">❌ Erreur de chargement. Vérifiez votre connexion.</p>';
   }
 };
 
