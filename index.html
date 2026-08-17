@@ -3410,10 +3410,40 @@ window.deleteDevoirAdmin = async function(id) {
   if (!id) { toast('❌ Erreur : identifiant de devoir introuvable.'); return; }
   if (!confirm('Supprimer ce devoir et toutes les réponses reçues ?')) return;
   try {
+    // Titre du devoir ciblé, mémorisé avant suppression : sert ensuite à détecter
+    // un éventuel doublon (même titre, autre identifiant Firestore) qui donnerait
+    // l'impression que le devoir "revient" alors qu'il s'agit d'une autre fiche.
+    let titreCible = null;
+    try {
+      const cibleSnap = await getDoc(doc(fbDB,'edtx_devoirs',id));
+      if (cibleSnap.exists()) titreCible = cibleSnap.data().titre;
+    } catch(e) {}
+
     const repSnap = await getDocs(collection(fbDB,'edtx_devoirs',id,'reponses'));
     for (const r of repSnap.docs) { await deleteDoc(doc(fbDB,'edtx_devoirs',id,'reponses',r.id)); }
     await deleteDoc(doc(fbDB,'edtx_devoirs',id));
-    toast('🗑️ Devoir supprimé.');
+
+    // Vérification réelle côté serveur : le document a-t-il bien disparu ?
+    const verifSnap = await getDoc(doc(fbDB,'edtx_devoirs',id));
+    if (verifSnap.exists()) {
+      toast('⚠️ La suppression n\'a pas été confirmée par le serveur. Vérifiez votre connexion et réessayez.');
+      loadDevoirsAdmin();
+      return;
+    }
+
+    // Recherche d'un doublon : un autre devoir avec exactement le même titre.
+    let doublonMsg = '';
+    if (titreCible) {
+      try {
+        const allSnap = await getDocs(collection(fbDB,'edtx_devoirs'));
+        const doublons = allSnap.docs.filter(d => d.id !== id && d.data().titre === titreCible);
+        if (doublons.length) {
+          doublonMsg = ` ⚠️ Attention : ${doublons.length} autre(s) devoir(s) portant le même titre "${titreCible}" existe(nt) encore — c'est probablement lui/eux que vous revoyez dans la liste.`;
+        }
+      } catch(e) {}
+    }
+
+    toast('🗑️ Devoir supprimé.' + doublonMsg);
     loadDevoirsAdmin();
   } catch(e) {
     console.error('deleteDevoirAdmin error:', e);
