@@ -870,7 +870,7 @@ import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
          signInAnonymously
        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
-         doc, setDoc, getDoc, collection, getDocs, onSnapshot,
+         doc, setDoc, getDoc, getDocFromServer, collection, getDocs, onSnapshot,
          addDoc, query, where, deleteDoc, updateDoc, serverTimestamp, increment
        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
@@ -1095,6 +1095,7 @@ window.fbDB      = fbDB;
 window.fbDoc     = doc;
 window.fbSetDoc  = setDoc;
 window.fbGetDoc  = getDoc;
+window.fbGetDocFromServer = getDocFromServer;
 window.fbCollection = collection;
 window.fbGetDocs = getDocs;
 window.fbUpdateDoc = updateDoc;
@@ -2488,6 +2489,7 @@ const fbDB      = window.fbDB;
 const doc       = window.fbDoc;
 const setDoc    = window.fbSetDoc;
 const getDoc    = window.fbGetDoc;
+const getDocFromServer = window.fbGetDocFromServer;
 const collection= window.fbCollection;
 const getDocs   = window.fbGetDocs;
 const addDoc    = window.fbAddDoc;
@@ -3412,6 +3414,16 @@ window.copyDevoirLink = function(code) {
 window.deleteDevoirAdmin = async function(id) {
   if (!id) { toast('❌ Erreur : identifiant de devoir introuvable.'); return; }
   if (!confirm('Supprimer ce devoir et toutes les réponses reçues ?')) return;
+
+  // Sécurité : la suppression nécessite d'être connecté (règles Firestore).
+  // Si la session a expiré, on le détecte ici plutôt que de laisser l'app
+  // "supprimer" seulement dans le cache local (l'élément revient ensuite au rechargement).
+  const currentUser = (window.fbAuth && window.fbAuth.currentUser) || null;
+  if (!currentUser) {
+    toast('❌ Session expirée : reconnectez-vous avant de supprimer.');
+    return;
+  }
+
   try {
     // Titre du devoir ciblé, mémorisé avant suppression : sert ensuite à détecter
     // un éventuel doublon (même titre, autre identifiant Firestore) qui donnerait
@@ -3426,10 +3438,12 @@ window.deleteDevoirAdmin = async function(id) {
     for (const r of repSnap.docs) { await deleteDoc(doc(fbDB,'edtx_devoirs',id,'reponses',r.id)); }
     await deleteDoc(doc(fbDB,'edtx_devoirs',id));
 
-    // Vérification réelle côté serveur : le document a-t-il bien disparu ?
-    const verifSnap = await getDoc(doc(fbDB,'edtx_devoirs',id));
+    // Vérification réelle côté serveur (getDocFromServer force à ignorer le cache
+    // local, qui peut afficher la suppression comme réussie alors que le serveur
+    // l'a en fait refusée — ex : session expirée).
+    const verifSnap = await getDocFromServer(doc(fbDB,'edtx_devoirs',id));
     if (verifSnap.exists()) {
-      toast('⚠️ La suppression n\'a pas été confirmée par le serveur. Vérifiez votre connexion et réessayez.');
+      toast('⚠️ La suppression n\'a pas été confirmée par le serveur (droit refusé ou session expirée). Reconnectez-vous et réessayez.');
       loadDevoirsAdmin();
       return;
     }
@@ -3458,6 +3472,13 @@ window.deleteAllDevoirsAdmin = async function() {
   if (!confirm('⚠️ Supprimer TOUS les devoirs et toutes les réponses reçues ?\n\nCette action est irréversible.')) return;
   if (!confirm('Dernière confirmation : voulez-vous vraiment TOUT supprimer ?')) return;
 
+  // Sécurité : la suppression nécessite d'être connecté (règles Firestore).
+  const currentUser = (window.fbAuth && window.fbAuth.currentUser) || null;
+  if (!currentUser) {
+    toast('❌ Session expirée : reconnectez-vous avant de supprimer.');
+    return;
+  }
+
   const list = document.getElementById('devoirs-admin-list');
   toast('⏳ Suppression en cours…');
 
@@ -3472,8 +3493,8 @@ window.deleteAllDevoirsAdmin = async function() {
         const repSnap = await getDocs(collection(fbDB,'edtx_devoirs',id,'reponses'));
         for (const r of repSnap.docs) { await deleteDoc(doc(fbDB,'edtx_devoirs',id,'reponses',r.id)); }
         await deleteDoc(doc(fbDB,'edtx_devoirs',id));
-        // Vérification réelle côté serveur
-        const verifSnap = await getDoc(doc(fbDB,'edtx_devoirs',id));
+        // Vérification réelle côté serveur (ignore le cache local)
+        const verifSnap = await getDocFromServer(doc(fbDB,'edtx_devoirs',id));
         if (verifSnap.exists()) { echecs.push(id); } else { ok++; }
       } catch(e) {
         console.error('Échec suppression devoir', id, e);
