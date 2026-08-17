@@ -3343,7 +3343,21 @@ window.createDevoir = async function() {
   const imgInputs = document.querySelectorAll('#dv-imgs-list input[type="text"]');
   imgInputs.forEach((inp, i) => { if (_devoirImgs[i] !== undefined) _devoirImgs[i] = inp.value; });
   const images = _devoirImgs.map(u => u.trim()).filter(u => u);
-  if (!titre || !images.length) { toast('⚠️ Titre et au moins une image obligatoires.'); return; }
+  if (!titre) { alert('⚠️ Le titre du devoir est obligatoire.'); return; }
+  if (!images.length) { alert('⚠️ Il faut au moins une image (page). Collez le lien "Direct Link" de postimage.cc dans le champ "Page 1".'); return; }
+
+  // Sécurité : si Firebase n'est pas encore prêt (chargement lent), on attend au lieu
+  // d'échouer silencieusement.
+  let _fbDB = fbDB, _doc = doc, _setDoc = setDoc, _tries = 0;
+  while ((!_fbDB || !_doc || !_setDoc) && _tries < 50) {
+    await new Promise(r => setTimeout(r, 100));
+    _fbDB = window.fbDB; _doc = window.fbDoc; _setDoc = window.fbSetDoc;
+    _tries++;
+  }
+  if (!_fbDB || !_doc || !_setDoc) {
+    alert('❌ Connexion au serveur non disponible. Vérifiez votre connexion internet, puis réessayez.');
+    return;
+  }
 
   const accessCode = String(Math.floor(100000 + Math.random() * 900000));
   const devoirObj = {
@@ -3354,8 +3368,8 @@ window.createDevoir = async function() {
     accessCode, createdAt: Date.now()
   };
   try {
-    await setDoc(doc(fbDB,'edtx_devoirs',String(devoirObj.id)), devoirObj);
-  } catch(e) { toast('❌ Erreur : ' + e.message); return; }
+    await _setDoc(_doc(_fbDB,'edtx_devoirs',String(devoirObj.id)), devoirObj);
+  } catch(e) { alert('❌ Erreur lors de la création du devoir : ' + e.message); return; }
 
   // Réinitialiser le formulaire
   document.getElementById('dv-titre').value='';
