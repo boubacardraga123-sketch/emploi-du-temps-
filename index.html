@@ -10785,7 +10785,6 @@ function buildBadgesHTML(students, sheetTitle){
             <div class="badge-club-name">CLUB RÉUSSIR ENSEMBLE</div>
             <div class="badge-club-tag">✦ RIGUEUR • DISCIPLINE • TRAVAIL ✦</div>
           </div>
-          <div class="badge-ribbon">🎓</div>
         </div>
         <div class="badge-mid">
           <div class="badge-photo-wrap">${photoHtml}</div>
@@ -10793,7 +10792,7 @@ function buildBadgesHTML(students, sheetTitle){
             <div class="badge-name">${fullName}</div>
             <div class="badge-matricule">Matricule : ${e.matricule?esc(e.matricule):'—'}</div>
             <div class="badge-pills">
-              ${e.classe?`<span class="badge-classe">🏫 ${esc(e.classe)}</span>`:''}
+              ${e.classe?`<span class="badge-classe">${esc(e.classe)}</span>`:''}
               ${annee?`<span class="badge-annee">📅 ${esc(annee)}</span>`:''}
             </div>
           </div>
