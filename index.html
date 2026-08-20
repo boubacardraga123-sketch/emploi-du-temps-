@@ -10812,11 +10812,13 @@ function buildBadgesHTML(students, sheetTitle){
               <text x="50" y="60" font-size="5.5" font-weight="700" fill="#1e3a8a" text-anchor="middle">MAMOU</text>
             </svg>
           </div>
-          <div class="badge-sign-text">
-            <span class="badge-sign-fullname">Boubacar DIALLO</span>
-            <span class="badge-sign-label">Le Fondateur</span>
+          <div class="badge-sign-info">
+            <div class="badge-sign-text">
+              <span class="badge-sign-fullname">Boubacar DIALLO</span>
+              <span class="badge-sign-label">Le Fondateur</span>
+            </div>
+            <span class="badge-sign-mark">BD</span>
           </div>
-          <span class="badge-sign-mark">BD</span>
         </div>
         <div class="badge-bottom">
           <span class="badge-bottom-txt">Carte d'identification scolaire</span>
@@ -10861,11 +10863,12 @@ body{font-family:'DM Sans',sans-serif;background:#f0f4f8;padding:16px}
 .badge-qr{width:10.5mm;height:10.5mm;object-fit:contain;display:block}
 .badge-qr-label{font-size:4.6px;font-weight:800;color:#94a3b8;letter-spacing:.6px}
 .badge-sign-row{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:0 3mm}
+.badge-sign-info{display:flex;align-items:center;gap:3px}
 .badge-sign-text{display:flex;flex-direction:column;align-items:flex-end;line-height:1.1}
 .badge-sign-fullname{font-size:6.2px;font-weight:800;color:#1a1f2e}
 .badge-sign-label{font-size:5.2px;font-weight:600;color:#94a3b8;letter-spacing:.3px}
 .badge-sign-mark{font-family:'Dancing Script',cursive;font-size:17px;font-weight:700;color:#312e81;line-height:1}
-.badge-stamp{width:10mm;height:10mm;opacity:.8;transform:rotate(-10deg);mix-blend-mode:multiply;flex-shrink:0}
+.badge-stamp{width:12mm;height:12mm;opacity:.8;transform:rotate(-10deg);mix-blend-mode:multiply;flex-shrink:0}
 .badge-bottom{display:flex;align-items:center;justify-content:space-between;gap:4px;font-size:5.4px;color:#fff;background:linear-gradient(90deg,#1a1f2e,#3730a3);padding:1.6px 3mm;position:relative;z-index:1}
 .badge-bottom-txt{opacity:.85}
 .badge-serial{font-weight:800;color:#fbbf24}
