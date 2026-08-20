@@ -1695,13 +1695,38 @@ async function showPublicDevoirView(code){
     btn.disabled = true; btn.textContent = 'Envoi…';
     try {
       const sid = edtxStudentDeviceId();
-      await setDoc(doc(fbDB,'edtx_devoirs', String(dv.id), 'reponses', sid), {
-        nom, contact, date: Date.now(), photoData
-      }, { merge: true });
+      const repRef = doc(fbDB,'edtx_devoirs', String(dv.id), 'reponses', sid);
+      const repData = { nom, contact, date: Date.now(), photoData };
+
+      // Note uniforme : si activée sur ce devoir, on attribue automatiquement la note
+      // dès l'envoi — mais UNE SEULE FOIS (première copie de cet élève). Si l'élève
+      // renvoie une copie ensuite, on ne touche plus à la note déjà attribuée, et
+      // cela n'a aucune incidence sur les copies des autres élèves (note fixe, non liée
+      // à une moyenne ou à d'autres réponses).
+      if (dv.noteUniforme && dv.noteUniformeValeur !== null && dv.noteUniformeValeur !== undefined) {
+        let dejaNotee = false;
+        try {
+          const existingSnap = await getDoc(repRef);
+          if (existingSnap.exists()) {
+            const ed = existingSnap.data();
+            dejaNotee = (ed.note !== undefined && ed.note !== null);
+          }
+        } catch(e2) { /* pas grave, on continue */ }
+        if (!dejaNotee) {
+          repData.note = dv.noteUniformeValeur;
+          repData.noteDate = Date.now();
+          repData.noteAuto = true;
+        }
+      }
+
+      await setDoc(repRef, repData, { merge: true });
+      const noteMsg = (dv.noteUniforme && dv.noteUniformeValeur !== null && repData.note !== undefined)
+        ? `<div style="font-size:13px;color:#166534;margin-top:6px;font-weight:700">🏷️ Note attribuée : ${repData.note}/20</div>` : '';
       document.getElementById('edtx-devoir-public-box').innerHTML = `<div style="text-align:center;padding:20px">
         <div style="font-size:38px;margin-bottom:10px">✅</div>
         <div style="font-weight:800;font-family:'Syne',sans-serif;font-size:16px;color:#1a1f2e">Réponse envoyée !</div>
         <div style="font-size:13px;color:#64748b;margin-top:6px">Merci ${edtxEsc(nom)}, votre professeur va corriger votre devoir.</div>
+        ${noteMsg}
       </div>`;
     } catch(e) {
       errEl.textContent = '❌ Erreur lors de l\'envoi. Réessayez.';
@@ -2285,6 +2310,16 @@ async function showPublicFraisInscriptionView(code){
             <label>Date & heure limite de rendu <span style="font-weight:400;color:#aaa">(optionnel)</span></label>
             <input type="datetime-local" id="dv-deadline">
             <span class="hint">⏱ Un compte à rebours s'affiche chez l'élève. La soumission est bloquée après l'heure limite.</span>
+          </div>
+          <div class="fg" style="background:#fffbeb;border:1.5px solid #fde68a;border-radius:10px;padding:10px 12px">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:0">
+              <input type="checkbox" id="dv-note-uniforme-active" onchange="document.getElementById('dv-note-uniforme-valeur-wrap').style.display=this.checked?'block':'none'" style="width:17px;height:17px">
+              <span style="font-weight:700;color:#92400e">🏷️ Note uniforme (pas de correction manuelle)</span>
+            </label>
+            <div id="dv-note-uniforme-valeur-wrap" style="display:none;margin-top:8px">
+              <input type="number" id="dv-note-uniforme-valeur" placeholder="Note sur 20" min="0" max="20" step="0.25" style="border:1.5px solid #e5e7eb;background:#fff;font-family:inherit;font-size:.85rem;padding:.6rem .8rem;border-radius:8px;outline:none;width:100%">
+              <span class="hint">⚡ Dès qu'un élève envoie sa copie pour la première fois, cette note lui est attribuée automatiquement. Chaque élève reçoit cette note indépendamment des copies des autres.</span>
+            </div>
           </div>
           <button class="btn-pub" onclick="createDevoir()">✅ Créer & obtenir le lien</button>
         </div>
@@ -3346,6 +3381,10 @@ window.createDevoir = async function() {
   const desc     = document.getElementById('dv-desc').value.trim();
   const deadlineRaw = document.getElementById('dv-deadline').value || null;
   const deadline = deadlineRaw ? new Date(deadlineRaw).getTime() : null;
+  const noteUniforme = document.getElementById('dv-note-uniforme-active').checked;
+  const noteUniformeValeurRaw = document.getElementById('dv-note-uniforme-valeur').value;
+  const noteUniformeValeur = noteUniformeValeurRaw !== '' ? parseFloat(noteUniformeValeurRaw) : null;
+  if (noteUniforme && (noteUniformeValeur === null || isNaN(noteUniformeValeur))) { alert('⚠️ Indiquez la note uniforme à attribuer (sur 20).'); return; }
 
   // Récupérer les images valides — lire aussi le DOM en cas de copier-coller Android
   const imgInputs = document.querySelectorAll('#dv-imgs-list input[type="text"]');
@@ -3373,6 +3412,8 @@ window.createDevoir = async function() {
     imageUrl: images[0],   // compatibilité affichage miniature
     images,                // toutes les pages
     desc, deadline,
+    noteUniforme: !!noteUniforme,
+    noteUniformeValeur: noteUniforme ? noteUniformeValeur : null,
     accessCode, createdAt: Date.now()
   };
   try {
@@ -3385,6 +3426,9 @@ window.createDevoir = async function() {
   document.getElementById('dv-niveau').value='';
   document.getElementById('dv-desc').value='';
   document.getElementById('dv-deadline').value='';
+  document.getElementById('dv-note-uniforme-active').checked = false;
+  document.getElementById('dv-note-uniforme-valeur').value = '';
+  document.getElementById('dv-note-uniforme-valeur-wrap').style.display = 'none';
   _devoirImgs = [''];
   renderDevoirImgs();
 
@@ -3605,11 +3649,48 @@ window.loadDevoirsAdmin = async function() {
           <button onclick="showDevoirReponses('${d.id}','${aEsc(d.titre)}')" style="flex:1;background:#ede9fe;color:#6d28d9;border:none;border-radius:8px;padding:8px;font-size:.76rem;font-weight:700;cursor:pointer">📸 Voir les réponses</button>
           <button onclick="deleteDevoirAdmin('${d.id}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:8px;padding:8px 12px;font-size:.76rem;font-weight:700;cursor:pointer">🗑</button>
         </div>
+        <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #e2e8f0;background:#fffbeb;border-radius:8px;padding:8px">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:0">
+            <input type="checkbox" id="dv-nu-active-${d.id}" ${d.noteUniforme?'checked':''} onchange="document.getElementById('dv-nu-wrap-${d.id}').style.display=this.checked?'flex':'none'" style="width:16px;height:16px">
+            <span style="font-weight:700;color:#92400e;font-size:.78rem">🏷️ Note uniforme (sans correction)</span>
+          </label>
+          <div id="dv-nu-wrap-${d.id}" style="display:${d.noteUniforme?'flex':'none'};align-items:center;gap:6px;margin-top:6px">
+            <input type="number" id="dv-nu-valeur-${d.id}" value="${d.noteUniformeValeur!==null&&d.noteUniformeValeur!==undefined?d.noteUniformeValeur:''}" placeholder="Note /20" min="0" max="20" step="0.25" style="width:90px;border:1.5px solid #e5e7eb;border-radius:8px;padding:5px 8px;font-size:.82rem">
+            <span style="font-size:.72rem;color:#94a3b8">/ 20</span>
+            <button onclick="saveDevoirNoteUniforme('${d.id}')" style="background:#92400e;color:#fff;border:none;border-radius:8px;padding:5px 12px;font-size:.72rem;font-weight:700;cursor:pointer">Enregistrer</button>
+            <span id="dv-nu-saved-${d.id}" style="font-size:.68rem;color:#059669;font-weight:700"></span>
+          </div>
+          <div style="font-size:.66rem;color:#a16207;margin-top:4px">⚡ Réservé à l'admin — invisible côté élève. Attribuée une seule fois par élève, à l'envoi de sa copie.</div>
+        </div>
         <div id="dv-reps-badge-${d.id}" style="margin-top:8px;padding-top:8px;border-top:1px dashed #e2e8f0;"><span style="font-size:.72rem;color:#94a3b8;">Chargement des réponses…</span></div>
       </div>`;
     }).join('');
     devoirs.forEach(d => _dvRepsWatch(d.id));
   } catch(err) { list.innerHTML = '<p style="color:#dc2626;padding:16px;text-align:center;font-size:.82rem;">❌ Erreur de chargement.</p>'; }
+};
+
+// Active/désactive ou met à jour la note uniforme d'un devoir déjà créé.
+// Réservé à l'admin : ce contrôle n'est jamais exposé côté élève.
+window.saveDevoirNoteUniforme = async function(devoirId) {
+  const active = document.getElementById(`dv-nu-active-${devoirId}`).checked;
+  const raw = document.getElementById(`dv-nu-valeur-${devoirId}`).value;
+  const valeur = raw !== '' ? parseFloat(raw) : null;
+  const savedEl = document.getElementById(`dv-nu-saved-${devoirId}`);
+  if (active && (valeur === null || isNaN(valeur))) {
+    if (savedEl) savedEl.textContent = '⚠️ Indiquez une note.';
+    return;
+  }
+  try {
+    await setDoc(doc(fbDB,'edtx_devoirs',devoirId), {
+      noteUniforme: !!active,
+      noteUniformeValeur: active ? valeur : null
+    }, { merge: true });
+    if (savedEl) { savedEl.textContent = '✅ Enregistré.'; setTimeout(()=>{ if(savedEl) savedEl.textContent=''; }, 2500); }
+    toast(active ? '✅ Note uniforme activée pour ce devoir.' : '✅ Note uniforme désactivée pour ce devoir.');
+  } catch(e) {
+    if (savedEl) savedEl.textContent = '❌ Erreur.';
+    toast('❌ Erreur lors de l\'enregistrement.');
+  }
 };
 
 window.showDevoirReponses = async function(devoirId, titre) {
@@ -3648,7 +3729,7 @@ window.showDevoirReponses = async function(devoirId, titre) {
       return `
       <div style="border:1.5px solid #e2e8f0;border-radius:12px;padding:10px;margin-bottom:10px;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <div style="font-weight:700;font-size:.88rem;color:#1d3557;">👤 ${aEsc(r.nom)}</div>
+          <div style="font-weight:700;font-size:.88rem;color:#1d3557;">👤 ${aEsc(r.nom)}${r.noteAuto?' <span style="background:#fef3c7;color:#92400e;font-size:.65rem;font-weight:800;border-radius:5px;padding:2px 6px;margin-left:4px;">🏷️ note auto</span>':''}</div>
           <button onclick="deleteDevoirReponse('${devoirId}','${r.id}','${titre.replace(/'/g,"\\'")}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:3px 8px;font-size:.68rem;cursor:pointer">🗑</button>
         </div>
         <div style="font-size:.7rem;color:#94a3b8;margin-bottom:8px;">${r.date?new Date(r.date).toLocaleString('fr-FR'):''}</div>
@@ -3680,7 +3761,7 @@ window.saveDevoirNote = async function(devoirId, repId) {
   const val = input.value.trim();
   const note = val === '' ? null : Number(val);
   try {
-    await setDoc(doc(fbDB,'edtx_devoirs',devoirId,'reponses',repId), { note, noteDate: Date.now() }, { merge: true });
+    await setDoc(doc(fbDB,'edtx_devoirs',devoirId,'reponses',repId), { note, noteDate: Date.now(), noteAuto: false }, { merge: true });
     toast('✅ Note enregistrée.');
     const titreEl = document.getElementById('edtx-modal-title');
     const titre = titreEl ? titreEl.textContent.replace('📸 Réponses — ','') : '';
@@ -10677,8 +10758,11 @@ function buildBadgesHTML(students, sheetTitle){
   const pages = [];
   for(let i=0;i<students.length;i+=8) pages.push(students.slice(i,i+8));
 
+  let stampUid = 0;
   const pagesHtml = pages.map(pageStudents=>{
     const cards = pageStudents.map(e=>{
+      stampUid++;
+      const uid = 'stamp'+stampUid;
       const fullName  = [esc(e.prenom||''), esc(e.name||'')].filter(Boolean).join(' ') || '—';
       const photoHtml = e.photo
         ? `<img src="${e.photo}" class="badge-photo">`
@@ -10707,12 +10791,32 @@ function buildBadgesHTML(students, sheetTitle){
           <div class="badge-photo-wrap">${photoHtml}</div>
           <div class="badge-info">
             <div class="badge-name">${fullName}</div>
+            <div class="badge-matricule">Matricule : ${e.matricule?esc(e.matricule):'—'}</div>
             <div class="badge-pills">
               ${e.classe?`<span class="badge-classe">🏫 ${esc(e.classe)}</span>`:''}
               ${annee?`<span class="badge-annee">📅 ${esc(annee)}</span>`:''}
             </div>
           </div>
           <div class="badge-qr-wrap">${qrHtml}<div class="badge-qr-label">SCAN</div></div>
+        </div>
+        <div class="badge-stamp">
+          <svg viewBox="0 0 100 100" width="100%" height="100%">
+            <defs><path id="${uid}" d="M 50,50 m -37,0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0"/></defs>
+            <circle cx="50" cy="50" r="45" fill="none" stroke="#1e3a8a" stroke-width="2"/>
+            <circle cx="50" cy="50" r="32" fill="none" stroke="#1e3a8a" stroke-width="1"/>
+            <text font-size="8.6" font-weight="700" letter-spacing="1.2" fill="#1e3a8a">
+              <textPath href="#${uid}" startOffset="50%" text-anchor="middle">CLUB RÉUSSIR ENSEMBLE ✦</textPath>
+            </text>
+            <text x="50" y="47" font-size="10" font-weight="800" fill="#1e3a8a" text-anchor="middle">CRE</text>
+            <text x="50" y="60" font-size="5.5" font-weight="700" fill="#1e3a8a" text-anchor="middle">MAMOU</text>
+          </svg>
+        </div>
+        <div class="badge-sign-row">
+          <div class="badge-sign-text">
+            <span class="badge-sign-fullname">Boubacar DIALLO</span>
+            <span class="badge-sign-label">Le Fondateur</span>
+          </div>
+          <span class="badge-sign-mark">BD</span>
         </div>
         <div class="badge-bottom">
           <span class="badge-bottom-txt">Carte d'identification scolaire</span>
@@ -10726,7 +10830,7 @@ function buildBadgesHTML(students, sheetTitle){
   return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
 <title>Badges — ${esc(sheetTitle||'Élèves')}</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&family=Dancing+Script:wght@600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:#f0f4f8;padding:16px}
 .no-print{display:flex;gap:8px;margin-bottom:14px}
@@ -10743,18 +10847,25 @@ body{font-family:'DM Sans',sans-serif;background:#f0f4f8;padding:16px}
 .badge-club-name{font-family:'Syne',sans-serif;font-size:9px;font-weight:800;color:#fff;line-height:1.15;letter-spacing:.3px}
 .badge-club-tag{font-size:5.4px;font-weight:700;color:#fbbf24;letter-spacing:.5px;margin-top:1.5px}
 .badge-ribbon{font-size:11px;opacity:.85;flex-shrink:0}
-.badge-mid{display:flex;align-items:center;gap:2.6mm;flex:1;padding:2.6mm 3mm;min-height:0;position:relative;z-index:1}
+.badge-mid{display:flex;align-items:center;gap:2.6mm;flex:1;padding:2mm 3mm 1mm;min-height:0;position:relative;z-index:1}
 .badge-photo-wrap{width:16mm;height:16mm;border-radius:50%;padding:1px;background:linear-gradient(135deg,#f59e0b,#fbbf24);flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .badge-photo{width:100%;height:100%;object-fit:cover;border-radius:50%;border:1.6px solid #fff;display:block}
 .badge-photo-fallback{width:100%;height:100%;border-radius:50%;border:1.6px solid #fff;display:flex;align-items:center;justify-content:center;font-size:16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff}
 .badge-info{flex:1;min-width:0}
 .badge-name{font-size:10.2px;font-weight:800;color:#1a1f2e;line-height:1.18;word-break:break-word}
-.badge-pills{display:flex;flex-wrap:wrap;gap:2.5px;margin-top:3px}
+.badge-matricule{font-size:6.6px;font-weight:600;color:#64748b;margin-top:1.5px;letter-spacing:.2px}
+.badge-pills{display:flex;flex-wrap:wrap;gap:2.5px;margin-top:2px}
 .badge-classe{font-size:7.4px;font-weight:700;color:#4338ca;background:#eef2ff;border-radius:20px;padding:1.5px 6px;white-space:nowrap}
 .badge-annee{font-size:7px;font-weight:700;color:#92400e;background:#fef3c7;border-radius:20px;padding:1.5px 6px;white-space:nowrap}
 .badge-qr-wrap{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:1px;padding:1.4mm;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0}
 .badge-qr{width:10.5mm;height:10.5mm;object-fit:contain;display:block}
 .badge-qr-label{font-size:4.6px;font-weight:800;color:#94a3b8;letter-spacing:.6px}
+.badge-sign-row{display:flex;align-items:center;justify-content:flex-end;gap:5px;padding:0 3mm;position:relative;z-index:1}
+.badge-sign-text{display:flex;flex-direction:column;align-items:flex-end;line-height:1.1}
+.badge-sign-fullname{font-size:6.2px;font-weight:800;color:#1a1f2e}
+.badge-sign-label{font-size:5.2px;font-weight:600;color:#94a3b8;letter-spacing:.3px}
+.badge-sign-mark{font-family:'Dancing Script',cursive;font-size:17px;font-weight:700;color:#312e81;line-height:1}
+.badge-stamp{position:absolute;left:3mm;bottom:6.5mm;width:16mm;height:16mm;opacity:.8;transform:rotate(-14deg);mix-blend-mode:multiply;pointer-events:none;z-index:2}
 .badge-bottom{display:flex;align-items:center;justify-content:space-between;gap:4px;font-size:5.4px;color:#fff;background:linear-gradient(90deg,#1a1f2e,#3730a3);padding:1.6px 3mm;position:relative;z-index:1}
 .badge-bottom-txt{opacity:.85}
 .badge-serial{font-weight:800;color:#fbbf24}
