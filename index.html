@@ -13407,7 +13407,7 @@ window.syncRosterToEspaceProf = async function(){
     for(const grp of groupesList){
       await setDoc(doc(fbDB,'edtxRoster', String(grp.id)), {
         name: grp.name || '',
-        eleves: (grp.eleves||[]).map(e=>({ id:String(e.id), name:e.name||'', prenom:e.prenom||'' })),
+        eleves: (grp.eleves||[]).map(e=>({ id:String(e.id), name:e.name||'', prenom:e.prenom||'', tel:e.tel||e.wa_parent||'' })),
         updatedAt: Date.now()
       });
     }
