@@ -7523,7 +7523,7 @@ function renderAllStaff(){
         </div>
         <div style="flex:1">
           <div class="staff-name-sm">${esc(sm.name)}</div>
-          <div class="staff-role-sm">${esc(sm.role||'')}${sm.matiere?` · 📚 ${esc(sm.matiere)}`:''}${sm.wa?` · 📱 ${esc(sm.wa)}`:''}
+          <div class="staff-role-sm">${esc(sm.role||'')}${sm.matiere?` · ${esc(sm.matiere)}`:''}${sm.wa?` · ${esc(sm.wa)}`:''}
             <button onclick="editStaffMatiere(${sm.id})" style="background:none;border:none;cursor:pointer;font-size:11px;color:#6366f1;font-weight:700">${sm.matiere?'✏️':'+ Matière'}</button>
             <button onclick="editStaffWA(${sm.id})" style="background:none;border:none;cursor:pointer;font-size:11px;color:#6366f1;font-weight:700">${sm.wa?'✏️':'+ WA'}</button>
           </div>
@@ -11000,7 +11000,7 @@ function buildStaffBadgesHTML(members, sheetTitle){
         ? 'background:linear-gradient(120deg,#78350f 0%,#b45309 55%,#f59e0b 100%);'
         : '';
       const rolePill = isFondateur
-        ? `<span class="badge-classe" style="background:#fef3c7;color:#92400e">👑 FONDATEUR</span>`
+        ? `<span class="badge-classe" style="background:#fef3c7;color:#92400e">FONDATEUR</span>`
         : `<span class="badge-classe">${esc(role)}</span>`;
       const signBlock = isFondateur
         ? `<div class="badge-sign-info">
@@ -11030,10 +11030,10 @@ function buildStaffBadgesHTML(members, sheetTitle){
           <div class="badge-photo-wrap">${photoHtml}</div>
           <div class="badge-info">
             <div class="badge-name">${fullName}</div>
-            <div class="badge-matricule">${m.wa?'📱 '+esc(m.wa):(isFondateur?'Directeur & Fondateur':'Personnel encadrant')}</div>
+            <div class="badge-matricule">${m.wa?'Tel : '+esc(m.wa):(isFondateur?'Coordinateur et Fondateur':'Personnel encadrant')}</div>
             <div class="badge-pills">
               ${rolePill}
-              ${m.matiere?`<span class="badge-classe" style="background:#ecfdf5;color:#065f46">📚 ${esc(m.matiere)}</span>`:''}
+              ${m.matiere?`<span class="badge-classe" style="background:#ecfdf5;color:#065f46">${esc(m.matiere)}</span>`:''}
               ${annee?`<span class="badge-annee">📅 ${esc(annee)}</span>`:''}
             </div>
           </div>
