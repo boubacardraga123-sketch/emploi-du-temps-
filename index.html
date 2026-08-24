@@ -5364,6 +5364,7 @@ function edtxInit() {
     <span style="font-size:18px;flex-shrink:0">👤</span>
     <input type="text" id="new-staff-name" placeholder="Nom du membre du personnel…">
     <input type="text" id="new-staff-role" placeholder="Poste / Rôle…">
+    <input type="text" id="new-staff-matiere" placeholder="Matière (ex: Maths, Physique…)">
     <input type="tel" id="new-staff-wa" placeholder="N° WhatsApp (ex: +225…)">
     <button class="btn btn-primary" onclick="addStaffMember()">+ Ajouter</button>
     <button class="btn" style="background:#e0f2fe;color:#0369a1;font-size:12px;padding:7px 11px" onclick="importStaffFromContacts()" title="Sélectionner depuis les contacts du téléphone">📱 Contacts</button>
@@ -5372,6 +5373,8 @@ function edtxInit() {
   <div class="toolbar no-print" id="staff-toolbar" style="display:none">
     <button class="btn btn-primary" onclick="openStaffModal()">+ Ajouter un cours au personnel</button>
     <button class="btn btn-ghost" onclick="openSlotsEditor()">⏱ Modifier les heures</button>
+    <button class="btn" style="background:#eef2ff;color:#4338ca" onclick="printStaffBadges()">🪪 Badges des encadreurs</button>
+    <button class="btn" style="background:#fef3c7;color:#92400e" onclick="printFounderBadge()">👑 Badge du Fondateur</button>
     <button class="btn btn-danger" onclick="clearAllStaff()">🗑 Effacer tout</button>
   </div>
 
@@ -6278,6 +6281,18 @@ function edtxInit() {
         </div>
       </div>
     </div>
+    <div class="form-group">
+      <label class="form-label">👑 Photo personnelle (pour le badge de Fondateur)</label>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div id="mgr-photo-preview" style="width:56px;height:56px;border-radius:12px;border:2px dashed #e2e8f0;display:flex;align-items:center;justify-content:center;font-size:24px;background:#f8fafc;flex-shrink:0;overflow:hidden">👤</div>
+        <div style="flex:1">
+          <input type="file" id="mgr-photo-file" accept="image/*" style="display:none" onchange="previewManagerPhoto(this)">
+          <button class="btn btn-ghost" style="font-size:12px;padding:6px 12px;margin-bottom:6px" onclick="document.getElementById('mgr-photo-file').click()">📁 Choisir une photo</button>
+          <button class="btn btn-danger" style="font-size:12px;padding:6px 10px" onclick="removeManagerPhoto()">🗑 Retirer</button>
+          <div style="font-size:11px;color:#94a3b8;margin-top:4px">Apparaît uniquement sur le badge Fondateur</div>
+        </div>
+      </div>
+    </div>
     <div style="display:flex;gap:8px;margin-top:16px">
       <button class="btn" style="background:#f1f5f9;color:#64748b;flex:1;padding:12px;justify-content:center" onclick="closeMgrModal()">Annuler</button>
       <button class="btn btn-primary" style="flex:1;padding:12px;justify-content:center" onclick="saveManager()">✓ Enregistrer</button>
@@ -6544,7 +6559,7 @@ let editingStaff = null;        // staff id being edited via modal
 let selectedColor = 0;
 let calYear, calMonth;
 let currentTab = 'student';
-let manager = { name: '', role: '', school: '', logo: '' };
+let manager = { name: '', role: '', school: '', logo: '', photo: '', badgeSerial: '' };
 let currentGroupId = null;      // id du groupe actuellement actif dans l'onglet Élèves
 
 
@@ -6849,6 +6864,8 @@ function loadManager(){
   manager.role   = m.role   || '';
   manager.school = m.school || '';
   manager.logo   = m.logo   || '';
+  manager.photo  = m.photo  || '';
+  manager.badgeSerial = m.badgeSerial || '';
   renderManagerCard();
 }
 
@@ -6878,7 +6895,30 @@ function openManagerEdit(){
   } else {
     prev.textContent = '🏫';
   }
+  const photoPrev = document.getElementById('mgr-photo-preview');
+  if(manager.photo){
+    photoPrev.innerHTML = `<img src="${manager.photo}" style="width:56px;height:56px;object-fit:cover;border-radius:10px">`;
+  } else {
+    photoPrev.textContent = '👤';
+  }
   document.getElementById('mgr-overlay').style.display = 'flex';
+}
+
+function previewManagerPhoto(input){
+  if(!input.files||!input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const dataUrl = e.target.result;
+    manager.photo = dataUrl;
+    document.getElementById('mgr-photo-preview').innerHTML = `<img src="${dataUrl}" style="width:56px;height:56px;object-fit:cover;border-radius:10px">`;
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+function removeManagerPhoto(){
+  manager.photo = '';
+  document.getElementById('mgr-photo-preview').textContent = '👤';
+  document.getElementById('mgr-photo-file').value = '';
 }
 
 function previewManagerLogo(input){
@@ -7218,14 +7258,16 @@ function avatarColor(name){
 function initials(name){ return (name||'??').trim().split(/\s+/).map(w=>w[0]).slice(0,2).join('').toUpperCase(); }
 
 function addStaffMember(){
-  const name = document.getElementById('new-staff-name').value.trim();
-  const role = document.getElementById('new-staff-role').value.trim();
-  const wa   = document.getElementById('new-staff-wa').value.trim();
+  const name    = document.getElementById('new-staff-name').value.trim();
+  const role    = document.getElementById('new-staff-role').value.trim();
+  const matiere = document.getElementById('new-staff-matiere').value.trim();
+  const wa      = document.getElementById('new-staff-wa').value.trim();
   if(!name){ alert('Le nom est requis.'); return; }
-  staffList.push({ id: Date.now(), name, role, wa, tdata:{} });
-  document.getElementById('new-staff-name').value = '';
-  document.getElementById('new-staff-role').value = '';
-  document.getElementById('new-staff-wa').value   = '';
+  staffList.push({ id: Date.now(), name, role, matiere, wa, tdata:{} });
+  document.getElementById('new-staff-name').value    = '';
+  document.getElementById('new-staff-role').value    = '';
+  document.getElementById('new-staff-matiere').value = '';
+  document.getElementById('new-staff-wa').value      = '';
   saveData();
   renderAllStaff();
   // Sync contacts automatically
@@ -7470,16 +7512,24 @@ function renderAllStaff(){
       return `<tr><td class="time-col${isCurrentSlot?' current-slot':''}" style="font-size:11px;padding:5px 6px">${SLOTS[si]}</td>${cells}</tr>`;
     }).join('');
 
+    const staffAvatarHtml = sm.photo
+      ? `<img src="${sm.photo}" style="width:40px;height:40px;border-radius:12px;object-fit:cover;flex-shrink:0">`
+      : `<div class="staff-avatar-sm" style="background:${col}22;color:${col};width:40px;height:40px;border-radius:12px;font-size:15px">${initials(sm.name)}</div>`;
     return `<div class="staff-row-card">
       <div class="staff-row-header">
-        <div class="staff-avatar-sm" style="background:${col}22;color:${col};width:40px;height:40px;border-radius:12px;font-size:15px">${initials(sm.name)}</div>
+        <div class="no-print" style="position:relative;flex-shrink:0" onclick="document.getElementById('staff-photo-file-${sm.id}').click()" title="Changer la photo">
+          ${staffAvatarHtml}
+          <input type="file" id="staff-photo-file-${sm.id}" accept="image/*" style="display:none" onchange="previewStaffPhoto(this,${sm.id})">
+        </div>
         <div style="flex:1">
           <div class="staff-name-sm">${esc(sm.name)}</div>
-          <div class="staff-role-sm">${esc(sm.role||'')}${sm.wa?` · 📱 ${esc(sm.wa)}`:''}
+          <div class="staff-role-sm">${esc(sm.role||'')}${sm.matiere?` · 📚 ${esc(sm.matiere)}`:''}${sm.wa?` · 📱 ${esc(sm.wa)}`:''}
+            <button onclick="editStaffMatiere(${sm.id})" style="background:none;border:none;cursor:pointer;font-size:11px;color:#6366f1;font-weight:700">${sm.matiere?'✏️':'+ Matière'}</button>
             <button onclick="editStaffWA(${sm.id})" style="background:none;border:none;cursor:pointer;font-size:11px;color:#6366f1;font-weight:700">${sm.wa?'✏️':'+ WA'}</button>
           </div>
         </div>
         ${sm.wa?`<button class="wa-send-edt-btn no-print" onclick="sendStaffEDTviaWA(${sm.id})">📤 EDT</button>`:''}
+        <button class="btn no-print" style="padding:5px 9px;font-size:11px;background:#eef2ff;color:#4338ca" onclick="printOneStaffBadge(${sm.id})" title="Imprimer le badge">🪪</button>
         <button class="btn btn-danger no-print" style="padding:5px 9px;font-size:11px" onclick="removeStaffMember(${sm.id})">🗑</button>
       </div>
       <div class="day-summary-bar no-print" style="margin:8px 0 6px;gap:4px">${memberSummary}</div>
@@ -8709,6 +8759,29 @@ function editStaffWA(staffId){
   sm.wa = num.trim();
   saveData();
   renderAllStaff();
+}
+
+function editStaffMatiere(staffId){
+  const sm = staffList.find(s=>s.id===staffId);
+  if(!sm) return;
+  const val = prompt(`Matière enseignée par ${sm.name} :`, sm.matiere||'');
+  if(val===null) return;
+  sm.matiere = val.trim();
+  saveData();
+  renderAllStaff();
+}
+
+function previewStaffPhoto(input, staffId){
+  if(!input.files||!input.files[0]) return;
+  const sm = staffList.find(s=>s.id===staffId);
+  if(!sm) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    sm.photo = e.target.result;
+    saveData();
+    renderAllStaff();
+  };
+  reader.readAsDataURL(input.files[0]);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -10886,6 +10959,198 @@ body{font-family:'DM Sans',sans-serif;background:#f0f4f8;padding:16px}
 ${pagesHtml}
 <div class="no-print" style="font-size:10px;color:#94a3b8">Généré le ${today} · ${students.length} badge${students.length>1?'s':''} · Club Réussir Ensemble</div>
 </body></html>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// BADGES PERSONNEL / ENCADREURS & FONDATEUR — Club Réussir Ensemble
+// ═══════════════════════════════════════════════════════
+function buildStaffBadgesHTML(members, sheetTitle){
+  const today   = new Date().toLocaleDateString('fr-FR');
+  const logo    = manager.logo || '';
+  const logoImg = logo ? `<img src="${logo}" class="badge-logo-img" alt="Logo">` : `<div class="badge-logo-fallback">🎓</div>`;
+  const school  = manager.school || 'Club Réussir Ensemble';
+  const annee   = (typeof syData!=='undefined' && syData.label) ? syData.label : '';
+
+  const pages = [];
+  for(let i=0;i<members.length;i+=8) pages.push(members.slice(i,i+8));
+
+  let stampUid = 0;
+  const pagesHtml = pages.map(pageMembers=>{
+    const cards = pageMembers.map(m=>{
+      stampUid++;
+      const uid = 'stampp'+stampUid;
+      const fullName    = esc(m.name||'—');
+      const role        = m.role || 'Encadreur';
+      const isFondateur = /fondateur/i.test(role);
+      const photoHtml   = m.photo
+        ? `<img src="${m.photo}" class="badge-photo">`
+        : `<div class="badge-photo badge-photo-fallback">👤</div>`;
+      const qrLines = [
+        m.id!=null ? `STAFF:${m.id}` : '',
+        `Nom: ${fullName}`,
+        `Rôle: ${role}`,
+        m.matiere   ? `Matière: ${m.matiere}`  : '',
+        m.wa        ? `Contact: ${m.wa}`   : '',
+        `Établissement: ${school}`,
+        annee       ? `Année: ${annee}`    : ''
+      ].filter(Boolean).join('\n');
+      const qrUrl  = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=0&data=${encodeURIComponent(qrLines)}`;
+      const qrHtml = `<img src="${qrUrl}" class="badge-qr" alt="QR">`;
+      const topStyle = isFondateur
+        ? 'background:linear-gradient(120deg,#78350f 0%,#b45309 55%,#f59e0b 100%);'
+        : '';
+      const rolePill = isFondateur
+        ? `<span class="badge-classe" style="background:#fef3c7;color:#92400e">👑 FONDATEUR</span>`
+        : `<span class="badge-classe">${esc(role)}</span>`;
+      const signBlock = isFondateur
+        ? `<div class="badge-sign-info">
+            <div class="badge-sign-text">
+              <span class="badge-sign-fullname">Membre Fondateur</span>
+              <span class="badge-sign-label">Club Réussir Ensemble</span>
+            </div>
+            <span class="badge-sign-mark">✦</span>
+          </div>`
+        : `<div class="badge-sign-info">
+            <div class="badge-sign-text">
+              <span class="badge-sign-fullname">Boubacar DIALLO</span>
+              <span class="badge-sign-label">Le Fondateur</span>
+            </div>
+            <span class="badge-sign-mark">BD</span>
+          </div>`;
+      return `<div class="badge-card">
+        <div class="badge-shine"></div>
+        <div class="badge-top" style="${topStyle}">
+          <div class="badge-logo-wrap">${logoImg}</div>
+          <div class="badge-club">
+            <div class="badge-club-name">CLUB RÉUSSIR ENSEMBLE</div>
+            <div class="badge-club-tag">✦ RIGUEUR • DISCIPLINE • TRAVAIL ✦</div>
+          </div>
+        </div>
+        <div class="badge-mid">
+          <div class="badge-photo-wrap">${photoHtml}</div>
+          <div class="badge-info">
+            <div class="badge-name">${fullName}</div>
+            <div class="badge-matricule">${m.wa?'📱 '+esc(m.wa):(isFondateur?'Directeur & Fondateur':'Personnel encadrant')}</div>
+            <div class="badge-pills">
+              ${rolePill}
+              ${m.matiere?`<span class="badge-classe" style="background:#ecfdf5;color:#065f46">📚 ${esc(m.matiere)}</span>`:''}
+              ${annee?`<span class="badge-annee">📅 ${esc(annee)}</span>`:''}
+            </div>
+          </div>
+          <div class="badge-qr-wrap">${qrHtml}<div class="badge-qr-label">SCAN</div></div>
+        </div>
+        <div class="badge-sign-row">
+          <div class="badge-stamp">
+            <svg viewBox="0 0 100 100" width="100%" height="100%">
+              <defs><path id="${uid}" d="M 50,50 m -37,0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0"/></defs>
+              <circle cx="50" cy="50" r="45" fill="none" stroke="#1e3a8a" stroke-width="2"/>
+              <circle cx="50" cy="50" r="32" fill="none" stroke="#1e3a8a" stroke-width="1"/>
+              <text font-size="8.6" font-weight="700" letter-spacing="1.2" fill="#1e3a8a">
+                <textPath href="#${uid}" startOffset="50%" text-anchor="middle">CLUB RÉUSSIR ENSEMBLE ✦</textPath>
+              </text>
+              <text x="50" y="47" font-size="10" font-weight="800" fill="#1e3a8a" text-anchor="middle">CRE</text>
+              <text x="50" y="60" font-size="5.5" font-weight="700" fill="#1e3a8a" text-anchor="middle">MAMOU</text>
+            </svg>
+          </div>
+          ${signBlock}
+        </div>
+        <div class="badge-bottom">
+          <span class="badge-bottom-txt">${isFondateur?'Carte de Fondateur':'Carte du personnel encadrant'}</span>
+          ${m.badgeSerial?`<span class="badge-serial">N° ${esc(m.badgeSerial)}</span>`:''}
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="badge-page">${cards}</div>`;
+  }).join('');
+
+  return `<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8">
+<title>Badges — ${esc(sheetTitle||'Personnel')}</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&family=Dancing+Script:wght@600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#f0f4f8;padding:16px}
+.no-print{display:flex;gap:8px;margin-bottom:14px}
+.no-print button{padding:9px 18px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif}
+*{-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact}
+.badge-page{display:flex;flex-wrap:wrap;align-content:center;justify-content:center;gap:4mm;width:190mm;height:271mm;margin:0 auto 10px;background:#fff;padding:2mm}
+.badge-card{width:85.6mm;height:54mm;border-radius:12px;overflow:hidden;background:#fff;border:1px solid #e2e8f0;box-shadow:0 3px 12px rgba(26,31,46,.18);display:flex;flex-direction:column;position:relative;flex-shrink:0}
+.badge-shine{position:absolute;top:-40%;left:-12%;width:55%;height:180%;background:linear-gradient(115deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,0) 60%);pointer-events:none;z-index:2}
+.badge-top{background:linear-gradient(120deg,#1a1f2e 0%,#312e81 55%,#4338ca 100%);padding:2.4mm 3mm 2mm;display:flex;align-items:center;gap:5px;position:relative}
+.badge-logo-wrap{width:8mm;height:8mm;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.35);overflow:hidden}
+.badge-logo-img{width:100%;height:100%;object-fit:contain;padding:1px}
+.badge-logo-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:12px;background:linear-gradient(135deg,#eef2ff,#c7d2fe)}
+.badge-club{flex:1;min-width:0}
+.badge-club-name{font-family:'Syne',sans-serif;font-size:9px;font-weight:800;color:#fff;line-height:1.15;letter-spacing:.3px}
+.badge-club-tag{font-size:5.4px;font-weight:700;color:#fbbf24;letter-spacing:.5px;margin-top:1.5px}
+.badge-mid{display:flex;align-items:center;gap:2.6mm;flex:1;padding:2mm 3mm 1mm;min-height:0;position:relative;z-index:1}
+.badge-photo-wrap{width:16mm;height:19mm;border-radius:4px;padding:1.4px;background:linear-gradient(135deg,#f59e0b,#fbbf24);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.badge-photo{width:100%;height:100%;object-fit:cover;border-radius:2.5px;border:1.6px solid #fff;display:block}
+.badge-photo-fallback{width:100%;height:100%;border-radius:2.5px;border:1.6px solid #fff;display:flex;align-items:center;justify-content:center;font-size:16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff}
+.badge-info{flex:1;min-width:0}
+.badge-name{font-size:10.2px;font-weight:800;color:#1a1f2e;line-height:1.18;word-break:break-word}
+.badge-matricule{font-size:6.6px;font-weight:600;color:#64748b;margin-top:1.5px;letter-spacing:.2px}
+.badge-pills{display:flex;flex-wrap:wrap;gap:2.5px;margin-top:2px}
+.badge-classe{font-size:7.4px;font-weight:700;color:#4338ca;background:#eef2ff;border-radius:20px;padding:1.5px 6px;white-space:nowrap}
+.badge-annee{font-size:7px;font-weight:700;color:#92400e;background:#fef3c7;border-radius:20px;padding:1.5px 6px;white-space:nowrap}
+.badge-qr-wrap{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:1px;padding:1.4mm;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0}
+.badge-qr{width:10.5mm;height:10.5mm;object-fit:contain;display:block}
+.badge-qr-label{font-size:4.6px;font-weight:800;color:#94a3b8;letter-spacing:.6px}
+.badge-sign-row{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:0 3mm}
+.badge-sign-info{display:flex;align-items:center;gap:3px}
+.badge-sign-text{display:flex;flex-direction:column;align-items:flex-end;line-height:1.1}
+.badge-sign-fullname{font-size:6.2px;font-weight:800;color:#1a1f2e}
+.badge-sign-label{font-size:5.2px;font-weight:600;color:#94a3b8;letter-spacing:.3px}
+.badge-sign-mark{font-family:'Dancing Script',cursive;font-size:17px;font-weight:700;color:#312e81;line-height:1}
+.badge-stamp{width:12mm;height:12mm;opacity:.8;transform:rotate(-10deg);mix-blend-mode:multiply;flex-shrink:0}
+.badge-bottom{display:flex;align-items:center;justify-content:space-between;gap:4px;font-size:5.4px;color:#fff;background:linear-gradient(90deg,#1a1f2e,#3730a3);padding:1.6px 3mm;position:relative;z-index:1}
+.badge-bottom-txt{opacity:.85}
+.badge-serial{font-weight:800;color:#fbbf24}
+@media print{
+  body{background:#fff;padding:0}
+  .no-print{display:none}
+  .badge-page{width:auto;height:auto;margin:0;page-break-after:always;box-shadow:none}
+  @page{size:A4 portrait;margin:8mm}
+}
+</style></head>
+<body>
+<div class="no-print">
+  <button onclick="window.print()" style="background:#6366f1;color:#fff">🖨️ Imprimer / Enregistrer en PDF</button>
+  <button onclick="window.close()" style="background:#f1f5f9;color:#475569">✕ Fermer</button>
+</div>
+${pagesHtml}
+<div class="no-print" style="font-size:10px;color:#94a3b8">Généré le ${today} · ${members.length} badge${members.length>1?'s':''} · Club Réussir Ensemble</div>
+</body></html>`;
+}
+
+function printStaffBadges(ids){
+  const source  = (ids && ids.length) ? staffList.filter(s=>ids.includes(s.id)) : staffList;
+  if(!source.length){ alert('Aucun membre du personnel à badger. Ajoutez d\'abord des encadreurs.'); return; }
+  const members = source.map(s=>({ id:s.id, name:s.name, role:s.role, matiere:s.matiere, photo:s.photo, wa:s.wa, badgeSerial:ensureBadgeSerial(s) }));
+  if(!confirmMissingPhotos(members)) return;
+  source.forEach(s=>{ s.badgePrinted=true; s.badgePrintedAt=Date.now(); });
+  saveData();
+  renderAllStaff();
+  openBadgeWindow(buildStaffBadgesHTML(members, 'Personnel encadrant'), 'Badges_Personnel');
+}
+
+function printOneStaffBadge(id){
+  printStaffBadges([id]);
+}
+
+function printFounderBadge(){
+  if(!manager.name){ alert('Renseignez d\'abord votre nom dans « Mes informations » (icône du gestionnaire).'); return; }
+  if(!manager.badgeSerial) manager.badgeSerial = genBadgeSerial();
+  const founder = {
+    id: 'fondateur',
+    name: manager.name,
+    role: 'Fondateur',
+    photo: manager.photo || manager.logo || '',
+    wa: '',
+    badgeSerial: manager.badgeSerial
+  };
+  if(!confirmMissingPhotos([founder])) return;
+  saveData();
+  openBadgeWindow(buildStaffBadgesHTML([founder], 'Fondateur'), 'Badge_Fondateur');
 }
 
 function openBadgeWindow(html, filename){
