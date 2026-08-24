@@ -10866,7 +10866,7 @@ function buildBadgesHTML(students, sheetTitle){
             <div class="badge-matricule">Matricule : ${e.matricule?esc(e.matricule):'—'}</div>
             <div class="badge-pills">
               ${e.classe?`<span class="badge-classe">${esc(e.classe)}</span>`:''}
-              ${annee?`<span class="badge-annee">📅 ${esc(annee)}</span>`:''}
+              ${annee?`<span class="badge-annee">Année scolaire : ${esc(annee)}</span>`:''}
             </div>
           </div>
           <div class="badge-qr-wrap">${qrHtml}<div class="badge-qr-label">SCAN</div></div>
@@ -10992,7 +10992,7 @@ function buildStaffBadgesHTML(members, sheetTitle){
         m.matiere   ? `Matière: ${m.matiere}`  : '',
         m.wa        ? `Contact: ${m.wa}`   : '',
         `Établissement: ${school}`,
-        annee       ? `Année: ${annee}`    : ''
+        (annee && !isFondateur) ? `Année: ${annee}`    : ''
       ].filter(Boolean).join('\n');
       const qrUrl  = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=0&data=${encodeURIComponent(qrLines)}`;
       const qrHtml = `<img src="${qrUrl}" class="badge-qr" alt="QR">`;
@@ -11034,7 +11034,7 @@ function buildStaffBadgesHTML(members, sheetTitle){
             <div class="badge-pills">
               ${rolePill}
               ${m.matiere?`<span class="badge-classe" style="background:#ecfdf5;color:#065f46">${esc(m.matiere)}</span>`:''}
-              ${annee?`<span class="badge-annee">📅 ${esc(annee)}</span>`:''}
+              ${(annee && !isFondateur)?`<span class="badge-annee">Année scolaire : ${esc(annee)}</span>`:''}
             </div>
           </div>
           <div class="badge-qr-wrap">${qrHtml}<div class="badge-qr-label">SCAN</div></div>
