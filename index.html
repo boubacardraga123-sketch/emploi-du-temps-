@@ -11002,7 +11002,7 @@ function buildStaffBadgesHTML(members, sheetTitle){
         m.matiere   ? `Matière: ${m.matiere}`  : '',
         m.wa        ? `Contact: ${m.wa}`   : '',
         `Établissement: ${school}`,
-        (annee && !isFondateur) ? `Année: ${annee}`    : ''
+        (annee && !isFondateur && !isFonctionClub) ? `Année: ${annee}`    : ''
       ].filter(Boolean).join('\n');
       const qrUrl  = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=0&data=${encodeURIComponent(qrLines)}`;
       const qrHtml = `<img src="${qrUrl}" class="badge-qr" alt="QR">`;
@@ -11053,7 +11053,7 @@ function buildStaffBadgesHTML(members, sheetTitle){
             <div class="badge-pills">
               ${rolePill}
               ${m.matiere?`<span class="badge-classe" style="background:#ecfdf5;color:#065f46">${esc(m.matiere)}</span>`:''}
-              ${(annee && !isFondateur)?`<span class="badge-annee">Année scolaire : ${esc(annee)}</span>`:''}
+              ${(annee && !isFondateur && !isFonctionClub)?`<span class="badge-annee">Année scolaire : ${esc(annee)}</span>`:''}
             </div>
           </div>
           <div class="badge-qr-wrap">${qrHtml}<div class="badge-qr-label">SCAN</div></div>
@@ -11182,9 +11182,20 @@ function openBadgeWindow(html, filename){
     win.document.write(html);
     win.document.close();
     let printed = false;
-    const doPrint = ()=>{ if(printed) return; printed = true; try{ win.focus(); win.print(); }catch(err){} };
+    const reallyPrint = ()=>{ if(printed) return; printed = true; try{ win.focus(); win.print(); }catch(err){} };
+    const doPrint = ()=>{
+      // On attend que les polices (Syne, DM Sans, Dancing Script) et les images
+      // (photos, QR, logo) soient bien chargées avant d'imprimer, sinon le texte
+      // des badges peut sortir dans une police de secours ou mal aligné au PDF.
+      try{
+        const fontsReady = (win.document.fonts && win.document.fonts.ready) ? win.document.fonts.ready : Promise.resolve();
+        const imgs = Array.from(win.document.images || []);
+        const imgsReady = Promise.all(imgs.map(img => img.complete ? Promise.resolve() : new Promise(res=>{ img.onload = img.onerror = res; })));
+        Promise.all([fontsReady, imgsReady]).then(()=>setTimeout(reallyPrint, 150)).catch(reallyPrint);
+      }catch(err){ reallyPrint(); }
+    };
     win.onload = doPrint;
-    setTimeout(doPrint, 900); // filet de sécurité si l'évènement load ne se déclenche pas
+    setTimeout(doPrint, 1800); // filet de sécurité si l'évènement load ne se déclenche pas (délai augmenté pour laisser le temps aux polices Google Fonts)
   } else {
     const blob = new Blob([html],{type:'text/html;charset=utf-8'});
     const url  = URL.createObjectURL(blob);
