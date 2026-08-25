@@ -996,6 +996,37 @@ window.deleteEleveFromMepua = async function(eleveId) {
   } catch(e) { console.warn('deleteEleveFromMepua error', e); }
 };
 
+// ── Synchronisation élèves EDT → ACTIVITÉS PAR MATIÈRE (Activites_Matieres.html, MÊME projet Firebase) ──
+// Activités par matière stocke ses élèves dans la collection "act_eleves" (pas d'authentification,
+// documents identifiés par un token). On upsert un doc par élève, identifié par un token stable
+// dérivé de son id interne EDT (actToken), pour que chaque élève garde le même lien élève→quiz
+// même si ses infos (nom, classe, numéro) changent ensuite.
+window.syncEleveToActivites = async function(eleve, classe) {
+  if (!eleve || !eleve.name) return;
+  if (!eleve.actToken) eleve.actToken = 'act_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const fullName = [eleve.name, eleve.prenom].filter(Boolean).join(' ');
+  const tel = eleve.tel || eleve.wa_parent || '';
+  try {
+    await setDoc(doc(fbDB, 'act_eleves', eleve.actToken), {
+      nom: fullName,
+      classe: classe || eleve.classe || '',
+      tel: tel || null,
+      email: eleve.email_parent || null,
+      _edtId: eleve.id,
+      source: 'emploi-temps',
+      createdAt: eleve.createdAt || Date.now()
+    }, { merge: true });
+  } catch(e) { console.warn('syncEleveToActivites error', e); }
+  return eleve.actToken;
+};
+
+// Supprime l'élève correspondant côté Activités par matière
+window.deleteEleveFromActivites = async function(actToken) {
+  if (!actToken) return;
+  try { await deleteDoc(doc(fbDB, 'act_eleves', actToken)); }
+  catch(e) { console.warn('deleteEleveFromActivites error', e); }
+};
+
 // Publie l'emploi du temps d'un groupe dans la collection partagée "chatEdt"
 // afin que la messagerie élèves (index.html, même projet Firebase) puisse
 // l'afficher en temps réel côté élève, sans authentification requise.
@@ -2430,11 +2461,12 @@ async function showPublicFraisInscriptionView(code){
       <div id="pc-sub-eleves" style="display:none">
         <div class="form-card">
           <h3>🧑‍🎓 Inscrire un élève</h3>
+          <div class="fg"><label>Téléphone WhatsApp</label><input type="text" id="pc-el-tel" placeholder="+224 6xx xx xx xx" oninput="pcLookupEleveByTel()"></div>
+          <div id="pc-el-match" style="display:none;font-size:.76rem;font-weight:700;border-radius:8px;padding:7px 10px;margin:2px 0 8px"></div>
           <div class="fg"><label>Nom complet *</label><input type="text" id="pc-el-nom" placeholder="Ex : Mariam Diallo"></div>
-          <div class="frow">
-            <div class="fg"><label>Téléphone WhatsApp</label><input type="text" id="pc-el-tel" placeholder="+224 6xx xx xx xx"></div>
-            <div class="fg"><label>E-mail</label><input type="text" id="pc-el-email" placeholder="exemple@mail.com"></div>
-          </div>
+          <div class="fg"><label>E-mail</label><input type="text" id="pc-el-email" placeholder="exemple@mail.com"></div>
+          <input type="hidden" id="pc-el-edtid">
+          <input type="hidden" id="pc-el-classe">
           <button class="btn-pub" onclick="createInscription()">✅ Inscrire & générer le lien</button>
         </div>
         <div class="big-stats" id="pc-big-stats" style="margin:10px 10px 0;">
@@ -4295,22 +4327,62 @@ function pcToken() {
   return t;
 }
 
+// Recherche en direct, pendant la saisie du numéro, un élève déjà connu dans Groupes/Classes.
+// Si trouvé : le nom est pré-rempli automatiquement et l'inscription sera liée à cet élève
+// (même identité partagée entre Classe, Présences et Parcours — plus besoin de ressaisir).
+window.pcLookupEleveByTel = function() {
+  const telInput = document.getElementById('pc-el-tel');
+  const nomInput = document.getElementById('pc-el-nom');
+  const matchBox = document.getElementById('pc-el-match');
+  const edtIdInput = document.getElementById('pc-el-edtid');
+  const classeInput = document.getElementById('pc-el-classe');
+  const match = (typeof findEleveByTel === 'function') ? findEleveByTel(telInput.value) : null;
+  if (match) {
+    const fullName = [match.eleve.name, match.eleve.prenom].filter(Boolean).join(' ');
+    if (!nomInput.value.trim() || nomInput.dataset.autofilled === '1') {
+      nomInput.value = fullName;
+      nomInput.dataset.autofilled = '1';
+    }
+    edtIdInput.value = match.eleve.id;
+    classeInput.value = match.grp.name || '';
+    matchBox.style.display = 'block';
+    matchBox.style.background = '#dcfce7';
+    matchBox.style.color = '#166534';
+    matchBox.textContent = `🔗 Élève reconnu : ${fullName} (${match.grp.name || 'classe'})`;
+  } else {
+    edtIdInput.value = '';
+    classeInput.value = '';
+    if (nomInput.dataset.autofilled === '1') { nomInput.value = ''; nomInput.dataset.autofilled = ''; }
+    matchBox.style.display = telInput.value.trim() ? 'block' : 'none';
+    matchBox.style.background = '#fef9c3';
+    matchBox.style.color = '#854d0e';
+    matchBox.textContent = `ℹ️ Aucun élève avec ce numéro dans Groupes/Classes — une fiche indépendante sera créée.`;
+  }
+};
+
 window.createInscription = async function() {
   const nom   = document.getElementById('pc-el-nom').value.trim();
   const tel   = document.getElementById('pc-el-tel').value.trim();
   const email = document.getElementById('pc-el-email').value.trim();
+  const edtId = document.getElementById('pc-el-edtid').value;
+  const classe = document.getElementById('pc-el-classe').value;
   if (!nom) { toast('⚠️ Le nom de l\'élève est obligatoire.'); return; }
   if (!tel && !email) { toast('⚠️ Renseignez un téléphone WhatsApp ou un e-mail.'); return; }
 
   const token = pcToken();
   const obj = { token, nom, tel: tel||null, email: email||null, progression: {}, createdAt: Date.now() };
+  if (edtId) { obj._edtId = edtId; obj.classe = classe || ''; } // lien vers l'élève de Groupes/Classes (même numéro)
   try {
     await setDoc(doc(fbDB,'edtx_inscriptions',token), obj);
   } catch(e) { toast('❌ Erreur : ' + e.message); return; }
 
   document.getElementById('pc-el-nom').value='';
+  document.getElementById('pc-el-nom').dataset.autofilled='';
   document.getElementById('pc-el-tel').value='';
   document.getElementById('pc-el-email').value='';
+  document.getElementById('pc-el-edtid').value='';
+  document.getElementById('pc-el-classe').value='';
+  document.getElementById('pc-el-match').style.display='none';
   loadPcEleves();
 
   const url = `${window.location.origin}${window.location.pathname.replace('admin.html','index.html')}?parcours=${token}`;
@@ -4421,6 +4493,7 @@ window.loadPcEleves = async function() {
         const isComplete = totalCours>0 && doneCount>=totalCours;
         if (isComplete) totalCertifs++;
         const contact = e.tel ? `📲 ${aEsc(e.tel)}` : (e.email ? `📧 ${aEsc(e.email)}` : '');
+        const classeBadge = e.classe ? `<span style="background:#eef2ff;color:#4338ca;border-radius:20px;padding:1px 8px;font-size:.68rem;font-weight:700;margin-left:6px">🔗 ${aEsc(e.classe)}</span>` : '';
         const sendBtn = e.tel
           ? `<button onclick="sendPcLinkWhatsApp('${e.token}','${(e.nom||'').replace(/'/g,"\\'")}','${e.tel}')" style="background:#25d366;color:#fff;border:none;border-radius:7px;padding:5px 10px;font-size:.7rem;font-weight:700;cursor:pointer">📲 Renvoyer</button>`
           : (e.email ? `<button onclick="sendPcLinkEmail('${e.token}','${(e.nom||'').replace(/'/g,"\\'")}','${e.email}')" style="background:#1d4ed8;color:#fff;border:none;border-radius:7px;padding:5px 10px;font-size:.7rem;font-weight:700;cursor:pointer">📧 Renvoyer</button>` : '');
@@ -4428,7 +4501,7 @@ window.loadPcEleves = async function() {
         <div style="background:#fff;border-radius:12px;padding:12px;margin-bottom:10px;border-left:4px solid ${isComplete?'#2e7d32':'#1d3557'};box-shadow:0 1px 4px rgba(0,0,0,.06)">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
             <div style="flex:1;min-width:0">
-              <div style="font-weight:700;font-size:.9rem">${isComplete?'🎓 ':''}${aEsc(e.nom)}</div>
+              <div style="font-weight:700;font-size:.9rem">${isComplete?'🎓 ':''}${aEsc(e.nom)}${classeBadge}</div>
               <div style="font-size:.72rem;color:#888;margin-top:1px">${contact}</div>
             </div>
             <button onclick="deleteInscription('${e.token}','${(e.nom||'').replace(/'/g,"\\'")}')" style="background:#fee2e2;color:#dc2626;border:none;border-radius:6px;padding:4px 8px;font-size:.7rem;cursor:pointer;flex-shrink:0">🗑</button>
@@ -4719,7 +4792,11 @@ window.openSendDocToEspace = async function(accessCode, titre) {
   document.getElementById('edtx-modal-bg').style.display = 'block';
   try {
     const snap = await getDocs(collection(fbDB,'chatEleves'));
-    const eleves = snap.docs.map(d=>({ token:d.id, nom:d.data().nom||'Élève' })).sort((a,b)=>a.nom.localeCompare(b.nom));
+    const eleves = snap.docs.map(d=>{
+      const data = d.data();
+      const match = data.tel && (typeof findEleveByTel === 'function') ? findEleveByTel(data.tel) : null;
+      return { token:d.id, nom:data.nom||'Élève', classe: match ? (match.grp.name||'') : '' };
+    }).sort((a,b)=>a.nom.localeCompare(b.nom));
     if (!eleves.length) {
       document.getElementById('edtx-modal-body').innerHTML = '<p style="text-align:center;color:#94a3b8;padding:20px;font-size:.85rem;">Aucun élève avec un espace numérique (messagerie) pour l\'instant.</p>';
       return;
@@ -4727,7 +4804,7 @@ window.openSendDocToEspace = async function(accessCode, titre) {
     const checks = eleves.map(e => `
       <label style="display:flex;align-items:center;gap:8px;padding:7px 4px;border-bottom:1px solid #f1f5f9;font-size:.85rem;cursor:pointer">
         <input type="checkbox" class="send-espace-chk" value="${aEsc(e.token)}" style="accent-color:#312e81;flex-shrink:0">
-        ${aEsc(e.nom)}
+        ${aEsc(e.nom)}${e.classe ? ` <span style="color:#94a3b8;font-weight:400">(${aEsc(e.classe)})</span>` : ''}
       </label>`).join('');
     document.getElementById('edtx-modal-body').innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
@@ -5145,6 +5222,15 @@ function edtxInit() {
     <button id="mepua-sync-btn" onclick="syncAllToMepua()"
       style="background:#0d2137;color:#FCD116;border:none;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🔄 Tout synchroniser vers Mepua</button>
     <div id="mepua-sync-status" style="font-size:11px;color:#059669;font-weight:700;margin-top:8px"></div>
+  </div>
+
+  <!-- Synchronisation Activités par matière -->
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#1a1f2e;margin-bottom:6px">🧬 Synchronisation Activités par matière</div>
+    <div style="font-size:10px;color:#94a3b8;margin-bottom:10px">Envoie tous les élèves (Groupes/Classes), avec leur numéro WhatsApp, vers « Activités par matière » (QCM) pour qu'ils y apparaissent automatiquement.</div>
+    <button id="act-sync-btn" onclick="syncAllToActivites()"
+      style="background:#6366f1;color:#fff;border:none;border-radius:10px;padding:9px 14px;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🔄 Tout synchroniser vers Activités par matière</button>
+    <div id="act-sync-status" style="font-size:11px;color:#059669;font-weight:700;margin-top:8px"></div>
   </div>
 
   <!-- Deux colonnes : Élèves + Matières -->
@@ -10376,6 +10462,24 @@ function loadGroupes(){
   groupesList = ld('edt_groupes') || [];
 }
 
+// ── Identification automatique d'un élève par numéro de téléphone ──
+// Sert de "pont" entre les modules (Classe, Parcours, Présences, Messagerie...) : au lieu de
+// ressaisir nom/tél à chaque module, on retrouve l'élève déjà connu dans Groupes/Classes.
+function normTel(t){ return (t||'').replace(/\D/g,'').replace(/^00/,'').slice(-9); } // 9 derniers chiffres (format GN)
+function findEleveByTel(tel){
+  const n = normTel(tel);
+  if (!n || n.length < 6) return null;
+  for (const grp of groupesList) {
+    for (const e of (grp.eleves||[])) {
+      if (normTel(e.tel) === n || normTel(e.wa_parent) === n) {
+        return { eleve: e, grp };
+      }
+    }
+  }
+  return null;
+}
+window.findEleveByTel = findEleveByTel;
+
 function saveGroupes(){
   sv('edt_groupes', groupesList);
   // ── Synchronisation automatique : Groupes/Classes → Calcul des notes → Décrocheurs ──
@@ -10451,6 +10555,7 @@ function addEleveToGroupe(id){
   saveGroupes();
   if (typeof window.syncEleveToEtudierGN === 'function') window.syncEleveToEtudierGN(newEleve, grp.name).then(()=>saveGroupes());
   if (typeof window.syncEleveToMepua === 'function') window.syncEleveToMepua(newEleve, grp.name);
+  if (typeof window.syncEleveToActivites === 'function') window.syncEleveToActivites(newEleve, grp.name).then(()=>saveGroupes());
   // ── Synchronisation automatique avec l'onglet Élèves ──
   const fullName = [name, prenom.trim()].filter(Boolean).join(' ');
   const sn = document.getElementById('student-name');
@@ -10559,6 +10664,9 @@ function deleteEleveFromGroupe(gid, eid){
   if (removed && typeof window.deleteEleveFromMepua === 'function') {
     window.deleteEleveFromMepua(removed.id);
   }
+  if (removed && removed.actToken && typeof window.deleteEleveFromActivites === 'function') {
+    window.deleteEleveFromActivites(removed.actToken);
+  }
 }
 
 function importElevesCSV(id){
@@ -10579,6 +10687,9 @@ function importElevesCSV(id){
       renderGrpStats();
       if (typeof window.syncEleveToEtudierGN === 'function') {
         Promise.all(imported.map(e => window.syncEleveToEtudierGN(e, grp.name))).then(()=>saveGroupes());
+      }
+      if (typeof window.syncEleveToActivites === 'function') {
+        Promise.all(imported.map(e => window.syncEleveToActivites(e, grp.name))).then(()=>saveGroupes());
       }
     };
     reader.readAsText(file);
@@ -18134,6 +18245,39 @@ window._mepuaScheduleNotesSync = _mepuaScheduleNotesSync;
 })(); // fin IIFE calcul-notes
 // ══════════════════ FIN CALCUL DES NOTES ══════════════════
 
+// ══════════════════ SYNCHRONISATION GLOBALE VERS ACTIVITÉS PAR MATIÈRE ══════════════════
+// Envoie tous les élèves de Groupes/Classes (avec leur numéro WhatsApp) vers la collection
+// "act_eleves" d'Activités par matière, en une fois (utile pour les élèves déjà inscrits
+// avant l'activation de cette synchronisation automatique).
+window.syncAllToActivites = async function(){
+  const btn = document.getElementById('act-sync-btn');
+  const statusEl = document.getElementById('act-sync-status');
+  if (typeof window.syncEleveToActivites !== 'function') { alert('❌ Synchronisation indisponible.'); return; }
+  if(btn){ btn.disabled = true; btn.textContent = '⏳ Synchronisation…'; }
+  if(statusEl) statusEl.textContent = '';
+  try{
+    const grpes = (typeof groupesList !== 'undefined' && Array.isArray(groupesList)) ? groupesList : [];
+    let nbEleves = 0;
+    for (const grp of grpes) {
+      for (const e of (grp.eleves||[])) {
+        await window.syncEleveToActivites(e, grp.name);
+        nbEleves++;
+      }
+    }
+    if (typeof saveGroupes === 'function') saveGroupes(); // persiste les actToken nouvellement générés
+    const msg = `✅ ${nbEleves} élève(s) envoyé(s) vers Activités par matière`;
+    if(statusEl) statusEl.textContent = msg;
+    if(typeof toast==='function') toast(msg); else alert(msg);
+  } catch(e){
+    console.warn('syncAllToActivites error', e);
+    if(statusEl) statusEl.textContent = '❌ Erreur lors de la synchronisation.';
+    alert('❌ Erreur lors de la synchronisation vers Activités par matière : ' + (e && e.message ? e.message : e));
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = '🔄 Tout synchroniser vers Activités par matière'; }
+  }
+};
+
+
 </script>
 
 <!-- ══════════════════ SONDAGES — logique admin (création / liste / partage / résultats) ══════════════════ -->
@@ -19389,6 +19533,7 @@ window.fraisTransfererInscritsVersClasses = async function(sessionId){
     const newEleve = { id: Date.now()+Math.random(), name: nomInscrit, prenom:'', matricule:'', tel: i.tel||'', wa_parent: i.tel||'', email_parent:'', classe: grp.name, matieres:[], createdAt: Date.now() };
     grp.eleves.push(newEleve);
     if(typeof window.syncEleveToEtudierGN==='function') window.syncEleveToEtudierGN(newEleve, grp.name).catch(()=>{});
+    if(typeof window.syncEleveToActivites==='function') window.syncEleveToActivites(newEleve, grp.name).catch(()=>{});
     ajoutes++;
   }
 
