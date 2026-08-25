@@ -5363,7 +5363,14 @@ function edtxInit() {
   <div class="add-staff-bar no-print">
     <span style="font-size:18px;flex-shrink:0">👤</span>
     <input type="text" id="new-staff-name" placeholder="Nom du membre du personnel…">
-    <input type="text" id="new-staff-role" placeholder="Poste / Rôle…">
+    <input type="text" id="new-staff-role" placeholder="Poste / Rôle…" list="staff-role-suggestions">
+    <datalist id="staff-role-suggestions">
+      <option value="Encadreur">
+      <option value="Professeur">
+      <option value="Comptable">
+      <option value="Chargé de recrutement et gestion de conflit">
+      <option value="Chargé de communication et d'information">
+    </datalist>
     <input type="text" id="new-staff-matiere" placeholder="Matière (ex: Maths, Physique…)">
     <input type="tel" id="new-staff-wa" placeholder="N° WhatsApp (ex: +225…)">
     <button class="btn btn-primary" onclick="addStaffMember()">+ Ajouter</button>
@@ -10851,6 +10858,7 @@ function buildBadgesHTML(students, sheetTitle){
       const qrUrl  = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=0&data=${encodeURIComponent(qrLines)}`;
       const qrHtml = `<img src="${qrUrl}" class="badge-qr" alt="QR">`;
       return `<div class="badge-card">
+        ${logo?`<img src="${logo}" class="badge-watermark" alt="">`:''}
         <div class="badge-shine"></div>
         <div class="badge-top">
           <div class="badge-logo-wrap">${logoImg}</div>
@@ -10913,36 +10921,37 @@ body{font-family:'DM Sans',sans-serif;background:#f0f4f8;padding:16px}
 .badge-page{display:flex;flex-wrap:wrap;align-content:center;justify-content:center;gap:4mm;width:190mm;height:271mm;margin:0 auto 10px;background:#fff;padding:2mm}
 .badge-card{width:85.6mm;height:54mm;border-radius:12px;overflow:hidden;background:#fff;border:1px solid #e2e8f0;box-shadow:0 3px 12px rgba(26,31,46,.18);display:flex;flex-direction:column;position:relative;flex-shrink:0}
 .badge-shine{position:absolute;top:-40%;left:-12%;width:55%;height:180%;background:linear-gradient(115deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,0) 60%);pointer-events:none;z-index:2}
+.badge-watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:48mm;height:48mm;object-fit:contain;opacity:.12;z-index:0;pointer-events:none;filter:grayscale(15%)}
 .badge-top{background:linear-gradient(120deg,#1a1f2e 0%,#312e81 55%,#4338ca 100%);padding:2.4mm 3mm 2mm;display:flex;align-items:center;gap:5px;position:relative}
-.badge-logo-wrap{width:8mm;height:8mm;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.35);overflow:hidden}
-.badge-logo-img{width:100%;height:100%;object-fit:contain;padding:1px}
+.badge-logo-wrap{width:11mm;height:11mm;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.4);overflow:hidden}
+.badge-logo-img{width:100%;height:100%;object-fit:contain;padding:0.5px}
 .badge-logo-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:12px;background:linear-gradient(135deg,#eef2ff,#c7d2fe)}
 .badge-club{flex:1;min-width:0}
-.badge-club-name{font-family:'Syne',sans-serif;font-size:9px;font-weight:800;color:#fff;line-height:1.15;letter-spacing:.3px}
-.badge-club-tag{font-size:5.4px;font-weight:700;color:#fbbf24;letter-spacing:.5px;margin-top:1.5px}
+.badge-club-name{font-family:'Syne',sans-serif;font-size:12.5px;font-weight:800;color:#fff;line-height:1.15;letter-spacing:.3px}
+.badge-club-tag{font-size:7px;font-weight:700;color:#fbbf24;letter-spacing:.5px;margin-top:1.5px}
 .badge-ribbon{font-size:11px;opacity:.85;flex-shrink:0}
 .badge-mid{display:flex;align-items:center;gap:2.6mm;flex:1;padding:2mm 3mm 1mm;min-height:0;position:relative;z-index:1}
 .badge-photo-wrap{width:16mm;height:19mm;border-radius:4px;padding:1.4px;background:linear-gradient(135deg,#f59e0b,#fbbf24);flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .badge-photo{width:100%;height:100%;object-fit:cover;border-radius:2.5px;border:1.6px solid #fff;display:block}
 .badge-photo-fallback{width:100%;height:100%;border-radius:2.5px;border:1.6px solid #fff;display:flex;align-items:center;justify-content:center;font-size:16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff}
 .badge-info{flex:1;min-width:0}
-.badge-name{font-size:10.2px;font-weight:800;color:#1a1f2e;line-height:1.18;word-break:break-word}
-.badge-matricule{font-size:6.6px;font-weight:600;color:#64748b;margin-top:1.5px;letter-spacing:.2px}
+.badge-name{font-size:13.5px;font-weight:800;color:#1a1f2e;line-height:1.18;word-break:break-word}
+.badge-matricule{font-size:8.6px;font-weight:700;color:#475569;margin-top:2px;letter-spacing:.2px}
 .badge-pills{display:flex;flex-wrap:wrap;gap:2.5px;margin-top:2px}
-.badge-classe{font-size:7.4px;font-weight:700;color:#4338ca;background:#eef2ff;border-radius:20px;padding:1.5px 6px;white-space:nowrap}
-.badge-annee{font-size:7px;font-weight:700;color:#92400e;background:#fef3c7;border-radius:20px;padding:1.5px 6px;white-space:nowrap}
+.badge-classe{font-size:9.2px;font-weight:700;color:#4338ca;background:#eef2ff;border-radius:20px;padding:2px 7px;white-space:nowrap}
+.badge-annee{font-size:8.6px;font-weight:700;color:#92400e;background:#fef3c7;border-radius:20px;padding:2px 7px;white-space:nowrap}
 .badge-qr-wrap{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:1px;padding:1.4mm;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0}
 .badge-qr{width:10.5mm;height:10.5mm;object-fit:contain;display:block}
-.badge-qr-label{font-size:4.6px;font-weight:800;color:#94a3b8;letter-spacing:.6px}
+.badge-qr-label{font-size:5.6px;font-weight:800;color:#64748b;letter-spacing:.6px}
 .badge-sign-row{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:0 3mm}
 .badge-sign-info{display:flex;align-items:center;gap:3px}
 .badge-sign-text{display:flex;flex-direction:column;align-items:flex-end;line-height:1.1}
-.badge-sign-fullname{font-size:6.2px;font-weight:800;color:#1a1f2e}
-.badge-sign-label{font-size:5.2px;font-weight:600;color:#94a3b8;letter-spacing:.3px}
+.badge-sign-fullname{font-size:8px;font-weight:800;color:#1a1f2e}
+.badge-sign-label{font-size:6.6px;font-weight:700;color:#64748b;letter-spacing:.3px}
 .badge-sign-mark{font-family:'Dancing Script',cursive;font-size:17px;font-weight:700;color:#312e81;line-height:1}
 .badge-stamp{width:12mm;height:12mm;opacity:.8;transform:rotate(-10deg);mix-blend-mode:multiply;flex-shrink:0}
-.badge-bottom{display:flex;align-items:center;justify-content:space-between;gap:4px;font-size:5.4px;color:#fff;background:linear-gradient(90deg,#1a1f2e,#3730a3);padding:1.6px 3mm;position:relative;z-index:1}
-.badge-bottom-txt{opacity:.85}
+.badge-bottom{display:flex;align-items:center;justify-content:space-between;gap:4px;font-size:6.8px;color:#fff;background:linear-gradient(90deg,#1a1f2e,#3730a3);padding:2px 3mm;position:relative;z-index:1}
+.badge-bottom-txt{opacity:.95;font-weight:600}
 .badge-serial{font-weight:800;color:#fbbf24}
 @media print{
   body{background:#fff;padding:0}
@@ -10982,6 +10991,7 @@ function buildStaffBadgesHTML(members, sheetTitle){
       const fullName    = esc(m.name||'—');
       const role        = m.role || 'Encadreur';
       const isFondateur = /fondateur/i.test(role);
+      const isFonctionClub = /comptable|recrutement|communication/i.test(role);
       const photoHtml   = m.photo
         ? `<img src="${m.photo}" class="badge-photo">`
         : `<div class="badge-photo badge-photo-fallback">👤</div>`;
@@ -11010,6 +11020,14 @@ function buildStaffBadgesHTML(members, sheetTitle){
             </div>
             <span class="badge-sign-mark">✦</span>
           </div>`
+        : isFonctionClub
+        ? `<div class="badge-sign-info">
+            <div class="badge-sign-text">
+              <span class="badge-sign-fullname">Membre de l'équipe du Club</span>
+              <span class="badge-sign-label">Club Réussir Ensemble</span>
+            </div>
+            <span class="badge-sign-mark">✦</span>
+          </div>`
         : `<div class="badge-sign-info">
             <div class="badge-sign-text">
               <span class="badge-sign-fullname">Boubacar DIALLO</span>
@@ -11018,6 +11036,7 @@ function buildStaffBadgesHTML(members, sheetTitle){
             <span class="badge-sign-mark">BD</span>
           </div>`;
       return `<div class="badge-card">
+        ${logo?`<img src="${logo}" class="badge-watermark" alt="">`:''}
         <div class="badge-shine"></div>
         <div class="badge-top" style="${topStyle}">
           <div class="badge-logo-wrap">${logoImg}</div>
@@ -11075,35 +11094,36 @@ body{font-family:'DM Sans',sans-serif;background:#f0f4f8;padding:16px}
 .badge-page{display:flex;flex-wrap:wrap;align-content:center;justify-content:center;gap:4mm;width:190mm;height:271mm;margin:0 auto 10px;background:#fff;padding:2mm}
 .badge-card{width:85.6mm;height:54mm;border-radius:12px;overflow:hidden;background:#fff;border:1px solid #e2e8f0;box-shadow:0 3px 12px rgba(26,31,46,.18);display:flex;flex-direction:column;position:relative;flex-shrink:0}
 .badge-shine{position:absolute;top:-40%;left:-12%;width:55%;height:180%;background:linear-gradient(115deg,rgba(255,255,255,.16) 0%,rgba(255,255,255,0) 60%);pointer-events:none;z-index:2}
+.badge-watermark{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:48mm;height:48mm;object-fit:contain;opacity:.12;z-index:0;pointer-events:none;filter:grayscale(15%)}
 .badge-top{background:linear-gradient(120deg,#1a1f2e 0%,#312e81 55%,#4338ca 100%);padding:2.4mm 3mm 2mm;display:flex;align-items:center;gap:5px;position:relative}
-.badge-logo-wrap{width:8mm;height:8mm;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 3px rgba(0,0,0,.35);overflow:hidden}
-.badge-logo-img{width:100%;height:100%;object-fit:contain;padding:1px}
+.badge-logo-wrap{width:11mm;height:11mm;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.4);overflow:hidden}
+.badge-logo-img{width:100%;height:100%;object-fit:contain;padding:0.5px}
 .badge-logo-fallback{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:12px;background:linear-gradient(135deg,#eef2ff,#c7d2fe)}
 .badge-club{flex:1;min-width:0}
-.badge-club-name{font-family:'Syne',sans-serif;font-size:9px;font-weight:800;color:#fff;line-height:1.15;letter-spacing:.3px}
-.badge-club-tag{font-size:5.4px;font-weight:700;color:#fbbf24;letter-spacing:.5px;margin-top:1.5px}
+.badge-club-name{font-family:'Syne',sans-serif;font-size:12.5px;font-weight:800;color:#fff;line-height:1.15;letter-spacing:.3px}
+.badge-club-tag{font-size:7px;font-weight:700;color:#fbbf24;letter-spacing:.5px;margin-top:1.5px}
 .badge-mid{display:flex;align-items:center;gap:2.6mm;flex:1;padding:2mm 3mm 1mm;min-height:0;position:relative;z-index:1}
 .badge-photo-wrap{width:16mm;height:19mm;border-radius:4px;padding:1.4px;background:linear-gradient(135deg,#f59e0b,#fbbf24);flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .badge-photo{width:100%;height:100%;object-fit:cover;border-radius:2.5px;border:1.6px solid #fff;display:block}
 .badge-photo-fallback{width:100%;height:100%;border-radius:2.5px;border:1.6px solid #fff;display:flex;align-items:center;justify-content:center;font-size:16px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff}
 .badge-info{flex:1;min-width:0}
-.badge-name{font-size:10.2px;font-weight:800;color:#1a1f2e;line-height:1.18;word-break:break-word}
-.badge-matricule{font-size:6.6px;font-weight:600;color:#64748b;margin-top:1.5px;letter-spacing:.2px}
+.badge-name{font-size:13.5px;font-weight:800;color:#1a1f2e;line-height:1.18;word-break:break-word}
+.badge-matricule{font-size:8.6px;font-weight:700;color:#475569;margin-top:2px;letter-spacing:.2px}
 .badge-pills{display:flex;flex-wrap:wrap;gap:2.5px;margin-top:2px}
-.badge-classe{font-size:7.4px;font-weight:700;color:#4338ca;background:#eef2ff;border-radius:20px;padding:1.5px 6px;white-space:nowrap}
-.badge-annee{font-size:7px;font-weight:700;color:#92400e;background:#fef3c7;border-radius:20px;padding:1.5px 6px;white-space:nowrap}
+.badge-classe{font-size:9.2px;font-weight:700;color:#4338ca;background:#eef2ff;border-radius:20px;padding:2px 7px;white-space:nowrap}
+.badge-annee{font-size:8.6px;font-weight:700;color:#92400e;background:#fef3c7;border-radius:20px;padding:2px 7px;white-space:nowrap}
 .badge-qr-wrap{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:1px;padding:1.4mm;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0}
 .badge-qr{width:10.5mm;height:10.5mm;object-fit:contain;display:block}
-.badge-qr-label{font-size:4.6px;font-weight:800;color:#94a3b8;letter-spacing:.6px}
+.badge-qr-label{font-size:5.6px;font-weight:800;color:#64748b;letter-spacing:.6px}
 .badge-sign-row{display:flex;align-items:center;justify-content:space-between;gap:4px;padding:0 3mm}
 .badge-sign-info{display:flex;align-items:center;gap:3px}
 .badge-sign-text{display:flex;flex-direction:column;align-items:flex-end;line-height:1.1}
-.badge-sign-fullname{font-size:6.2px;font-weight:800;color:#1a1f2e}
-.badge-sign-label{font-size:5.2px;font-weight:600;color:#94a3b8;letter-spacing:.3px}
+.badge-sign-fullname{font-size:8px;font-weight:800;color:#1a1f2e}
+.badge-sign-label{font-size:6.6px;font-weight:700;color:#64748b;letter-spacing:.3px}
 .badge-sign-mark{font-family:'Dancing Script',cursive;font-size:17px;font-weight:700;color:#312e81;line-height:1}
 .badge-stamp{width:12mm;height:12mm;opacity:.8;transform:rotate(-10deg);mix-blend-mode:multiply;flex-shrink:0}
-.badge-bottom{display:flex;align-items:center;justify-content:space-between;gap:4px;font-size:5.4px;color:#fff;background:linear-gradient(90deg,#1a1f2e,#3730a3);padding:1.6px 3mm;position:relative;z-index:1}
-.badge-bottom-txt{opacity:.85}
+.badge-bottom{display:flex;align-items:center;justify-content:space-between;gap:4px;font-size:6.8px;color:#fff;background:linear-gradient(90deg,#1a1f2e,#3730a3);padding:2px 3mm;position:relative;z-index:1}
+.badge-bottom-txt{opacity:.95;font-weight:600}
 .badge-serial{font-weight:800;color:#fbbf24}
 @media print{
   body{background:#fff;padding:0}
