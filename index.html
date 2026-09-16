@@ -5211,7 +5211,25 @@ function edtxInit() {
         <option value="S1">1er Semestre</option>
         <option value="S2">2ème Semestre</option>
         <option value="Annuel">Annuel</option>
+        <option value="custom">Personnalisé (mois, demi-mois...)</option>
       </select>
+      <input type="text" id="cn-trim-custom" oninput="cnSaveConfig()" placeholder="Ex : Mois d'Octobre / 1ère quinzaine de Novembre"
+        style="display:none;flex:1;min-width:200px;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+    </div>
+  </div>
+
+  <!-- Tableau de bord : taux de validation par classe / matière -->
+  <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
+    <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#1a1f2e;margin-bottom:10px">📉 Tableau de bord — Taux de validation (seuil : <span id="cn-dash-seuil">10</span>/20)</div>
+    <div style="display:flex;gap:16px;flex-wrap:wrap">
+      <div style="flex:1;min-width:220px">
+        <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px">Par classe (tous carnets)</div>
+        <div id="cn-dash-classe"></div>
+      </div>
+      <div style="flex:1;min-width:220px">
+        <div style="font-size:11px;font-weight:800;color:#64748b;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px">Par matière (carnet actif)</div>
+        <div id="cn-dash-matiere"></div>
+      </div>
     </div>
   </div>
 
@@ -15770,6 +15788,48 @@ function populateCtGroupes(){
   });
 }
 
+/* ── Récupère, pour un élève d'un dossier (gid/eid) et un trimestre T1/T2/T3 donnés,
+   les notes saisies dans le carnet "Calcul des notes" correspondant (même réglage de
+   trimestre), afin de les fusionner avec Fiche 360 sans double saisie. ── */
+function cnNotesForDossier(gid, eid, trim){
+  const out = [];
+  try{
+    if(typeof cnBooks==='undefined') return out;
+    const grp = (typeof groupesList!=='undefined') ? groupesList.find(g=>String(g.id)===String(gid)) : null;
+    const elDossier = grp ? grp.eleves.find(e=>e.id===eid) : null;
+    const nomDossier = elDossier ? ([elDossier.prenom, elDossier.name].filter(Boolean).join(' ') || elDossier.name || '') : '';
+    const normDossier = (typeof decroNormName==='function') ? decroNormName(nomDossier) : String(nomDossier).toLowerCase().trim();
+    Object.keys(cnBooks).forEach(bid=>{
+      const book = cnBooks[bid];
+      if(!book || !book.trim) return;
+      // Un carnet réglé pile sur ce trimestre (T1/T2/T3) correspond directement.
+      // Un carnet réglé sur Semestre/Annuel/Personnalisé n'a pas d'équivalent trimestriel exact :
+      // ses notes sont alors considérées valables sur toute l'année, donc comptées dans les 3 trimestres.
+      const periodesSansEquivalentTrim = ['S1','S2','Annuel','custom'];
+      const matchTrim = (book.trim===trim) || periodesSansEquivalentTrim.includes(book.trim);
+      if(!matchTrim) return;
+      let ce = null;
+      if(String(book.linkedGid||'')===String(gid)) ce = (book.eleves||[]).find(x=>x.id===eid);
+      if(!ce && normDossier){
+        ce = (book.eleves||[]).find(x=>{
+          const n = (typeof decroNormName==='function') ? decroNormName(x.nom) : String(x.nom||'').toLowerCase().trim();
+          return n && (n===normDossier || n.includes(normDossier) || normDossier.includes(n));
+        });
+      }
+      if(!ce) return;
+      const notesObj = (book.notes||{})[ce.id] || {};
+      (book.matieres||[]).forEach(m=>{
+        const v = notesObj[m.id];
+        if(v!==undefined && v!==''){
+          const n = parseFloat(v);
+          if(!isNaN(n)) out.push({ mat:m.nom, note:n, coeff: parseFloat(m.coeff)||1 });
+        }
+      });
+    });
+  }catch(err){ console.warn('cnNotesForDossier:', err); }
+  return out;
+}
+
 function getNotesForEleve(grpId, eleveId, trim){
   const notesList = [];
   // Chercher toutes les clés ol_notes_<grpId>_*_<trim> dans localStorage
@@ -15784,6 +15844,12 @@ function getNotesForEleve(grpId, eleveId, trim){
         if(!isNaN(n)) notesList.push({ mat:matiere, note:n, coeff:c });
       }
     }
+  }
+  // Fusionner les notes du carnet "Calcul des notes" pour ce même trimestre (sans doublonner une matière déjà présente)
+  if(typeof cnNotesForDossier==='function'){
+    cnNotesForDossier(grpId, eleveId, trim).forEach(x=>{
+      if(!notesList.some(y=>y.mat===x.mat)) notesList.push(x);
+    });
   }
   if(!notesList.length) return { avg:null, matieres:[] };
   const total  = notesList.reduce((s,x)=>s+x.note*x.coeff, 0);
@@ -16812,6 +16878,7 @@ let cnMatieres= cnLoad('matieres', []); // [{id,nom,coeff}]
 let cnNotes   = cnLoad('notes', {});    // {eleveId: {matiereId: note}}
 let cnClasse  = cnLoad('classe', '');
 let cnTrimestre= cnLoad('trim', 'T1');
+let cnTrimCustom = cnLoad('trimCustom', '');
 let cnLinkedGid = cnLoad('linkedGid', ''); // id de la classe (Groupes/Classes) liée en synchro auto
 let cnExcluded  = cnLoad('excluded', []); // ids d'élèves exclus du Carnet de notes (mais gardés dans leur classe)
 
@@ -16880,6 +16947,7 @@ window.cnSetSeuilValidation = function(v){
   cnSeuilValidation = n;
   localStorage.setItem('cn_seuil_validation', String(n));
   if(typeof toast==='function') toast(`✅ Seuil de validation réglé à ${n}/20`);
+  if(typeof cnRenderValidationDashboard==='function') cnRenderValidationDashboard();
 };
 
 // Message de félicitation (évaluations validées, moyenne ≥ seuil) ou d'encouragement (non validées)
@@ -16889,6 +16957,80 @@ function cnValidationMsg(moy){
   const seuil = (typeof cnSeuilValidation==='number' && !isNaN(cnSeuilValidation)) ? cnSeuilValidation : 10;
   if(n>=seuil) return {ok:true, label:'✅ Évaluations validées', txt:'🎉 Félicitations ! Vous avez validé vos évaluations. Continuez sur cette belle lancée !'};
   return {ok:false, label:'⛔ Évaluations non validées', txt:'💪 Évaluations non validées ce trimestre. Redoublez d\'efforts pour réussir la prochaine fois, nous croyons en vous !'};
+}
+
+/* ── Tableau de bord : taux de validation par classe / matière ── */
+function cnMoyennePourEleveDansBook(book, eleveId){
+  const notesObj = (book.notes||{})[eleveId] || {};
+  let total=0, coeffs=0;
+  (book.matieres||[]).forEach(m=>{
+    const v = notesObj[m.id];
+    if(v!==undefined && v!==''){
+      const n = parseFloat(v);
+      const c = parseFloat(m.coeff)||1;
+      if(!isNaN(n)){ total += n*c; coeffs += c; }
+    }
+  });
+  return coeffs ? (total/coeffs) : null;
+}
+
+function cnValidationParClasse(){
+  const seuil = (typeof cnSeuilValidation==='number' && !isNaN(cnSeuilValidation)) ? cnSeuilValidation : 10;
+  const rows = [];
+  Object.keys(cnBooks).forEach(bid=>{
+    const book = cnBooks[bid];
+    if(!book) return;
+    let valides=0, total=0;
+    (book.eleves||[]).forEach(e=>{
+      const moy = cnMoyennePourEleveDansBook(book, e.id);
+      if(moy!==null){ total++; if(moy>=seuil) valides++; }
+    });
+    rows.push({ label: book.classe || 'Carnet sans nom', valides, total, taux: total ? Math.round(valides/total*100) : null });
+  });
+  return rows;
+}
+
+function cnValidationParMatiere(){
+  const seuil = (typeof cnSeuilValidation==='number' && !isNaN(cnSeuilValidation)) ? cnSeuilValidation : 10;
+  return cnMatieres.map(m=>{
+    let valides=0, total=0;
+    cnEleves.forEach(e=>{
+      const v = (cnNotes[e.id]||{})[m.id];
+      if(v!==undefined && v!==''){
+        const n = parseFloat(v);
+        if(!isNaN(n)){ total++; if(n>=seuil) valides++; }
+      }
+    });
+    return { label: m.nom, valides, total, taux: total ? Math.round(valides/total*100) : null };
+  });
+}
+
+function cnValidationBarHTML(rows){
+  if(!rows.length) return '<div style="font-size:12px;color:#94a3b8;padding:8px 0">Aucune donnée.</div>';
+  return rows.map(r=>{
+    const color = r.taux===null ? '#cbd5e1' : (r.taux>=50 ? '#10b981' : '#ef4444');
+    const pct = r.taux===null ? 0 : r.taux;
+    return `<div style="margin-bottom:9px">
+      <div style="display:flex;justify-content:space-between;font-size:11.5px;font-weight:700;color:#334155;margin-bottom:3px">
+        <span>${cnEsc(r.label)}</span>
+        <span>${r.taux===null?'—':r.taux+'%'} ${r.total?`(${r.valides}/${r.total})`:''}</span>
+      </div>
+      <div style="background:#f1f5f9;border-radius:6px;height:7px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:${color};border-radius:6px"></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function cnRenderValidationDashboard(){
+  const panel = document.getElementById('panel-calcul-notes');
+  if(!panel) return;
+  const seuilSpan = panel.querySelector('#cn-dash-seuil');
+  if(seuilSpan) seuilSpan.textContent = (typeof cnSeuilValidation==='number' && !isNaN(cnSeuilValidation)) ? cnSeuilValidation : 10;
+  const classeEl = panel.querySelector('#cn-dash-classe');
+  if(classeEl) classeEl.innerHTML = cnValidationBarHTML(cnValidationParClasse());
+  const matiereEl = panel.querySelector('#cn-dash-matiere');
+  if(matiereEl) matiereEl.innerHTML = cnValidationBarHTML(cnValidationParMatiere());
 }
 
 function cnRank(eid){
@@ -16936,7 +17078,7 @@ function cnBulletin(e){
 
 /* ── Bulletin trimestriel — génération PDF (impression navigateur) ── */
 const CN_TRIM_LABELS = {T1:'1er Trimestre', T2:'2ème Trimestre', T3:'3ème Trimestre', S1:'1er Semestre', S2:'2ème Semestre', Annuel:'Annuel'};
-function cnTrimLabel(){ return CN_TRIM_LABELS[cnTrimestre] || cnTrimestre || ''; }
+function cnTrimLabel(){ return cnTrimestre==='custom' ? (cnTrimCustom||'Période personnalisée') : (CN_TRIM_LABELS[cnTrimestre] || cnTrimestre || ''); }
 
 function cnBulletinPageHTML(e){
   const moy = cnMoyenneEleve(e.id);
@@ -16947,6 +17089,17 @@ function cnBulletinPageHTML(e){
     ? `<img src="${bLogo}" style="height:54px;width:54px;object-fit:contain;border-radius:10px;border:1.5px solid #e2e8f0;flex-shrink:0" alt="Logo">`
     : `<div style="width:54px;height:54px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;flex-shrink:0">🏫</div>`;
   const bSchool = (typeof manager!=='undefined' && manager.school) ? manager.school : 'Club Réussir Ensemble';
+  const bQrLines = [
+    'Bulletin de notes',
+    `Élève: ${e.nom}`,
+    cnClasse ? `Classe: ${cnClasse}` : '',
+    `Période: ${cnTrimLabel()}`,
+    moy!==null ? `Moyenne: ${moy.toFixed(2)}/20` : '',
+    `Mention: ${men.t}`,
+    `Établissement: ${bSchool}`,
+    `Édité le: ${new Date().toLocaleDateString('fr-FR')}`
+  ].filter(Boolean).join('\n');
+  const bQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=90x90&margin=0&data=${encodeURIComponent(bQrLines)}`;
   const cnMatch2 = (typeof cnFindDossierById==='function') ? (cnFindDossierById(e.id) || cnFindDossierMatch(e.nom)) : null;
   const cnMens2 = (cnMatch2 && typeof ficheMensuelData==='function') ? ficheMensuelData(cnMatch2.gid, cnMatch2.eid, cnTrimestre) : {m1:'',m2:'',m3:''};
   const cnMensuelHTML = (cnMens2.m1!=='' || cnMens2.m2!=='' || cnMens2.m3!=='') ? `
@@ -17003,7 +17156,22 @@ function cnBulletinPageHTML(e){
     <div class="cn-bsign">
       <div>Le Professeur<div class="cn-sign-line"></div></div>
       <div style="text-align:center">
-        <div class="cn-cachet">BD</div>
+        <img src="${bQrUrl}" alt="QR" style="width:68px;height:68px">
+        <div style="font-size:8.5px;color:#94a3b8;margin-top:3px;max-width:90px">🔍 Scannez pour vérifier</div>
+      </div>
+      <div style="text-align:center">
+        <div class="cn-cachet">
+          <svg viewBox="0 0 100 100" width="100%" height="100%">
+            <defs><path id="cachet-${e.id}" d="M 50,50 m -37,0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0"/></defs>
+            <circle cx="50" cy="50" r="45" fill="none" stroke="#1e3a8a" stroke-width="2"/>
+            <circle cx="50" cy="50" r="32" fill="none" stroke="#1e3a8a" stroke-width="1"/>
+            <text font-size="8.6" font-weight="700" letter-spacing="1.2" fill="#1e3a8a">
+              <textPath href="#cachet-${e.id}" startOffset="50%" text-anchor="middle">CLUB RÉUSSIR ENSEMBLE ✦</textPath>
+            </text>
+            <text x="50" y="47" font-size="10" font-weight="800" fill="#1e3a8a" text-anchor="middle">CRE</text>
+            <text x="50" y="60" font-size="5.5" font-weight="700" fill="#1e3a8a" text-anchor="middle">MAMOU</text>
+          </svg>
+        </div>
         <div style="font-size:11px;font-weight:800;color:#1a1f2e;margin-top:2px">Boubacar DIALLO</div>
         <div style="font-size:9.5px;font-weight:700;color:#64748b;letter-spacing:.3px">Le Fondateur${bSchool?' — '+cnEsc(bSchool):''}</div>
       </div>
@@ -17024,7 +17192,7 @@ function cnBulletinStyleBlock(){
     .cn-bhead-title{font-size:19px;font-weight:800;letter-spacing:.5px}
     .cn-bhead-sub{font-size:12px;color:#555;margin-top:2px}
     .cn-bhead-logo{font-size:12px;font-weight:700;color:#4338ca}
-    .cn-cachet{width:58px;height:58px;border-radius:50%;border:2px solid #312e81;display:flex;align-items:center;justify-content:center;font-family:'Dancing Script',cursive;font-size:24px;font-weight:700;color:#312e81;margin:0 auto;transform:rotate(-8deg)}
+    .cn-cachet{width:58px;height:58px;margin:0 auto;transform:rotate(-8deg)}
     .cn-eleve-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:14px;flex-wrap:wrap;gap:6px}
     .cn-lbl{color:#64748b}
     .cn-btable{width:100%;border-collapse:collapse;margin-bottom:16px}
@@ -17035,7 +17203,7 @@ function cnBulletinStyleBlock(){
     .cn-bsum-lbl{font-size:10px;color:#64748b;font-weight:700;margin-top:2px}
     .cn-bsign{display:flex;justify-content:space-between;margin-top:40px;font-size:12px;color:#334155}
     .cn-sign-line{width:160px;border-bottom:1px solid #94a3b8;margin-top:34px}
-    @media print{ @page{margin:1.2cm} }
+    @media print{ @page{size:A4 portrait;margin:1.2cm} }
   </style>`;
 }
 
@@ -17258,6 +17426,8 @@ window.cnRender = function(){
 
   const seuilInput = document.getElementById('cn-seuil-input');
   if(seuilInput && document.activeElement!==seuilInput) seuilInput.value = cnSeuilValidation;
+
+  if(typeof cnRenderValidationDashboard==='function') cnRenderValidationDashboard();
 
   // KPI row
   const total = cnEleves.length;
@@ -17590,7 +17760,7 @@ window.cnSwitchBook = function(id){
   cnActiveBook = id;
   sv('cn_activeBook', cnActiveBook);
   if(!cnBooks[id]){
-    cnBooks[id] = {eleves:[],matieres:[],notes:{},classe:'',trim:'T1',linkedGid:'',excluded:[]};
+    cnBooks[id] = {eleves:[],matieres:[],notes:{},classe:'',trim:'T1',trimCustom:'',linkedGid:'',excluded:[]};
     const grp = (typeof groupesList!=='undefined' ? groupesList : []).find(g=>String(g.id)===String(id));
     if(grp){ cnBooks[id].classe = grp.name; cnBooks[id].linkedGid = String(grp.id); }
     sv('cn_books', cnBooks);
@@ -17601,10 +17771,12 @@ window.cnSwitchBook = function(id){
   cnNotes     = cnLoad('notes', {});
   cnClasse    = cnLoad('classe', '');
   cnTrimestre = cnLoad('trim', 'T1');
+  cnTrimCustom = cnLoad('trimCustom', '');
   cnLinkedGid = cnLoad('linkedGid', '');
   cnExcluded  = cnLoad('excluded', []);
   const clEl = document.getElementById('cn-classe'); if(clEl){ clEl.value = cnClasse; clEl._init=true; }
   const trEl = document.getElementById('cn-trim');   if(trEl){ trEl.value = cnTrimestre; trEl._init=true; }
+  const tcEl = document.getElementById('cn-trim-custom'); if(tcEl){ tcEl.value = cnTrimCustom; tcEl.style.display=(cnTrimestre==='custom')?'':'none'; tcEl._init=true; }
   cnRender();
 };
 
@@ -17625,10 +17797,12 @@ window.cnDeleteBook = function(){
   cnNotes     = cnLoad('notes', {});
   cnClasse    = cnLoad('classe', '');
   cnTrimestre = cnLoad('trim', 'T1');
+  cnTrimCustom = cnLoad('trimCustom', '');
   cnLinkedGid = cnLoad('linkedGid', '');
   cnExcluded  = cnLoad('excluded', []);
   const clEl = document.getElementById('cn-classe'); if(clEl){ clEl.value = cnClasse; clEl._init=true; }
   const trEl = document.getElementById('cn-trim');   if(trEl){ trEl.value = cnTrimestre; trEl._init=true; }
+  const tcEl = document.getElementById('cn-trim-custom'); if(tcEl){ tcEl.value = cnTrimCustom; tcEl.style.display=(cnTrimestre==='custom')?'':'none'; tcEl._init=true; }
   cnPopulateBookSelect();
   cnRender();
 };
@@ -17867,10 +18041,14 @@ window.cnSendAll = function(via){
 
 /* ── Sauvegarder classe & trimestre ── */
 window.cnSaveConfig = function(){
-  cnClasse    = document.getElementById('cn-classe').value.trim();
-  cnTrimestre = document.getElementById('cn-trim').value;
-  cnSave('classe', cnClasse);
-  cnSave('trim',   cnTrimestre);
+  cnClasse     = document.getElementById('cn-classe').value.trim();
+  cnTrimestre  = document.getElementById('cn-trim').value;
+  cnTrimCustom = document.getElementById('cn-trim-custom').value.trim();
+  cnSave('classe',     cnClasse);
+  cnSave('trim',       cnTrimestre);
+  cnSave('trimCustom', cnTrimCustom);
+  const ccEl = document.getElementById('cn-trim-custom');
+  if(ccEl) ccEl.style.display = (cnTrimestre==='custom') ? '' : 'none';
   cnRender();
 };
 
@@ -17888,6 +18066,8 @@ window.cnRender = function(){
   if(clEl && !clEl._init){ clEl.value=cnClasse; clEl._init=true; }
   const trEl = document.getElementById('cn-trim');
   if(trEl && !trEl._init){ trEl.value=cnTrimestre; trEl._init=true; }
+  const tcEl = document.getElementById('cn-trim-custom');
+  if(tcEl && !tcEl._init){ tcEl.value=cnTrimCustom; tcEl.style.display=(cnTrimestre==='custom')?'':'none'; tcEl._init=true; }
 };
 
 /* ── Helper PDF commun : ouvrir une fenêtre HTML imprimable ── */
@@ -18872,6 +19052,17 @@ function ficheBulletinPageHTML(gid, eid, trim){
     ? `<img src="${bLogo}" style="height:54px;width:54px;object-fit:contain;border-radius:10px;border:1.5px solid #e2e8f0;flex-shrink:0" alt="Logo">`
     : `<div style="width:54px;height:54px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;flex-shrink:0">🏫</div>`;
   const bSchool = (typeof manager!=='undefined' && manager.school) ? manager.school : 'Club Réussir Ensemble';
+  const bQrLines = [
+    'Bulletin de notes',
+    `Élève: ${nom}`,
+    el.classe ? `Classe: ${el.classe}` : '',
+    `Période: ${FICHE_BULLETIN_TRIM_LABELS[trim]||trim}`,
+    data.avg!==null ? `Moyenne: ${data.avg}/20` : '',
+    `Mention: ${men.t}`,
+    `Établissement: ${bSchool}`,
+    `Édité le: ${new Date().toLocaleDateString('fr-FR')}`
+  ].filter(Boolean).join('\n');
+  const bQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=90x90&margin=0&data=${encodeURIComponent(bQrLines)}`;
   const rows = data.matieres.map(m=>`<tr>
       <td style="padding:8px 10px;border:1px solid #dfe3ea;font-size:12.5px">${esc(m.mat)}</td>
       <td style="padding:8px 10px;border:1px solid #dfe3ea;text-align:center;font-size:12.5px">${m.coeff||1}</td>
@@ -18920,7 +19111,22 @@ function ficheBulletinPageHTML(gid, eid, trim){
     <div class="fb-sign">
       <div>Le Professeur Principal<div class="fb-sign-line"></div></div>
       <div style="text-align:center">
-        <div class="fb-cachet">BD</div>
+        <img src="${bQrUrl}" alt="QR" style="width:68px;height:68px">
+        <div style="font-size:8.5px;color:#94a3b8;margin-top:3px;max-width:90px">🔍 Scannez pour vérifier</div>
+      </div>
+      <div style="text-align:center">
+        <div class="fb-cachet">
+          <svg viewBox="0 0 100 100" width="100%" height="100%">
+            <defs><path id="cachet-${gid}-${eid}" d="M 50,50 m -37,0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0"/></defs>
+            <circle cx="50" cy="50" r="45" fill="none" stroke="#1e3a8a" stroke-width="2"/>
+            <circle cx="50" cy="50" r="32" fill="none" stroke="#1e3a8a" stroke-width="1"/>
+            <text font-size="8.6" font-weight="700" letter-spacing="1.2" fill="#1e3a8a">
+              <textPath href="#cachet-${gid}-${eid}" startOffset="50%" text-anchor="middle">CLUB RÉUSSIR ENSEMBLE ✦</textPath>
+            </text>
+            <text x="50" y="47" font-size="10" font-weight="800" fill="#1e3a8a" text-anchor="middle">CRE</text>
+            <text x="50" y="60" font-size="5.5" font-weight="700" fill="#1e3a8a" text-anchor="middle">MAMOU</text>
+          </svg>
+        </div>
         <div style="font-size:11px;font-weight:800;color:#1a1f2e;margin-top:2px">Boubacar DIALLO</div>
         <div style="font-size:9.5px;font-weight:700;color:#64748b;letter-spacing:.3px">Le Fondateur${bSchool?' — '+esc(bSchool):''}</div>
       </div>
@@ -18952,8 +19158,8 @@ function ficheOuvrirImpressionBulletin(pageHTML, titre){
     .fb-sum-lbl{font-size:10px;color:#64748b;font-weight:700;margin-top:2px}
     .fb-sign{display:flex;justify-content:space-between;margin-top:40px;font-size:12px;color:#334155}
     .fb-sign-line{width:160px;border-bottom:1px solid #94a3b8;margin-top:34px}
-    .fb-cachet{width:58px;height:58px;border-radius:50%;border:2px solid #312e81;display:flex;align-items:center;justify-content:center;font-family:'Dancing Script',cursive;font-size:24px;font-weight:700;color:#312e81;margin:0 auto;transform:rotate(-8deg)}
-    @media print{ @page{margin:1.2cm} }
+    .fb-cachet{width:58px;height:58px;margin:0 auto;transform:rotate(-8deg)}
+    @media print{ @page{size:A4 portrait;margin:1.2cm} }
   </style></head><body>
   ${pageHTML}
   <script>window.onload=function(){window.print();}<\/script>
