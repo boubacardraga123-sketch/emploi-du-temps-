@@ -5300,7 +5300,12 @@ function edtxInit() {
   <div style="background:#fff;border-radius:14px;padding:14px 16px;margin-bottom:12px;box-shadow:0 1px 4px rgba(0,0,0,.07)">
     <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:800;color:#1a1f2e;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <span>📊 Grille des notes</span>
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <div style="display:flex;align-items:center;gap:6px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:9px;padding:5px 10px">
+          <span style="font-size:11px;color:#64748b;font-weight:700">🎯 Seuil de validation :</span>
+          <input type="number" id="cn-seuil-input" min="0" max="20" step="0.5" style="width:52px;border:1px solid #e2e8f0;border-radius:6px;padding:3px 6px;font-size:12px;font-family:'DM Mono',monospace" onchange="cnSetSeuilValidation(this.value)">
+          <span style="font-size:11px;color:#94a3b8">/20</span>
+        </div>
         <button onclick="cnSendAll('wa')" style="background:#25d366;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📲 Envoyer tout par WA</button>
         <button onclick="cnSendAll('email')" style="background:#6366f1;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">✉️ Envoyer tout par Email</button>
         <button onclick="cnGenererBulletinsPDF()" style="background:#1a1f2e;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📄 Bulletins PDF (tous)</button>
@@ -16867,6 +16872,25 @@ function cnMention(moy){
   return           {t:'Insuffisant',c:'#991b1b',bg:'#fee2e2'};
 }
 
+// Seuil de validation des évaluations, réglable par l'utilisateur (persisté localement)
+let cnSeuilValidation = (function(){ const v = parseFloat(localStorage.getItem('cn_seuil_validation')); return isNaN(v) ? 10 : v; })();
+window.cnSetSeuilValidation = function(v){
+  const n = parseFloat(v);
+  if(isNaN(n) || n<0 || n>20){ if(typeof toast==='function') toast('⚠️ Seuil invalide (0 à 20).'); return; }
+  cnSeuilValidation = n;
+  localStorage.setItem('cn_seuil_validation', String(n));
+  if(typeof toast==='function') toast(`✅ Seuil de validation réglé à ${n}/20`);
+};
+
+// Message de félicitation (évaluations validées, moyenne ≥ seuil) ou d'encouragement (non validées)
+function cnValidationMsg(moy){
+  if(moy===null || moy===undefined || isNaN(moy)) return null;
+  const n = Number(moy);
+  const seuil = (typeof cnSeuilValidation==='number' && !isNaN(cnSeuilValidation)) ? cnSeuilValidation : 10;
+  if(n>=seuil) return {ok:true, label:'✅ Évaluations validées', txt:'🎉 Félicitations ! Vous avez validé vos évaluations. Continuez sur cette belle lancée !'};
+  return {ok:false, label:'⛔ Évaluations non validées', txt:'💪 Évaluations non validées ce trimestre. Redoublez d\'efforts pour réussir la prochaine fois, nous croyons en vous !'};
+}
+
 function cnRank(eid){
   const myMoy = cnMoyenneEleve(eid);
   if(myMoy===null) return '—';
@@ -16905,6 +16929,8 @@ function cnBulletin(e){
   lines.push(`🏅 Mention : ${men.t}`);
   lines.push(`🏆 Rang : ${rank}`);
   if(typeof ficheRemarque==='function') lines.push(`📝 Remarque : ${ficheRemarque(moy)}`);
+  const cnVal = cnValidationMsg(moy);
+  if(cnVal) lines.push(`\n${cnVal.txt}`);
   return lines.join('\n');
 }
 
@@ -16916,6 +16942,11 @@ function cnBulletinPageHTML(e){
   const moy = cnMoyenneEleve(e.id);
   const men = cnMention(moy);
   const rank = cnRank(e.id);
+  const bLogo = (typeof manager!=='undefined' && manager.logo) ? manager.logo : '';
+  const bLogoHtml = bLogo
+    ? `<img src="${bLogo}" style="height:54px;width:54px;object-fit:contain;border-radius:10px;border:1.5px solid #e2e8f0;flex-shrink:0" alt="Logo">`
+    : `<div style="width:54px;height:54px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;flex-shrink:0">🏫</div>`;
+  const bSchool = (typeof manager!=='undefined' && manager.school) ? manager.school : 'Club Réussir Ensemble';
   const cnMatch2 = (typeof cnFindDossierById==='function') ? (cnFindDossierById(e.id) || cnFindDossierMatch(e.nom)) : null;
   const cnMens2 = (cnMatch2 && typeof ficheMensuelData==='function') ? ficheMensuelData(cnMatch2.gid, cnMatch2.eid, cnTrimestre) : {m1:'',m2:'',m3:''};
   const cnMensuelHTML = (cnMens2.m1!=='' || cnMens2.m2!=='' || cnMens2.m3!=='') ? `
@@ -16938,11 +16969,14 @@ function cnBulletinPageHTML(e){
   <div class="cn-bulletin-page">
     <div class="cn-flag-bar"></div>
     <div class="cn-bhead">
-      <div>
-        <div class="cn-bhead-title">BULLETIN DE NOTES</div>
-        <div class="cn-bhead-sub">${cnEsc(cnTrimLabel())}${cnClasse?' — Classe : '+cnEsc(cnClasse):''}</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        ${bLogoHtml}
+        <div>
+          <div class="cn-bhead-school">${cnEsc(bSchool)}</div>
+          <div class="cn-bhead-title">BULLETIN DE NOTES</div>
+          <div class="cn-bhead-sub">${cnEsc(cnTrimLabel())}${cnClasse?' — Classe : '+cnEsc(cnClasse):''}</div>
+        </div>
       </div>
-      <div class="cn-bhead-logo">Collection BHDS</div>
     </div>
     <div class="cn-eleve-row">
       <div><span class="cn-lbl">Élève :</span> <strong>${cnEsc(e.nom)}</strong></div>
@@ -16965,24 +16999,32 @@ function cnBulletinPageHTML(e){
     <div style="margin-top:12px;padding:10px 12px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;color:#334155">
       <strong>📝 Remarque :</strong> ${cnEsc(typeof ficheRemarque==='function' ? ficheRemarque(moy) : '')}
     </div>
+    ${(function(){ const v=cnValidationMsg(moy); return v ? `<div style="margin-top:10px;padding:12px 14px;border-radius:8px;font-size:13px;font-weight:800;text-align:center;${v.ok?'background:#d1fae5;color:#065f46;border:1.5px solid #34d399':'background:#fee2e2;color:#991b1b;border:1.5px solid #f87171'}">${cnEsc(v.txt)}</div>` : ''; })()}
     <div class="cn-bsign">
       <div>Le Professeur<div class="cn-sign-line"></div></div>
-      <div>Le Directeur / La Directrice<div class="cn-sign-line"></div></div>
+      <div style="text-align:center">
+        <div class="cn-cachet">BD</div>
+        <div style="font-size:11px;font-weight:800;color:#1a1f2e;margin-top:2px">Boubacar DIALLO</div>
+        <div style="font-size:9.5px;font-weight:700;color:#64748b;letter-spacing:.3px">Le Fondateur${bSchool?' — '+cnEsc(bSchool):''}</div>
+      </div>
     </div>
   </div>`;
 }
 
 function cnBulletinStyleBlock(){
   return `<style>
+    @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&display=swap');
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:'Arial',sans-serif;color:#1a1f2e}
     .cn-bulletin-page{max-width:720px;margin:0 auto;padding:26px 30px;page-break-after:always}
     .cn-bulletin-page:last-child{page-break-after:auto}
     .cn-flag-bar{height:6px;border-radius:3px;margin-bottom:16px;background:linear-gradient(90deg,#ce1126 0 33%,#fcd116 33% 66%,#009460 66% 100%)}
     .cn-bhead{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1a1f2e;padding-bottom:10px;margin-bottom:14px}
+    .cn-bhead-school{font-size:11px;font-weight:800;color:#6366f1;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
     .cn-bhead-title{font-size:19px;font-weight:800;letter-spacing:.5px}
     .cn-bhead-sub{font-size:12px;color:#555;margin-top:2px}
     .cn-bhead-logo{font-size:12px;font-weight:700;color:#4338ca}
+    .cn-cachet{width:58px;height:58px;border-radius:50%;border:2px solid #312e81;display:flex;align-items:center;justify-content:center;font-family:'Dancing Script',cursive;font-size:24px;font-weight:700;color:#312e81;margin:0 auto;transform:rotate(-8deg)}
     .cn-eleve-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:14px;flex-wrap:wrap;gap:6px}
     .cn-lbl{color:#64748b}
     .cn-btable{width:100%;border-collapse:collapse;margin-bottom:16px}
@@ -17213,6 +17255,9 @@ function dmRender(){
 window.cnRender = function(){
   const panel = document.getElementById('panel-calcul-notes');
   if(!panel) return;
+
+  const seuilInput = document.getElementById('cn-seuil-input');
+  if(seuilInput && document.activeElement!==seuilInput) seuilInput.value = cnSeuilValidation;
 
   // KPI row
   const total = cnEleves.length;
@@ -18775,6 +18820,8 @@ function ficheBulletinText(gid, eid, trim){
   lines.push(`📊 Moyenne : ${data.avg!==null ? data.avg+'/20' : '—'}`);
   lines.push(`🏅 Mention : ${men.t}`);
   lines.push(`📝 Remarque : ${ficheRemarque(data.avg!==null ? Number(data.avg) : null)}`);
+  const fbVal = cnValidationMsg(data.avg!==null ? Number(data.avg) : null);
+  if(fbVal) lines.push(`\n${fbVal.txt}`);
   return lines.join('\n');
 }
 
@@ -18820,6 +18867,11 @@ function ficheBulletinPageHTML(gid, eid, trim){
   const nom = [el.prenom, el.name].filter(Boolean).join(' ');
   const men = ficheMention(data.avg!==null ? Number(data.avg) : null);
   const mens = ficheMensuelData(gid, eid, trim);
+  const bLogo = (typeof manager!=='undefined' && manager.logo) ? manager.logo : '';
+  const bLogoHtml = bLogo
+    ? `<img src="${bLogo}" style="height:54px;width:54px;object-fit:contain;border-radius:10px;border:1.5px solid #e2e8f0;flex-shrink:0" alt="Logo">`
+    : `<div style="width:54px;height:54px;border-radius:10px;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;flex-shrink:0">🏫</div>`;
+  const bSchool = (typeof manager!=='undefined' && manager.school) ? manager.school : 'Club Réussir Ensemble';
   const rows = data.matieres.map(m=>`<tr>
       <td style="padding:8px 10px;border:1px solid #dfe3ea;font-size:12.5px">${esc(m.mat)}</td>
       <td style="padding:8px 10px;border:1px solid #dfe3ea;text-align:center;font-size:12.5px">${m.coeff||1}</td>
@@ -18835,9 +18887,13 @@ function ficheBulletinPageHTML(gid, eid, trim){
   <div class="fb-page">
     <div class="fb-flag-bar"></div>
     <div class="fb-head">
-      <div>
-        <div class="fb-head-title">BULLETIN DE NOTES</div>
-        <div class="fb-head-sub">${esc(FICHE_BULLETIN_TRIM_LABELS[trim]||trim)}${el.classe?' — Classe : '+esc(el.classe):''}</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        ${bLogoHtml}
+        <div>
+          <div class="fb-head-school">${esc(bSchool)}</div>
+          <div class="fb-head-title">BULLETIN DE NOTES</div>
+          <div class="fb-head-sub">${esc(FICHE_BULLETIN_TRIM_LABELS[trim]||trim)}${el.classe?' — Classe : '+esc(el.classe):''}</div>
+        </div>
       </div>
     </div>
     <div class="fb-eleve-row">
@@ -18860,9 +18916,14 @@ function ficheBulletinPageHTML(gid, eid, trim){
     <div style="margin-top:12px;padding:10px 12px;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:8px;font-size:12px;color:#334155">
       <strong>📝 Remarque :</strong> ${esc(ficheRemarque(data.avg!==null ? Number(data.avg) : null))}
     </div>
+    ${(function(){ const v=cnValidationMsg(data.avg!==null ? Number(data.avg) : null); return v ? `<div style="margin-top:10px;padding:12px 14px;border-radius:8px;font-size:13px;font-weight:800;text-align:center;${v.ok?'background:#d1fae5;color:#065f46;border:1.5px solid #34d399':'background:#fee2e2;color:#991b1b;border:1.5px solid #f87171'}">${esc(v.txt)}</div>` : ''; })()}
     <div class="fb-sign">
       <div>Le Professeur Principal<div class="fb-sign-line"></div></div>
-      <div>Le Directeur / La Directrice<div class="fb-sign-line"></div></div>
+      <div style="text-align:center">
+        <div class="fb-cachet">BD</div>
+        <div style="font-size:11px;font-weight:800;color:#1a1f2e;margin-top:2px">Boubacar DIALLO</div>
+        <div style="font-size:9.5px;font-weight:700;color:#64748b;letter-spacing:.3px">Le Fondateur${bSchool?' — '+esc(bSchool):''}</div>
+      </div>
     </div>
   </div>`;
 }
@@ -18872,11 +18933,13 @@ function ficheOuvrirImpressionBulletin(pageHTML, titre){
   if(!win){ if(typeof toast==='function') toast('⚠️ Autorisez les popups pour générer le PDF.'); return; }
   win.document.write(`<!DOCTYPE html><html lang="fr"><head><meta charset="UTF-8"><title>${titre}</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&display=swap');
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:'Arial',sans-serif;color:#1a1f2e}
     .fb-page{max-width:720px;margin:0 auto;padding:26px 30px}
     .fb-flag-bar{height:6px;border-radius:3px;margin-bottom:16px;background:linear-gradient(90deg,#ce1126 0 33%,#fcd116 33% 66%,#009460 66% 100%)}
     .fb-head{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #1a1f2e;padding-bottom:10px;margin-bottom:14px}
+    .fb-head-school{font-size:11px;font-weight:800;color:#6366f1;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
     .fb-head-title{font-size:19px;font-weight:800;letter-spacing:.5px}
     .fb-head-sub{font-size:12px;color:#555;margin-top:2px}
     .fb-eleve-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:14px;flex-wrap:wrap;gap:6px}
@@ -18889,6 +18952,7 @@ function ficheOuvrirImpressionBulletin(pageHTML, titre){
     .fb-sum-lbl{font-size:10px;color:#64748b;font-weight:700;margin-top:2px}
     .fb-sign{display:flex;justify-content:space-between;margin-top:40px;font-size:12px;color:#334155}
     .fb-sign-line{width:160px;border-bottom:1px solid #94a3b8;margin-top:34px}
+    .fb-cachet{width:58px;height:58px;border-radius:50%;border:2px solid #312e81;display:flex;align-items:center;justify-content:center;font-family:'Dancing Script',cursive;font-size:24px;font-weight:700;color:#312e81;margin:0 auto;transform:rotate(-8deg)}
     @media print{ @page{margin:1.2cm} }
   </style></head><body>
   ${pageHTML}
