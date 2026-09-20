@@ -5178,7 +5178,7 @@ function edtxInit() {
   <!-- Bandeau titre -->
   <div style="background:linear-gradient(135deg,#1a1f2e,#4338ca);border-radius:16px;padding:16px 18px;margin-bottom:12px;color:#fff">
     <div style="font-family:'Syne',sans-serif;font-size:17px;font-weight:800;margin-bottom:2px">🏆 Calcul des notes</div>
-    <div style="font-size:12px;opacity:.65">Saisie des notes · Moyennes · Bulletins par WhatsApp ou Email</div>
+    <div style="font-size:12px;opacity:.65">Saisie des notes · Moyennes · Bulletins par WhatsApp, Email ou SMS · PDF par élève</div>
   </div>
 
   <!-- Sélecteur de carnet actif (un carnet indépendant par classe/groupe) -->
@@ -5327,6 +5327,7 @@ function edtxInit() {
         <button onclick="cnSendAll('wa')" style="background:#25d366;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📲 Envoyer tout par WA</button>
         <button onclick="cnSendAll('email')" style="background:#6366f1;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">✉️ Envoyer tout par Email</button>
         <button onclick="cnGenererBulletinsPDF()" style="background:#1a1f2e;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">📄 Bulletins PDF (tous)</button>
+        <button onclick="cnOpenFelicitSheet()" style="background:#059669;color:#fff;border:none;border-radius:9px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">🎉 Féliciter les admis</button>
       </div>
     </div>
     <div id="cn-table-wrap"></div>
@@ -17250,6 +17251,322 @@ window.cnGenererBulletinsPDF = function(){
   cnOuvrirImpressionBulletins(pagesHTML);
 };
 
+/* ══════════════════════════════════════════════════════════
+   FICHE D'ENVOI DU BULLETIN (par élève) : WhatsApp · Email · SMS · PDF
+   ══════════════════════════════════════════════════════════ */
+
+// Numéro utilisable pour un SMS (garde le « + » éventuel)
+function cnSmsNumber(e){ return String((e && e.wa) || '').replace(/[^\d+]/g,''); }
+
+// Version courte (sans emoji) du bulletin, adaptée à la longueur d'un SMS
+function cnBulletinSmsText(e){
+  const moy = cnMoyenneEleve(e.id);
+  const men = cnMention(moy);
+  const school = (typeof manager!=='undefined' && manager.school) ? manager.school : 'Club Réussir Ensemble';
+  const lines = [
+    `BULLETIN — ${cnTrimLabel()}${cnClasse ? ' — ' + cnClasse : ''}`,
+    `Élève : ${e.nom}`
+  ];
+  cnMatieres.forEach(m=>{
+    const n = cnNotes[e.id]?.[m.id];
+    const s = (n!==undefined && n!=='') ? parseFloat(n).toFixed(2)+'/20' : 'Absent';
+    lines.push(`${m.nom} : ${s}`);
+  });
+  lines.push(`Moyenne : ${moy!==null ? moy.toFixed(2)+'/20' : '—'} (${men.t})`);
+  lines.push(`Rang : ${cnRank(e.id)}`);
+  lines.push(school);
+  return lines.join('\n');
+}
+
+// Envoi du bulletin par SMS (ouvre l'appli Messages avec le texte pré-rempli)
+window.cnSendSMS = function(eid){
+  const e = cnEleves.find(x=>x.id===eid);
+  if(!e) return;
+  const num = cnSmsNumber(e);
+  if(!num){ alert('⚠️ Aucun numéro de téléphone pour cet élève.'); return; }
+  const ua = navigator.userAgent || '';
+  const sep = /iPhone|iPad|iPod/.test(ua) ? '&' : '?';
+  window.open(`sms:${num}${sep}body=${encodeURIComponent(cnBulletinSmsText(e))}`, '_blank');
+};
+
+// Téléchargement direct du bulletin d'un élève en vrai fichier PDF (sans boîte d'impression)
+window.cnDownloadBulletinPdf = async function(eid){
+  const e = cnEleves.find(x=>x.id===eid);
+  if(!e) return;
+  if(typeof html2pdf === 'undefined'){
+    alert('❌ Le générateur de PDF ne s\'est pas chargé (vérifiez la connexion internet).');
+    return;
+  }
+  const fname = 'Bulletin_' + String(e.nom).trim().replace(/[^\w\u00C0-\u017F-]+/g,'_') + '_' + cnTrimestre;
+  // Le CSS du bulletin est confiné à .cn-pdf-root pour ne pas perturber le reste de l'application
+  const css = cnBulletinStyleBlock()
+    .replace('*{margin:0;padding:0;box-sizing:border-box}', '.cn-pdf-root *{margin:0;padding:0;box-sizing:border-box}')
+    .replace('body{', '.cn-pdf-root{');
+  const container = document.createElement('div');
+  container.className = 'cn-pdf-root';
+  container.style.cssText = 'position:fixed;left:-99999px;top:0;width:794px;background:#fff';
+  container.innerHTML = css + cnBulletinPageHTML(e);
+  document.body.appendChild(container);
+  if(typeof toast==='function') toast('⏳ Génération du PDF…');
+  try{
+    await html2pdf().from(container).set({
+      margin: 0,
+      filename: fname + '.pdf',
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    }).save();
+    if(typeof toast==='function') toast('✅ PDF téléchargé : ' + fname + '.pdf');
+  }catch(err){
+    console.warn('cnDownloadBulletinPdf: échec', err);
+    alert('❌ Erreur lors de la génération du PDF.');
+  }finally{
+    if(container.parentNode) container.parentNode.removeChild(container);
+  }
+};
+
+window.cnCloseBulletinSheet = function(){
+  const el = document.getElementById('cn-bsheet');
+  if(el) el.remove();
+};
+
+// Enregistre le numéro / l'email saisis dans la fiche d'envoi
+window.cnSaveSheetContact = function(eid){
+  const e = cnEleves.find(x=>x.id===eid);
+  if(!e) return;
+  e.wa    = (document.getElementById('cn-bsheet-wa').value || '').trim();
+  e.email = (document.getElementById('cn-bsheet-email').value || '').trim();
+  cnSave('eleves', cnEleves);
+  if(typeof toast==='function') toast('✅ Contact enregistré.');
+  cnRender();
+  cnOpenBulletinSheet(eid);
+};
+
+// Fiche d'envoi : toutes les options d'envoi / téléchargement pour UN élève
+window.cnOpenBulletinSheet = function(eid){
+  const e = cnEleves.find(x=>x.id===eid);
+  if(!e) return;
+  cnCloseBulletinSheet();
+  const moy = cnMoyenneEleve(e.id);
+  const men = cnMention(moy);
+  const hasNum   = !!cnSmsNumber(e);
+  const hasEmail = !!String(e.email||'').trim();
+
+  const btn = (icon, label, sub, fn, bg, ok, full) => `
+    <button ${ok ? `onclick="${fn}"` : 'disabled'}
+      style="${full?'grid-column:1/-1;':''}display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:${bg};color:#fff;border:none;border-radius:12px;padding:10px 12px;font-family:'DM Sans',sans-serif;text-align:left;cursor:${ok?'pointer':'not-allowed'};opacity:${ok?1:.35}">
+      <span style="font-size:13px;font-weight:800">${icon} ${label}</span>
+      <span style="font-size:10.5px;font-weight:600;opacity:.85">${sub}</span>
+    </button>`;
+
+  const wrap = document.createElement('div');
+  wrap.id = 'cn-bsheet';
+  wrap.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.55);display:flex;align-items:flex-end;justify-content:center';
+  wrap.onclick = ev => { if(ev.target===wrap) cnCloseBulletinSheet(); };
+  wrap.innerHTML = `
+  <div style="background:#fff;width:100%;max-width:480px;max-height:92vh;overflow-y:auto;border-radius:20px 20px 0 0;padding:16px 16px 22px;box-shadow:0 -8px 30px rgba(0,0,0,.25);font-family:'DM Sans',sans-serif">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:12px">
+      <div style="min-width:0">
+        <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#1a1f2e">📤 Bulletin — ${cnEsc(e.nom)}</div>
+        <div style="font-size:11px;color:#64748b;margin-top:2px">${cnEsc(cnTrimLabel())}${cnClasse ? ' — ' + cnEsc(cnClasse) : ''}</div>
+      </div>
+      <button onclick="cnCloseBulletinSheet()" style="background:#f1f5f9;color:#475569;border:none;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;flex-shrink:0">✕</button>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      <div style="flex:1;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px;text-align:center">
+        <div style="font-size:16px;font-weight:800;font-family:'DM Mono',monospace;color:${moy!==null?(moy>=10?'#065f46':'#991b1b'):'#94a3b8'}">${moy!==null?moy.toFixed(2):'—'}</div>
+        <div style="font-size:10px;color:#64748b;font-weight:700">Moyenne /20</div>
+      </div>
+      <div style="flex:1;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px;text-align:center">
+        <div style="font-size:13px;font-weight:800;color:${men.c}">${men.t}</div>
+        <div style="font-size:10px;color:#64748b;font-weight:700">Mention</div>
+      </div>
+      <div style="flex:1;border:1.5px solid #e2e8f0;border-radius:10px;padding:8px;text-align:center">
+        <div style="font-size:16px;font-weight:800;color:#6366f1">${cnRank(e.id)}</div>
+        <div style="font-size:10px;color:#64748b;font-weight:700">Rang</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      ${btn('📲','WhatsApp','Bulletin PDF joint',`cnShareBulletinPdf('${e.id}','wa')`,'#0d7a41',hasNum)}
+      ${btn('📲','WhatsApp','Bulletin en texte',`cnSendWA('${e.id}')`,'#25d366',hasNum)}
+      ${btn('✉️','Email','Bulletin PDF joint',`cnShareBulletinPdf('${e.id}','email')`,'#4338ca',hasEmail)}
+      ${btn('✉️','Email','Bulletin en texte',`cnSendEmail('${e.id}')`,'#6366f1',hasEmail)}
+      ${btn('💬','SMS','Résumé en texte',`cnSendSMS('${e.id}')`,'#0369a1',hasNum)}
+      ${btn('📥','Télécharger','Fichier PDF',`cnDownloadBulletinPdf('${e.id}')`,'#1a1f2e',true)}
+      ${btn('🖨️','Aperçu / Imprimer','Ouvre le bulletin pour impression',`cnGenererBulletinPDF('${e.id}')`,'#64748b',true,true)}
+    </div>
+
+    <div style="border-top:1px dashed #e2e8f0;margin:14px 0 10px"></div>
+    <div style="font-size:11px;font-weight:800;color:#64748b;margin-bottom:6px">📇 Contact de l'élève / du parent</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <input type="tel" id="cn-bsheet-wa" value="${cnEsc(e.wa||'')}" placeholder="Numéro WhatsApp / SMS (ex: +224620000000)"
+        style="padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+      <input type="email" id="cn-bsheet-email" value="${cnEsc(e.email||'')}" placeholder="Email"
+        style="padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+      <button onclick="cnSaveSheetContact('${e.id}')" style="background:#6366f1;color:#fff;border:none;border-radius:10px;padding:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">💾 Enregistrer le contact</button>
+    </div>
+  </div>`;
+  document.body.appendChild(wrap);
+};
+
+/* ══════════════════════════════════════════════════════════
+   FÉLICITATIONS : élèves ayant atteint (ou dépassé) le seuil de validation
+   → message WhatsApp / SMS « félicitations, vous continuez avec le club »
+   ══════════════════════════════════════════════════════════ */
+const CN_FELICIT_DEFAULT = "🎉 Félicitations {nom} !\n\nVous avez obtenu {moyenne}/20 ({periode}) et avez atteint le seuil de validation.\n\nVous continuez donc avec le Club Réussir Ensemble. Poursuivez sur cette belle lancée, nous comptons sur vous !\n\n— Club Réussir Ensemble";
+const cnFelicitSent = {}; // suivi des envois de la session : "carnet|élève|canal" → true
+
+function cnFelicitKey(eid, via){ return (typeof cnActiveBook!=='undefined' ? cnActiveBook : '') + '|' + eid + '|' + via; }
+
+function cnFelicitAdmis(){
+  const seuil = (typeof cnSeuilValidation==='number' && !isNaN(cnSeuilValidation)) ? cnSeuilValidation : 10;
+  return cnEleves
+    .map(e=>({ e, moy: cnMoyenneEleve(e.id) }))
+    .filter(x=>x.moy!==null && x.moy>=seuil)
+    .sort((a,b)=>b.moy-a.moy);
+}
+
+function cnFelicitTemplate(){
+  try{ return localStorage.getItem('cn_felicit_tpl') || CN_FELICIT_DEFAULT; }catch(_){ return CN_FELICIT_DEFAULT; }
+}
+
+// Variables disponibles : {nom} {moyenne} {mention} {periode} {classe}
+function cnFelicitFill(tpl, e, moy){
+  return String(tpl)
+    .replace(/\{nom\}/g, e.nom)
+    .replace(/\{moyenne\}/g, moy.toFixed(2))
+    .replace(/\{mention\}/g, cnMention(moy).t)
+    .replace(/\{periode\}/g, cnTrimLabel())
+    .replace(/\{classe\}/g, cnClasse || '');
+}
+
+// Un SMS s'affiche mal avec les emojis (et coûte plus de segments) : on les retire
+function cnFelicitStripEmoji(s){
+  return String(s).replace(/[\u{1F000}-\u{1FFFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu,'')
+    .replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n').trim();
+}
+
+function cnFelicitUpdateProgress(){
+  const el = document.getElementById('cn-felicit-progress');
+  if(!el) return;
+  const list = cnFelicitAdmis();
+  const nb = via => list.filter(x=>cnFelicitSent[cnFelicitKey(x.e.id, via)]).length;
+  el.textContent = `Envoyés — WhatsApp : ${nb('wa')}/${list.length} · SMS : ${nb('sms')}/${list.length}`;
+}
+
+// Envoi (un élève, un canal) — ouvre WhatsApp ou l'appli SMS avec le message prêt
+window.cnFelicitSend = function(eid, via, btnEl){
+  const e = cnEleves.find(x=>x.id===eid);
+  if(!e) return;
+  const moy = cnMoyenneEleve(eid);
+  if(moy===null) return;
+  const num = cnSmsNumber(e);
+  if(!num){ alert('⚠️ Aucun numéro pour ' + e.nom + '.'); return; }
+  const ta = document.getElementById('cn-felicit-msg');
+  const tpl = (ta && ta.value.trim()) ? ta.value : cnFelicitTemplate();
+  let msg = cnFelicitFill(tpl, e, moy);
+  if(via==='wa'){
+    window.open('https://wa.me/' + num.replace(/\D/g,'') + '?text=' + encodeURIComponent(msg), '_blank');
+  }else{
+    msg = cnFelicitStripEmoji(msg);
+    const sep = /iPhone|iPad|iPod/.test(navigator.userAgent||'') ? '&' : '?';
+    window.open('sms:' + num + sep + 'body=' + encodeURIComponent(msg), '_blank');
+  }
+  cnFelicitSent[cnFelicitKey(eid, via)] = true;
+  if(btnEl){ btnEl.textContent = '✅ ' + (via==='wa' ? 'WA' : 'SMS'); btnEl.style.opacity = '.6'; }
+  cnFelicitUpdateProgress();
+};
+
+// « Prochain » : envoie au premier élève pas encore traité sur ce canal (un geste = un envoi,
+// ce qui évite le blocage des popups du navigateur)
+window.cnFelicitNext = function(via){
+  const list = cnFelicitAdmis().filter(x=>cnSmsNumber(x.e));
+  const next = list.find(x=>!cnFelicitSent[cnFelicitKey(x.e.id, via)]);
+  if(!next){
+    if(typeof toast==='function') toast('✅ Tous les élèves avec un numéro ont été traités.');
+    return;
+  }
+  if(typeof toast==='function') toast('➡️ ' + next.e.nom);
+  cnFelicitSend(next.e.id, via, document.getElementById('cn-felic-' + via + '-' + next.e.id));
+};
+
+window.cnFelicitSaveTpl = function(){
+  const ta = document.getElementById('cn-felicit-msg');
+  if(!ta) return;
+  try{ localStorage.setItem('cn_felicit_tpl', ta.value); }catch(_){}
+};
+
+window.cnFelicitResetTpl = function(){
+  const ta = document.getElementById('cn-felicit-msg');
+  if(ta) ta.value = CN_FELICIT_DEFAULT;
+  try{ localStorage.removeItem('cn_felicit_tpl'); }catch(_){}
+};
+
+window.cnCloseFelicitSheet = function(){
+  const el = document.getElementById('cn-fsheet');
+  if(el) el.remove();
+};
+
+window.cnOpenFelicitSheet = function(){
+  cnCloseFelicitSheet();
+  const seuil = (typeof cnSeuilValidation==='number' && !isNaN(cnSeuilValidation)) ? cnSeuilValidation : 10;
+  const admis = cnFelicitAdmis();
+
+  const rowBtn = (e, via, label, bg) => {
+    const done = !!cnFelicitSent[cnFelicitKey(e.id, via)];
+    return `<button id="cn-felic-${via}-${e.id}" onclick="cnFelicitSend('${e.id}','${via}',this)"
+      style="background:${bg};color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:700;cursor:pointer;opacity:${done?.6:1};white-space:nowrap">${done?'✅ ':''}${label}</button>`;
+  };
+
+  const rows = admis.map(({e, moy})=>{
+    const has = !!cnSmsNumber(e);
+    const men = cnMention(moy);
+    return `<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border:1.5px solid #e2e8f0;border-radius:10px;background:#fff">
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:700;font-size:13px;color:#1a1f2e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${cnEsc(e.nom)}</div>
+        <div style="font-size:11px;color:#64748b"><span style="font-family:'DM Mono',monospace;font-weight:800;color:#065f46">${moy.toFixed(2)}</span> · ${men.t}${has ? '' : ' · <span style="color:#ef4444;font-weight:700">aucun numéro</span>'}</div>
+      </div>
+      ${has ? rowBtn(e,'wa','📲 WA','#25d366') + rowBtn(e,'sms','💬 SMS','#0369a1') : ''}
+    </div>`;
+  }).join('');
+
+  const wrap = document.createElement('div');
+  wrap.id = 'cn-fsheet';
+  wrap.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.55);display:flex;align-items:flex-end;justify-content:center';
+  wrap.onclick = ev => { if(ev.target===wrap) cnCloseFelicitSheet(); };
+  wrap.innerHTML = `
+  <div style="background:#fff;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;border-radius:20px 20px 0 0;padding:16px 16px 22px;box-shadow:0 -8px 30px rgba(0,0,0,.25);font-family:'DM Sans',sans-serif">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px">
+      <div style="min-width:0">
+        <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:#1a1f2e">🎉 Féliciter les admis</div>
+        <div style="font-size:11px;color:#64748b;margin-top:2px">${cnEsc(cnTrimLabel())}${cnClasse ? ' — ' + cnEsc(cnClasse) : ''} · Seuil ≥ ${seuil}/20 · <strong>${admis.length}</strong> élève${admis.length>1?'s':''}</div>
+      </div>
+      <button onclick="cnCloseFelicitSheet()" style="background:#f1f5f9;color:#475569;border:none;border-radius:50%;width:32px;height:32px;font-size:16px;cursor:pointer;flex-shrink:0">✕</button>
+    </div>
+    ${admis.length ? `
+    <div style="font-size:11px;font-weight:800;color:#64748b;margin-bottom:4px">✏️ Message (modifiable)</div>
+    <textarea id="cn-felicit-msg" rows="7" oninput="cnFelicitSaveTpl()"
+      style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;resize:vertical;line-height:1.5">${cnEsc(cnFelicitTemplate())}</textarea>
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin:4px 0 12px;flex-wrap:wrap">
+      <div style="font-size:10px;color:#94a3b8">Variables : {nom} {moyenne} {mention} {periode} {classe} · Les emojis sont retirés pour les SMS</div>
+      <button onclick="cnFelicitResetTpl()" style="background:#f1f5f9;color:#475569;border:none;border-radius:8px;padding:4px 9px;font-size:10.5px;font-weight:700;cursor:pointer">↺ Message par défaut</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px">
+      <button onclick="cnFelicitNext('wa')" style="background:#25d366;color:#fff;border:none;border-radius:12px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif">▶ Prochain — WhatsApp</button>
+      <button onclick="cnFelicitNext('sms')" style="background:#0369a1;color:#fff;border:none;border-radius:12px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif">▶ Prochain — SMS</button>
+    </div>
+    <div id="cn-felicit-progress" style="font-size:11px;font-weight:700;color:#059669;margin-bottom:10px"></div>
+    <div style="display:flex;flex-direction:column;gap:6px">${rows}</div>
+    ` : `
+    <div style="text-align:center;padding:26px 10px;color:#94a3b8;font-size:13px">Aucun élève n'a atteint le seuil de ${seuil}/20 dans ce carnet.<br><span style="font-size:11px">Le seuil se règle dans « Grille des notes » (🎯 Seuil de validation).</span></div>
+    `}
+  </div>`;
+  document.body.appendChild(wrap);
+  cnFelicitUpdateProgress();
+};
+
 /* ── Render principal ── */
 
 // ═══════════════════════════════════════════════════════════════
@@ -17498,14 +17815,7 @@ window.cnRender = function(){
       </td>
       <td style="padding:8px;border:1px solid #e2e8f0;text-align:center;font-weight:700;font-size:12px;color:#6366f1">${rank}</td>
       <td style="padding:6px;border:1px solid #e2e8f0;text-align:center">
-        <div style="display:flex;gap:4px;justify-content:center;flex-wrap:wrap">
-          ${e.wa?`<button onclick="cnSendWA('${e.id}')" style="background:#25d366;color:#fff;border:none;border-radius:7px;padding:4px 8px;font-size:11px;cursor:pointer;font-weight:700">📲 WA</button>`:''}
-          ${e.email?`<button onclick="cnSendEmail('${e.id}')" style="background:#6366f1;color:#fff;border:none;border-radius:7px;padding:4px 8px;font-size:11px;cursor:pointer;font-weight:700">✉️ Email</button>`:''}
-          <button onclick="cnGenererBulletinPDF('${e.id}')" title="Télécharger le bulletin PDF" style="background:#1a1f2e;color:#fff;border:none;border-radius:7px;padding:4px 8px;font-size:11px;cursor:pointer;font-weight:700">📄</button>
-          ${e.wa?`<button onclick="cnShareBulletinPdf('${e.id}','wa')" title="Envoyer le bulletin PDF par WhatsApp" style="background:#0d7a41;color:#fff;border:none;border-radius:7px;padding:4px 8px;font-size:11px;cursor:pointer;font-weight:700">📲 PDF</button>`:''}
-          ${e.email?`<button onclick="cnShareBulletinPdf('${e.id}','email')" title="Envoyer le bulletin PDF par Email" style="background:#4338ca;color:#fff;border:none;border-radius:7px;padding:4px 8px;font-size:11px;cursor:pointer;font-weight:700">✉️ PDF</button>`:''}
-          ${!e.wa&&!e.email?`<span style="font-size:10px;color:#94a3b8">Aucun contact</span>`:''}
-        </div>
+        <button onclick="cnOpenBulletinSheet('${e.id}')" title="Envoyer le bulletin (WhatsApp, Email, SMS) ou le télécharger en PDF" style="background:#1a1f2e;color:#fff;border:none;border-radius:8px;padding:6px 11px;font-size:11px;cursor:pointer;font-weight:700;white-space:nowrap">📤 Bulletin</button>
       </td>
     </tr>`;
   });
