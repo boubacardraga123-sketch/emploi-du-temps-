@@ -17225,20 +17225,20 @@ function cnBulletinFullHtml(e){
 }
 
 window.cnGenererBulletinPDF = function(eid){
-  const e = cnEleves.find(x=>x.id===eid);
+  const e = cnEleves.find(x=>String(x.id)===String(eid));
   if(!e) return;
   cnOuvrirImpressionBulletins(cnBulletinPageHTML(e));
 };
 
 // Génère un vrai PDF du bulletin et le partage via WhatsApp ou Email
 window.cnShareBulletinPdf = async function(eid, via){
-  const e = cnEleves.find(x=>x.id===eid);
+  const e = cnEleves.find(x=>String(x.id)===String(eid));
   if(!e) return;
   if(via==='wa' && !e.wa){ alert('⚠️ Aucun numéro WhatsApp pour cet élève.'); return; }
   if(via==='email' && !e.email){ alert('⚠️ Aucun email pour cet élève.'); return; }
   const moy = cnMoyenneEleve(e.id);
   const texte = `📋 Bulletin de notes — ${e.nom} — ${cnClasse||'Classe'} — ${cnTrimLabel()}\nMoyenne : ${moy!==null?moy.toFixed(2)+'/20':'—'}\nVeuillez trouver le bulletin complet en pièce jointe.`;
-  await window.sharePdfFromHtml(cnBulletinFullHtml(e), `Bulletin_${e.nom.replace(/\s+/g,'_')}_${cnTrimestre}`, { via, phone: e.wa, email: e.email, text: texte, subject: `Bulletin de notes — ${e.nom} — ${cnTrimLabel()}` });
+  await window.sharePdfFromHtml(cnBulletinFullHtml(e), `Bulletin_${e.nom.replace(/\s+/g,'_')}_${cnTrimestre}`, { via, phone: cnWaDigits(e), email: e.email, text: texte, subject: `Bulletin de notes — ${e.nom} — ${cnTrimLabel()}` });
 };
 
 window.cnGenererBulletinsPDF = function(){
@@ -17254,6 +17254,24 @@ window.cnGenererBulletinsPDF = function(){
 /* ══════════════════════════════════════════════════════════
    FICHE D'ENVOI DU BULLETIN (par élève) : WhatsApp · Email · SMS · PDF
    ══════════════════════════════════════════════════════════ */
+
+// Numéro au format international (sans « + ») pour wa.me — ajoute l'indicatif guinéen 224 s'il manque
+function cnWaDigits(e){
+  let d = String((e && e.wa) || '').replace(/\D/g,'');
+  if(d.startsWith('00')) d = d.slice(2);
+  else if(d.length===9 && d[0]==='6') d = '224' + d;          // mobile guinéen saisi sans indicatif
+  else if(d.length===10 && d[0]==='0') d = '224' + d.slice(1); // 0xxxxxxxxx → 224xxxxxxxxx
+  return d;
+}
+function cnOpenWa(num, msg){
+  const url = 'https://wa.me/' + num + '?text=' + encodeURIComponent(msg);
+  const w = window.open(url, '_blank');
+  if(!w) window.location.href = url; // popup bloqué → ouverture directe
+}
+function cnOpenSms(num, msg){
+  const sep = /iPhone|iPad|iPod/.test(navigator.userAgent||'') ? '&' : '?';
+  window.location.href = 'sms:' + num + sep + 'body=' + encodeURIComponent(msg);
+}
 
 // Numéro utilisable pour un SMS (garde le « + » éventuel)
 function cnSmsNumber(e){ return String((e && e.wa) || '').replace(/[^\d+]/g,''); }
@@ -17280,18 +17298,16 @@ function cnBulletinSmsText(e){
 
 // Envoi du bulletin par SMS (ouvre l'appli Messages avec le texte pré-rempli)
 window.cnSendSMS = function(eid){
-  const e = cnEleves.find(x=>x.id===eid);
+  const e = cnEleves.find(x=>String(x.id)===String(eid));
   if(!e) return;
   const num = cnSmsNumber(e);
   if(!num){ alert('⚠️ Aucun numéro de téléphone pour cet élève.'); return; }
-  const ua = navigator.userAgent || '';
-  const sep = /iPhone|iPad|iPod/.test(ua) ? '&' : '?';
-  window.open(`sms:${num}${sep}body=${encodeURIComponent(cnBulletinSmsText(e))}`, '_blank');
+  cnOpenSms(num, cnBulletinSmsText(e));
 };
 
 // Téléchargement direct du bulletin d'un élève en vrai fichier PDF (sans boîte d'impression)
 window.cnDownloadBulletinPdf = async function(eid){
-  const e = cnEleves.find(x=>x.id===eid);
+  const e = cnEleves.find(x=>String(x.id)===String(eid));
   if(!e) return;
   if(typeof html2pdf === 'undefined'){
     alert('❌ Le générateur de PDF ne s\'est pas chargé (vérifiez la connexion internet).');
@@ -17332,7 +17348,7 @@ window.cnCloseBulletinSheet = function(){
 
 // Enregistre le numéro / l'email saisis dans la fiche d'envoi
 window.cnSaveSheetContact = function(eid){
-  const e = cnEleves.find(x=>x.id===eid);
+  const e = cnEleves.find(x=>String(x.id)===String(eid));
   if(!e) return;
   e.wa    = (document.getElementById('cn-bsheet-wa').value || '').trim();
   e.email = (document.getElementById('cn-bsheet-email').value || '').trim();
@@ -17344,7 +17360,7 @@ window.cnSaveSheetContact = function(eid){
 
 // Fiche d'envoi : toutes les options d'envoi / téléchargement pour UN élève
 window.cnOpenBulletinSheet = function(eid){
-  const e = cnEleves.find(x=>x.id===eid);
+  const e = cnEleves.find(x=>String(x.id)===String(eid));
   if(!e) return;
   cnCloseBulletinSheet();
   const moy = cnMoyenneEleve(e.id);
@@ -17458,8 +17474,8 @@ function cnFelicitUpdateProgress(){
 
 // Envoi (un élève, un canal) — ouvre WhatsApp ou l'appli SMS avec le message prêt
 window.cnFelicitSend = function(eid, via, btnEl){
-  const e = cnEleves.find(x=>x.id===eid);
-  if(!e) return;
+  const e = cnEleves.find(x=>String(x.id)===String(eid));
+  if(!e){ alert('⚠️ Élève introuvable — rechargez la page puis réessayez.'); return; }
   const moy = cnMoyenneEleve(eid);
   if(moy===null) return;
   const num = cnSmsNumber(e);
@@ -17468,11 +17484,10 @@ window.cnFelicitSend = function(eid, via, btnEl){
   const tpl = (ta && ta.value.trim()) ? ta.value : cnFelicitTemplate();
   let msg = cnFelicitFill(tpl, e, moy);
   if(via==='wa'){
-    window.open('https://wa.me/' + num.replace(/\D/g,'') + '?text=' + encodeURIComponent(msg), '_blank');
+    cnOpenWa(cnWaDigits(e), msg);
   }else{
     msg = cnFelicitStripEmoji(msg);
-    const sep = /iPhone|iPad|iPod/.test(navigator.userAgent||'') ? '&' : '?';
-    window.open('sms:' + num + sep + 'body=' + encodeURIComponent(msg), '_blank');
+    cnOpenSms(num, msg);
   }
   cnFelicitSent[cnFelicitKey(eid, via)] = true;
   if(btnEl){ btnEl.textContent = '✅ ' + (via==='wa' ? 'WA' : 'SMS'); btnEl.style.opacity = '.6'; }
@@ -18278,16 +18293,16 @@ window.cnRenderMatieres = function(){
 
 /* ── Envoi WhatsApp ── */
 window.cnSendWA = function(eid){
-  const e = cnEleves.find(x=>x.id===eid);
+  const e = cnEleves.find(x=>String(x.id)===String(eid));
   if(!e||!e.wa){ alert('Numéro WhatsApp manquant.'); return; }
   const msg = encodeURIComponent(cnBulletin(e));
-  const num = e.wa.replace(/\D/g,'');
+  const num = cnWaDigits(e);
   window.open('https://wa.me/'+num+'?text='+msg, '_blank');
 };
 
 /* ── Envoi Email ── */
 window.cnSendEmail = function(eid){
-  const e = cnEleves.find(x=>x.id===eid);
+  const e = cnEleves.find(x=>String(x.id)===String(eid));
   if(!e||!e.email){ alert('Email manquant.'); return; }
   const sub = encodeURIComponent(`Bulletin de notes — ${e.nom} — ${cnClasse||'Classe'} — ${cnTrimestre}`);
   const body= encodeURIComponent(cnBulletin(e));
@@ -18311,7 +18326,7 @@ function cnMatiereMessage(e, m, val){
 
 /* ── Envoi WhatsApp d'une note par matière ── */
 window.cnSendMatiereWA = function(eid, mid){
-  const e = cnEleves.find(x=>x.id===eid);
+  const e = cnEleves.find(x=>String(x.id)===String(eid));
   const m = cnMatieres.find(x=>x.id===mid);
   if(!e||!m) return;
   if(!e.wa){ alert('Numéro WhatsApp manquant.'); return; }
@@ -18325,7 +18340,7 @@ window.cnSendMatiereWA = function(eid, mid){
 
 /* ── Envoi Email d'une note par matière ── */
 window.cnSendMatiereEmail = function(eid, mid){
-  const e = cnEleves.find(x=>x.id===eid);
+  const e = cnEleves.find(x=>String(x.id)===String(eid));
   const m = cnMatieres.find(x=>x.id===mid);
   if(!e||!m) return;
   if(!e.email){ alert('Email manquant.'); return; }
