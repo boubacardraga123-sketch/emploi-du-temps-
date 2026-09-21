@@ -5225,6 +5225,12 @@ function edtxInit() {
 
   <div class="form-card">
     <h3>👥 Membres du club</h3>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px">
+      <select id="club-filtre-classe" onchange="renderClubMembres()" style="flex:1;min-width:140px;border:1.5px solid #e5e7eb;border-radius:8px;padding:7px 8px;font-size:.78rem"></select>
+      <button class="btn btn-ghost" style="font-size:.72rem" onclick="clubSyncManuel()">🔄 Synchroniser depuis Groupes/Classes</button>
+      <button class="btn btn-ghost" style="font-size:.72rem" onclick="clubResetEnvois()">↺ Effacer les ✅</button>
+    </div>
+    <div id="club-sync-info" class="hint" style="margin-bottom:8px"></div>
     <div id="club-membres-list"></div>
     <div class="frow" style="margin-top:10px">
       <div class="fg">
@@ -10592,6 +10598,9 @@ function saveGroupes(){
       if(currentTab==='decrocheurs' && typeof renderDecrocheurs==='function') renderDecrocheurs();
     }
   }catch(err){ console.warn('sync auto Groupes→Calcul notes/Décrocheurs:', err); }
+  // ── Synchronisation automatique : Groupes/Classes → Emploi du temps Club (membres) ──
+  try{ if(typeof clubSyncFromGroupes==='function') clubSyncFromGroupes(); }
+  catch(err){ console.warn('sync auto Groupes→Club:', err); }
 }
 
 function filterGroupes(f, el){
@@ -20840,6 +20849,7 @@ function saveClubData(){ sv('edt_club_data', clubData); }
 
 function renderClub(){
   loadClubData();
+  try{ clubSyncFromGroupes(); }catch(err){ console.warn('sync Groupes→Club:', err); }
   document.getElementById('club-nom').value = clubData.nom || '';
   document.getElementById('club-commentaire').value = clubData.commentaire || '';
   renderClubActivites();
@@ -20905,21 +20915,126 @@ function clubAddActivite(){
   renderClubApercu();
 }
 
+// ── Synchronisation Groupes/Classes → Membres du club ──
+// Chaque élève d'un groupe/classe ayant un numéro (tél. élève, sinon WhatsApp parent)
+// devient automatiquement un membre du club. Les ajouts manuels ne sont jamais touchés.
+let clubSyncSansNumero = 0;
+function clubEleveTel(e){ return String((e && e.tel) || '').trim() || String((e && e.wa_parent) || '').trim(); }
+function clubEleveNom(e){ return [e.name, e.prenom].filter(Boolean).join(' ').trim(); }
+
+// Numéro au format international (sans « + ») — ajoute l'indicatif guinéen 224 s'il manque
+function clubWaDigits(tel){
+  let d = String(tel||'').replace(/\D/g,'');
+  if(d.startsWith('00')) d = d.slice(2);
+  else if(d.length===9 && d[0]==='6') d = '224' + d;
+  else if(d.length===10 && d[0]==='0') d = '224' + d.slice(1);
+  return d;
+}
+
+function clubSyncFromGroupes(){
+  loadClubData();
+  if(typeof groupesList==='undefined') return 0;
+  if(!Array.isArray(groupesList) || !groupesList.length){
+    if(typeof loadGroupes==='function') loadGroupes();
+  }
+  if(!Array.isArray(groupesList) || !groupesList.length) return 0;
+  if(!clubData.exclus) clubData.exclus = [];
+  let changed = false, seq = 0;
+  const vus = new Set();
+  clubSyncSansNumero = 0;
+  groupesList.forEach(grp=>{
+    (grp.eleves||[]).forEach(e=>{
+      const key = String(grp.id)+'_'+String(e.id);
+      const nom = clubEleveNom(e);
+      if(!nom) return;
+      const tel = clubEleveTel(e);
+      vus.add(key);
+      if(clubData.exclus.includes(key)) return;
+      let m = clubData.membres.find(x=>x.srcKey===key);
+      if(m){
+        if(m.nom!==nom || m.tel!==tel || m.classe!==(grp.name||'')){
+          m.nom = nom; m.tel = tel; m.classe = grp.name||''; changed = true;
+        }
+      } else {
+        if(!tel){ clubSyncSansNumero++; return; }
+        // évite le doublon avec un membre ajouté à la main portant le même nom
+        const dup = clubData.membres.find(x=>!x.srcKey && (x.nom||'').trim().toLowerCase()===nom.toLowerCase());
+        if(dup) return;
+        clubData.membres.push({ id:Date.now()+(seq++), nom, tel, classe:grp.name||'', srcKey:key });
+        changed = true;
+      }
+    });
+  });
+  // retire les membres synchronisés dont l'élève n'existe plus dans les groupes
+  const avant = clubData.membres.length;
+  clubData.membres = clubData.membres.filter(m=>!m.srcKey || vus.has(m.srcKey));
+  if(clubData.membres.length!==avant) changed = true;
+  if(changed) saveClubData();
+  return changed ? 1 : 0;
+}
+
+function clubSyncManuel(){
+  loadClubData();
+  clubData.exclus = [];   // réintègre aussi les élèves précédemment retirés
+  saveClubData();
+  const n0 = clubData.membres.length;
+  clubSyncFromGroupes();
+  renderClubMembres();
+  renderClubApercu();
+  const diff = clubData.membres.length - n0;
+  alert('✅ Synchronisation terminée.' + (diff>0 ? '\n'+diff+' élève(s) ajouté(s).' : '\nListe déjà à jour.') +
+        (clubSyncSansNumero ? '\n⚠️ '+clubSyncSansNumero+' élève(s) sans numéro non ajoutés.' : ''));
+}
+
+function clubResetEnvois(){
+  clubData.membres.forEach(m=>{ delete m.envoye; });
+  saveClubData();
+  renderClubMembres();
+}
+
+function clubMembresFiltres(){
+  const sel = document.getElementById('club-filtre-classe');
+  const f = sel ? sel.value : '';
+  if(!f) return clubData.membres;
+  if(f==='__manuel') return clubData.membres.filter(m=>!m.srcKey);
+  return clubData.membres.filter(m=>(m.classe||'')===f);
+}
+
 function renderClubMembres(){
   const el = document.getElementById('club-membres-list');
   if(!el) return;
-  if(!clubData.membres.length){
-    el.innerHTML = '<div style="text-align:center;color:#94a3b8;font-size:.8rem;padding:14px 0">Aucun membre ajouté pour le moment.</div>';
+  // liste déroulante des classes
+  const sel = document.getElementById('club-filtre-classe');
+  if(sel){
+    const cur = sel.value;
+    const classes = [...new Set(clubData.membres.map(m=>m.classe).filter(Boolean))].sort();
+    const hasManuel = clubData.membres.some(m=>!m.srcKey);
+    sel.innerHTML = '<option value="">Toutes les classes ('+clubData.membres.length+')</option>' +
+      classes.map(c=>'<option value="'+esc(c)+'">'+esc(c)+' ('+clubData.membres.filter(m=>m.classe===c).length+')</option>').join('') +
+      (hasManuel ? '<option value="__manuel">Ajoutés à la main ('+clubData.membres.filter(m=>!m.srcKey).length+')</option>' : '');
+    sel.value = [...sel.options].some(o=>o.value===cur) ? cur : '';
+  }
+  const info = document.getElementById('club-sync-info');
+  if(info){
+    const sans = clubData.membres.filter(m=>!m.tel).length;
+    info.textContent = 'Les élèves des Groupes/Classes avec un numéro sont ajoutés automatiquement.' +
+      (clubSyncSansNumero ? ' ⚠️ '+clubSyncSansNumero+' élève(s) sans numéro ignoré(s).' : '') +
+      (sans ? ' ⚠️ '+sans+' membre(s) sans numéro.' : '');
+  }
+  const liste = clubMembresFiltres();
+  if(!liste.length){
+    el.innerHTML = '<div style="text-align:center;color:#94a3b8;font-size:.8rem;padding:14px 0">Aucun membre pour le moment.</div>';
     return;
   }
-  el.innerHTML = clubData.membres.map(m=>`
-    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:8px 12px;margin-bottom:6px">
-      <div>
-        <div style="font-weight:700;color:#1d3557;font-size:.82rem">${esc(m.nom)}</div>
-        <div style="font-size:.7rem;color:#25d366">${m.tel?'📱 '+esc(m.tel):'—'}</div>
+  el.innerHTML = liste.map(m=>`
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:${m.envoye?'#f0fdf4':'#f9fafb'};border:1px solid ${m.envoye?'#bbf7d0':'#e5e7eb'};border-radius:10px;padding:8px 12px;margin-bottom:6px">
+      <div style="min-width:0">
+        <div style="font-weight:700;color:#1d3557;font-size:.82rem">${m.envoye?'✅ ':''}${esc(m.nom)}</div>
+        <div style="font-size:.7rem;color:#64748b">${m.classe?'🎓 '+esc(m.classe)+' · ':''}<span style="color:${m.tel?'#25d366':'#ef4444'}">${m.tel?'📱 '+esc(m.tel):'⚠️ pas de numéro'}</span></div>
       </div>
-      <div style="display:flex;gap:6px">
-        ${m.tel?`<button onclick="clubEnvoyerWhatsApp(${m.id})" style="background:#dcfce7;color:#15803d;border:none;border-radius:6px;padding:5px 9px;font-size:.68rem;font-weight:700;cursor:pointer">📲</button>`:''}
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        ${m.tel?`<button onclick="clubEnvoyerWhatsApp(${m.id})" style="background:#dcfce7;color:#15803d;border:none;border-radius:6px;padding:5px 9px;font-size:.68rem;font-weight:700;cursor:pointer">📲 WA</button>
+        <button onclick="clubEnvoyerSMS(${m.id})" style="background:#dbeafe;color:#1d4ed8;border:none;border-radius:6px;padding:5px 9px;font-size:.68rem;font-weight:700;cursor:pointer">💬 SMS</button>`:''}
         <button onclick="clubDeleteMembre(${m.id})" style="background:#fee2e2;color:#ef4444;border:none;border-radius:6px;padding:5px 9px;font-size:.68rem;font-weight:700;cursor:pointer">🗑️</button>
       </div>
     </div>`).join('');
@@ -20938,8 +21053,11 @@ function clubAddMembre(){
 }
 
 function clubDeleteMembre(id){
-  if(!confirm('Retirer ce membre du club ?')) return;
-  clubData.membres = clubData.membres.filter(m=>m.id!==id);
+  const m = clubData.membres.find(x=>x.id===id);
+  if(!m) return;
+  if(!confirm(m.srcKey ? 'Retirer ce membre du club ? (il ne sera plus resynchronisé automatiquement ; le bouton 🔄 le réintègre)' : 'Retirer ce membre du club ?')) return;
+  if(m.srcKey){ if(!clubData.exclus) clubData.exclus = []; clubData.exclus.push(m.srcKey); }
+  clubData.membres = clubData.membres.filter(x=>x.id!==id);
   saveClubData();
   renderClubMembres();
 }
@@ -20980,27 +21098,47 @@ function renderClubApercu(){
   if(el) el.textContent = clubGenererMessage();
 }
 
+function clubMarquerEnvoye(m){
+  m.envoye = Date.now();
+  saveClubData();
+  renderClubMembres();
+}
+
 function clubEnvoyerWhatsApp(membreId){
   const m = clubData.membres.find(x=>x.id===membreId);
   if(!m) return;
   const texte = encodeURIComponent(clubGenererMessage());
-  const tel = (m.tel||'').replace(/\D/g,'');
+  const tel = clubWaDigits(m.tel);
   if(tel){
     window.open(`https://wa.me/${tel}?text=${texte}`, '_blank');
+    clubMarquerEnvoye(m);
   } else {
     if(!confirm('Aucun numéro WhatsApp enregistré pour ce membre. Ouvrir WhatsApp sans destinataire pré-rempli ?')) return;
     window.open(`https://wa.me/?text=${texte}`, '_blank');
   }
 }
 
+function clubEnvoyerSMS(membreId){
+  const m = clubData.membres.find(x=>x.id===membreId);
+  if(!m) return;
+  const tel = clubWaDigits(m.tel);
+  if(!tel){ alert('⚠️ Aucun numéro enregistré pour ce membre.'); return; }
+  const texte = encodeURIComponent(clubGenererMessage());
+  const sep = /iPhone|iPad|iPod/.test(navigator.userAgent||'') ? '&' : '?';
+  window.open(`sms:+${tel}${sep}body=${texte}`, '_blank');
+  clubMarquerEnvoye(m);
+}
+
 function clubEnvoyerWhatsAppTous(){
-  const avecTel = clubData.membres.filter(m=>m.tel);
+  const avecTel = clubMembresFiltres().filter(m=>m.tel);
   if(!avecTel.length){ alert('⚠️ Aucun membre avec un numéro WhatsApp enregistré.'); return; }
   if(!confirm(`Envoyer l'emploi du temps à ${avecTel.length} membre(s) via WhatsApp ?`)) return;
   const texte = encodeURIComponent(clubGenererMessage());
   avecTel.forEach((m,i)=>{
     setTimeout(()=>{
-      window.open(`https://wa.me/${m.tel.replace(/\D/g,'')}?text=${texte}`, '_blank');
+      window.open(`https://wa.me/${clubWaDigits(m.tel)}?text=${texte}`, '_blank');
+      m.envoye = Date.now();
+      if(i===avecTel.length-1){ saveClubData(); renderClubMembres(); }
     }, i*600);
   });
 }
