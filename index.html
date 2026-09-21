@@ -871,7 +871,7 @@ import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
          doc, setDoc, getDoc, getDocFromServer, collection, getDocs, onSnapshot,
-         addDoc, query, where, deleteDoc, updateDoc, serverTimestamp, increment
+         addDoc, query, where, deleteDoc, updateDoc, serverTimestamp, increment, deleteField
        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -1142,10 +1142,34 @@ window.activeUid = () => window.viewingUid || (window.currentUser ? window.curre
 // ── sv/ld Firebase ──
 window.fbSv = async function(k, v) {
   const uid = window.activeUid();
-  if (!uid) return;
+  if (!uid) { console.warn('fbSv: pas de compte connecté, non sauvegardé sur le serveur :', k); return false; }
+  const ref = doc(fbDB, 'users', uid, 'data', k);
+  // Firestore refuse les valeurs "undefined" : on nettoie via un aller-retour JSON
+  let clean;
+  try { clean = JSON.parse(JSON.stringify(v === undefined ? null : v)); } catch(e) { clean = null; }
   try {
-    await setDoc(doc(fbDB, 'users', uid, 'data', k), { value: v }, { merge: true });
-  } catch(e) { console.warn('fbSv error', e); }
+    await setDoc(ref, { value: clean, valueJson: deleteField() }, { merge: true });
+    return true;
+  } catch(e1) {
+    // Repli : Firestore refuse les tableaux imbriqués → on stocke en texte JSON
+    try {
+      await setDoc(ref, { valueJson: JSON.stringify(clean), value: deleteField() }, { merge: true });
+      return true;
+    } catch(e2) {
+      console.warn('fbSv error', k, e2);
+      const now = Date.now();
+      if (!window._lastSvErr || now - window._lastSvErr > 15000) {
+        window._lastSvErr = now;
+        const b = document.createElement('div');
+        b.textContent = '⚠️ Sauvegarde en ligne impossible (' + (e2 && e2.code ? e2.code : 'erreur') + '). Vos données ne seront pas retrouvées à la reconnexion. Vérifiez votre connexion / reconnectez-vous.';
+        b.style.cssText = 'position:fixed;left:10px;right:10px;bottom:12px;z-index:99999;background:#dc2626;color:#fff;padding:12px 14px;border-radius:12px;font:600 13px Inter,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.3)';
+        b.onclick = () => b.remove();
+        document.body.appendChild(b);
+        setTimeout(() => b.remove(), 9000);
+      }
+      return false;
+    }
+  }
 };
 
 window.fbLd = async function(k) {
@@ -1153,7 +1177,10 @@ window.fbLd = async function(k) {
   if (!uid) return null;
   try {
     const snap = await getDoc(doc(fbDB, 'users', uid, 'data', k));
-    return snap.exists() ? snap.data().value : null;
+    if (!snap.exists()) return null;
+    const d = snap.data();
+    if (d.valueJson !== undefined && d.valueJson !== null) { try { return JSON.parse(d.valueJson); } catch(e) {} }
+    return d.value !== undefined ? d.value : null;
   } catch(e) { return null; }
 };
 
@@ -1167,6 +1194,14 @@ const APP_KEYS = [
   'edt_active_etab','edt_ea_data','edt_ea_remarques','edt_sp_data',
   'edt_student_wa','edt_etab_wa','edt_taches','edt_planning','edt_frais_vacances'
 ];
+
+// ── Clés à recharger depuis Firestore au démarrage (toutes celles écrites par sv()) ──
+window.SYNC_KEYS = Array.from(new Set(APP_KEYS.concat([
+  'edt_dynkeys_index','edt_autolist_checked','edt_autolist_history','edt_wa_number','edt_wa_messages',
+  'edt_school_year','edt_rev_week','edt_rev_slots','edt_rev_name','edt_reglement_titre','edt_reglement_texte',
+  'edt_prof_app_url','edt_mi_messages','edt_evals_profs','edt_devoirs_maison','edt_club_data','edt_bac_seuil',
+  'cn_books','cn_activeBook'
+])));
 
 // ── Vider les données locales applicatives ──
 function clearLocalAppData() {
@@ -13844,7 +13879,8 @@ window.initAppAfterAuth = async function() {
     'edt_rev_data','edt_archives','edt_slots','edt_multi_etabs','edt_active_etab','edt_ea_data','edt_ea_remarques','edt_sp_data',
     'edt_dynkeys_index'
   ];
-  await Promise.all(keys.map(async k => {
+  const allKeys = Array.from(new Set(keys.concat(window.SYNC_KEYS || [])));
+  await Promise.all(allKeys.map(async k => {
     const val = await loadFromFirebase(k);
     if(val !== null) { try{ localStorage.setItem(k, JSON.stringify(val)); }catch{} }
   }));
@@ -13870,6 +13906,7 @@ window.initAppAfterAuth = async function() {
   // ── INIT ORIGINAL ──
 // INIT
 // ═══════════════════════════════════════════════════════
+try{ const _sl = ld('edt_slots'); if(Array.isArray(_sl) && _sl.length) SLOTS = _sl; }catch(e){}
 buildSlotSelect();
 
 const savedData    = ld('edt_data');
@@ -14314,7 +14351,7 @@ function saveSlots(){
     newSlots.push(formatSlot(s, e));
   }
   SLOTS = newSlots;
-  localStorage.setItem('edt_slots', JSON.stringify(SLOTS));
+  sv('edt_slots', SLOTS);
   buildSlotSelect();
   if(typeof buildStaffSlotSelect === 'function') buildStaffSlotSelect();
   renderTable();
