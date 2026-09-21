@@ -10636,6 +10636,9 @@ function saveGroupes(){
   // ── Synchronisation automatique : Groupes/Classes → Emploi du temps Club (membres) ──
   try{ if(typeof clubSyncFromGroupes==='function') clubSyncFromGroupes(); }
   catch(err){ console.warn('sync auto Groupes→Club:', err); }
+  // ── Synchronisation automatique : Groupes/Classes → App Présences / Espace Prof (edtxRoster) ──
+  try{ if(typeof window.autoSyncRoster==='function') window.autoSyncRoster(); }
+  catch(err){ console.warn('sync auto Groupes→edtxRoster:', err); }
 }
 
 function filterGroupes(f, el){
@@ -13971,6 +13974,43 @@ window.syncRosterToEspaceProf = async function(){
     alert('Erreur de synchronisation : ' + (e && e.message ? e.message : e));
   }
 };
+
+// Envoi automatique (après chaque modification) de la liste classes/élèves vers edtxRoster,
+// lue en direct par l'App Présences. Ne réécrit que les classes modifiées et supprime
+// celles qui n'existent plus dans Groupes/Classes.
+let _rosterTimer = null;
+const _rosterLastPushed = {};
+window.autoSyncRoster = function(){
+  clearTimeout(_rosterTimer);
+  _rosterTimer = setTimeout(async ()=>{
+    const fbDB = window.fbDB, doc = window.fbDoc, setDoc = window.fbSetDoc, delDoc = window.fbDeleteDoc;
+    if(!fbDB || !doc || !setDoc) return;
+    try{
+      const ids = [];
+      for(const grp of groupesList){
+        const id = String(grp.id);
+        ids.push(id);
+        const payload = {
+          name: grp.name || '',
+          eleves: (grp.eleves||[]).map(e=>({ id:String(e.id), name:e.name||'', prenom:e.prenom||'', tel:e.tel||e.wa_parent||'' }))
+        };
+        const sig = JSON.stringify(payload);
+        if(_rosterLastPushed[id] === sig) continue;
+        await setDoc(doc(fbDB,'edtxRoster', id), { ...payload, updatedAt: Date.now() });
+        _rosterLastPushed[id] = sig;
+      }
+      const prev = ld('edt_roster_pushed') || [];
+      for(const id of prev){
+        if(!ids.includes(id) && delDoc){
+          try{ await delDoc(doc(fbDB,'edtxRoster', id)); delete _rosterLastPushed[id]; }catch(e){}
+        }
+      }
+      sv('edt_roster_pushed', ids);
+    }catch(e){ console.warn('autoSyncRoster:', e); }
+  }, 1500);
+};
+// Première synchronisation au chargement (rattrape les classes existantes)
+setTimeout(()=>{ if(typeof window.autoSyncRoster==='function') window.autoSyncRoster(); }, 4000);
 
 function buildProfLink(code){
   return `${window.location.origin}${window.location.pathname.replace(/[^/]*$/, '')}espace-prof.html?code=${code}`;
